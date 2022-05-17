@@ -1,8 +1,7 @@
 import { makeState } from './dirty'
 import { insertBefore } from './insertBefore'
 import { insertHtml, insertAttr, h } from './insertHtml'
-import { isObj } from "./core";
-import { isFunc, NOT } from '.';
+import { isObj } from "./core"
 
 /**
  * @typedef {Object} Jsx6Extras 

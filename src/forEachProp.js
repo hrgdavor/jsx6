@@ -1,5 +1,4 @@
-import { isArray } from '.'
-import { isObj } from './core'
+import { isObj, isArray } from './core'
 
 export function forEachProp (obj, callback) {
   if (obj) {

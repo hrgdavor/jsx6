@@ -1,5 +1,4 @@
-import { isArray } from '.'
-import { isObj } from './core'
+import { isObj, isArray } from './core'
 
 export const mapPropArray = (obj, callback) => mapProp(obj, callback, true)
 
