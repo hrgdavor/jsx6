@@ -1,0 +1,42 @@
+{
+  "name": "@jsx6",
+  "version": "1.0",
+  "description": "JSX and ES6+ UI library",
+  "main": "index.js",
+  "unpkg": "dist/jsx6.min.js",
+  "files": [
+    "index.js",
+    "dist"
+  ],
+  "scripts": {
+    "lint": "eslint index.js",
+    "watch": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=dist --bundle --sourcemap --minify --loader:.js=jsx --watch",
+    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=dist --bundle --sourcemap --minify --loader:.js=jsx",
+    "test": "npm run lint",
+    "prepublishOnly": "npm test && npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrgdavor/jsx6.git"
+  },
+  "keywords": [
+    "UI",
+    "jsx"
+  ],
+  "author": "Davor hrg",
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/brentertz/scapegoat/blob/master/LICENSE-MIT"
+    }
+  ],
+  "bugs": {
+    "url": "https://hrgdavor/jsx6/issues"
+  },
+  "homepage": "https://github.com/brentertz/scapegoat/blob/master/README.md",
+  "dependencies": {},
+  "peerDependencies": {},
+  "devDependencies": {
+  }
+}
