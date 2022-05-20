@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "JSX and ES6+ UI library",
   "main": "index.js",
@@ -8,7 +8,7 @@
   "module": "esm/index.js",
   "exports": {
     ".": {
-      "require":  "./cjs/index.js",
+      "require": "./cjs/index.js",
       "default": "./esm/index.js"
     }
   },
