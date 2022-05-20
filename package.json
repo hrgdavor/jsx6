@@ -21,7 +21,7 @@
   "scripts": {
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
-    "prepublishOnly": "npm run build && nspm run build-csj"
+    "prepublishOnly": "npm run build && npm run build-csj"
   },
   "repository": {
     "type": "git",
