@@ -4,15 +4,24 @@
   "type": "module",
   "description": "JSX and ES6+ UI library",
   "main": "index.js",
-  "unpkg": "dist/jsx6.min.js",
+  "unpkg": "cjs/index.js",
+  "module": "esm/index.js",
+  "exports": {
+    ".": {
+      "require":  "./cjs/index.js",
+      "default": "./esm/index.js"
+    }
+  },
   "files": [
     "index.js",
-    "dist"
+    "src",
+    "esm",
+    "cjs"
   ],
   "scripts": {
-    "watch": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=dist --bundle --sourcemap --minify --loader:.js=jsx --watch",
-    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=dist --bundle --sourcemap --minify --loader:.js=jsx",
-    "prepublishOnly": "npm run build"
+    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
+    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
+    "prepublishOnly": "npm run build && nspm run build-csj"
   },
   "repository": {
     "type": "git",
