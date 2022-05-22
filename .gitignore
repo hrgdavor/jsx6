@@ -3,5 +3,7 @@ node_modules
 dist/*.js
 *.sublime-workspace
 .history
+cjs
+esm
 
 pnpm-lock.yaml
