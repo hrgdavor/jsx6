@@ -5,6 +5,12 @@ importers:
   .:
     specifiers: {}
 
+  ../../apps/repl:
+    specifiers:
+      esbuild: ^0.14.39
+    devDependencies:
+      esbuild: 0.14.47
+
   ../../libs/jsx6:
     specifiers:
       esbuild: ^0.14.39

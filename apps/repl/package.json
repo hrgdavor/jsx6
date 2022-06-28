@@ -1,0 +1,50 @@
+{
+  "name": "@jsx6/repl",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "JSX6 REPL engine",
+  "main": "index.js",
+  "unpkg": "cjs/index.js",
+  "module": "esm/index.js",
+  "exports": {
+    ".": {
+      "require": "./cjs/index.js",
+      "default": "./esm/index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "src",
+    "esm",
+    "cjs"
+  ],
+  "scripts": {
+    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm --log-level=error",
+    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs --log-level=error",
+    "prepublishOnly": "npm run build && npm run build-cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrgdavor/jsx6.git"
+  },
+  "keywords": [
+    "UI",
+    "jsx",
+    "repl"
+  ],
+  "author": "Davor hrg",
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/hrgdavor/jsx6/blob/master/LICENSE.md"
+    }
+  ],
+  "bugs": {
+    "url": "https://hrgdavor/jsx6/issues"
+  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/apps/repl/README.md",
+  "devDependencies": {
+    "esbuild": "^0.14.39"
+  }
+}
