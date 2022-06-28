@@ -1,6 +1,6 @@
 import { isObj, isArray } from './core'
 
-export function forEachProp (obj, callback) {
+export function forEachProp(obj, callback) {
   if (obj) {
     if (isObj(obj)) {
       for (const p in obj) {

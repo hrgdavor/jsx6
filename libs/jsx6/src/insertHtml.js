@@ -23,12 +23,13 @@ const ERR_NULL_TAG = 1 //           JSX6E1 - Tag is null
 const ERR_UNSUPPORTED_TAG = 2 //    JSX6E2 - Tag type is not supported
 
 if (typeof document !== 'undefined') {
-  _createText = (t) => document.createTextNode(t)
-  _createElementSvg = (t) => t ? document.createElementNS('http://www.w3.org/2000/svg', t) : throwErr(ERR_NULL_TAG)
-  _createElement = (t, o) => t ? document.createElement(t, o) : throwErr(ERR_NULL_TAG)
+  _createText = t => document.createTextNode(t)
+  _createElementSvg = t =>
+    t ? document.createElementNS('http://www.w3.org/2000/svg', t) : throwErr(ERR_NULL_TAG)
+  _createElement = (t, o) => (t ? document.createElement(t, o) : throwErr(ERR_NULL_TAG))
 }
 
-export function setHtmlFunctions (createTextNode, createElement, createElementSvg) {
+export function setHtmlFunctions(createTextNode, createElement, createElementSvg) {
   _createText = createTextNode
   _createElement = createElement
   _createElementSvg = createElementSvg
@@ -41,11 +42,11 @@ export function setHtmlFunctions (createTextNode, createElement, createElementSv
  - if tag is a function with isComponentClass=false - it is treated as a template and
  is injected into an anonymous Jsx6 component
 */
-export function tpl (tag, attr = {}, ...children) {
+export function tpl(tag, attr = {}, ...children) {
   return make(true, this, tag, attr, children)
 }
 
-function make (asTpl, _self, tag, attr = {}, ...children) {
+function make(asTpl, _self, tag, attr = {}, ...children) {
   if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
 
   if (isStr(tag)) {
@@ -80,7 +81,7 @@ function make (asTpl, _self, tag, attr = {}, ...children) {
   }
 }
 
-function _h2 (tag, attr = {}, ...children) {
+function _h2(tag, attr = {}, ...children) {
   return make(false, this, tag, attr, ...children)
 }
 
@@ -88,7 +89,11 @@ function _h2 (tag, attr = {}, ...children) {
 export const h = _h2.bind(NO_CONTEXT)
 // hack to make calling bind on already bound function possible, and actually binding to the new scope
 // without this a function that is already created by .bind would keep the initial scope
-h.bind = s => { const out = _h2.bind(s); out.bind = h.bind; return out }
+h.bind = s => {
+  const out = _h2.bind(s)
+  out.bind = h.bind
+  return out
+}
 
 /*
 // sample code that demonstrates the binding trick above
@@ -104,18 +109,18 @@ var nz = ny.bind(z)
 console.log(nx(),ny(),nz())
 */
 
-export function domWithScope (scope, f) {
+export function domWithScope(scope, f) {
   return f(h.bind(scope))
 }
-export function domToProps (f) {
+export function domToProps(f) {
   const scope = {}
   f(h.bind(scope))
   return scope
 }
 
-export const svg = (callback) => callback(toSvg)
+export const svg = callback => callback(toSvg)
 
-function toSvg (tag, attr = {}, ...children) {
+function toSvg(tag, attr = {}, ...children) {
   if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
   const out = _createElementSvg(tag)
   insertAttr(attr, out)
@@ -123,17 +128,31 @@ function toSvg (tag, attr = {}, ...children) {
   return out
 }
 
-export function insertSvg (parent, before, def, _self = this, component = null, createElement = _createElement) {
+export function insertSvg(
+  parent,
+  before,
+  def,
+  _self = this,
+  component = null,
+  createElement = _createElement,
+) {
   return insertHtml(parent, before, def, _self, component, _createElementSvg)
 }
 
-function textValue (v) {
+function textValue(v) {
   if (v === null || v === undefined) return ''
   if (!isStr(v)) return '' + v
   return v
 }
 
-export function insertHtml (parent, before, def, _self = this, component = null, createElement = _createElement) {
+export function insertHtml(
+  parent,
+  before,
+  def,
+  _self = this,
+  component = null,
+  createElement = _createElement,
+) {
   // component parameter is not forwarded to recursive calls on purpose as it is used only for inital element
   if (!def) return
   /** @type {Jsx6|Node} */
@@ -155,17 +174,17 @@ export function insertHtml (parent, before, def, _self = this, component = null,
     if (isSvg(def.tag) || isSvg(parent?.tagName)) createElement = _createElementSvg
 
     const toObserve = def.then || def.next
-    if(toObserve){
+    if (toObserve) {
       // support for promise(.then) or observable(.next) values
       out = _createText('aaaa')
-      toObserve.call(def, r=>out.textContent = r)
-      if (parent) insertBefore(parent, out, before)      
-    }else{
+      toObserve.call(def, r => (out.textContent = r))
+      if (parent) insertBefore(parent, out, before)
+    } else {
       if (!def.tag) throwErr(ERR_NULL_TAG, def)
       out = createElement(def.tag)
       insertAttr(def.attr, out, _self, component)
       if (parent) insertBefore(parent, out, before)
-  
+
       if (def.children && def.children.length) {
         insertHtml(out, null, def.children, _self, null, createElement)
       }
@@ -177,7 +196,7 @@ export function insertHtml (parent, before, def, _self = this, component = null,
   return out
 }
 
-export function isSvg (tag) {
+export function isSvg(tag) {
   return tag && tag.toUpperCase() === 'SVG'
 }
 
@@ -190,7 +209,7 @@ need to refresh the value
  - add the updater as listener for changes (state change, etc)
  - default is change handler of the parent component
 */
-export function makeUpdater (parent, before, attr, func, updaters) {
+export function makeUpdater(parent, before, attr, func, updaters) {
   if (updaters instanceof Jsx6) {
     updaters = updaters.state()
   }
@@ -213,7 +232,7 @@ export function makeUpdater (parent, before, attr, func, updaters) {
   }
 }
 
-export function makeNodeUpdater (node, func) {
+export function makeNodeUpdater(node, func) {
   const ret = function () {
     const newValue = textValue(func())
     if (node.textContent !== newValue) node.textContent = newValue
@@ -222,7 +241,7 @@ export function makeNodeUpdater (node, func) {
   return ret
 }
 
-export function makeAttrUpdater (node, attr, func) {
+export function makeAttrUpdater(node, attr, func) {
   const ret = function () {
     const newValue = func()
     if (node.getAttribute(attr) !== newValue) {
@@ -240,7 +259,7 @@ export function makeAttrUpdater (node, attr, func) {
   return ret
 }
 
-export function insertAttr (attr, out, self, component) {
+export function insertAttr(attr, out, self, component) {
   if (!attr) return
 
   for (const a in attr) {
@@ -250,9 +269,13 @@ export function insertAttr (attr, out, self, component) {
       out.addEventListener(a.substring(2), value.bind(self))
     } else if (a === 'key') {
       out.loopKey = value
-      if (!out.$key) { out.$key = value }
+      if (!out.$key) {
+        out.$key = value
+      }
       if (component) {
-        if (!component.$key) { component.$key = value }
+        if (!component.$key) {
+          component.$key = value
+        }
         component.loopKey = value
       }
     } else if (isFunc(value)) {
@@ -266,20 +289,20 @@ export function insertAttr (attr, out, self, component) {
   }
 }
 
-function setPropGroup (self, part, [$group, $key]) {
+function setPropGroup(self, part, [$group, $key]) {
   if ($key) {
     if (!self[$group]) self[$group] = new Group()
-    self[part.$group = $group][part.$key = $key] = part
+    self[(part.$group = $group)][(part.$key = $key)] = part
   } else {
-    self[part.$key = $group] = part
+    self[(part.$key = $group)] = part
   }
 }
 
 /** To simplify, we just clear the element and add new nodes (no vnode diff is performed) */
-export function applyHtml (parent, def, self = this) {
+export function applyHtml(parent, def, self = this) {
   if (isStr(parent)) parent = document.getElementById(parent)
 
-  function destroy (el) {
+  function destroy(el) {
     let ch = el.firstElementChild
     while (ch) {
       destroy(ch)

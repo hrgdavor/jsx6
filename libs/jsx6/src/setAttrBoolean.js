@@ -1,7 +1,7 @@
 import { isObj } from './core'
 import { Jsx6 } from './Jsx6'
 
-export function setAttrBoolean (obj, attr, value) {
+export function setAttrBoolean(obj, attr, value) {
   if (obj) {
     if (obj.setAttribute) {
       if (value) {

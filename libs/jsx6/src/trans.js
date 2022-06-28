@@ -5,18 +5,18 @@ const ERR_TRANS_UUPD_FUNC = 3 //    JSX6E3 - Translation updater must be a funct
 
 const translationUpdaters = []
 
-export function refreshTranslations () {
+export function refreshTranslations() {
   addDirty(translationDirtyRunner)
 }
 
 const translationDirtyRunner = () => translationUpdaters.forEach(f => f())
 
-function pushTranslationUpdater (func) {
+function pushTranslationUpdater(func) {
   requireFunc(func, ERR_TRANS_UUPD_FUNC)
   translationUpdaters.push(func)
 }
 
-export function T (code) {
+export function T(code) {
   const out = () => t(code)
 
   out.addUpdater = pushTranslationUpdater

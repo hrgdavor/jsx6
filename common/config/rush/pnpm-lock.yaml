@@ -12,11 +12,13 @@ importers:
       babel-plugin-jsx-simple: ~1.1.0
       babel-plugin-syntax-jsx: ~6.18.0
       esbuild: ^0.14.39
+      monaco-editor: ~0.33.0
     dependencies:
       '@babel/standalone': 7.18.6
       '@jsx6/jsx6': link:../../libs/jsx6
       babel-plugin-jsx-simple: 1.1.0_babel-plugin-syntax-jsx@6.18.0
       babel-plugin-syntax-jsx: 6.18.0
+      monaco-editor: 0.33.0
     devDependencies:
       esbuild: 0.14.47
 
@@ -232,3 +234,7 @@ packages:
       esbuild-windows-64: 0.14.47
       esbuild-windows-arm64: 0.14.47
     dev: true
+
+  /monaco-editor/0.33.0:
+    resolution: {integrity: sha512-VcRWPSLIUEgQJQIE0pVT8FcGBIgFoxz7jtqctE+IiCxWugD0DwgyQBcZBhdSrdMC84eumoqMZsGl2GTreOzwqw==}
+    dev: false

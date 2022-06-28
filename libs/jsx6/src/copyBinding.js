@@ -1,6 +1,6 @@
 import { isFunc } from './core'
 
-export function copyBinding (params, prop, options = {}, defRequired, defKeep) {
+export function copyBinding(params, prop, options = {}, defRequired, defKeep) {
   const { required = defRequired, callback, def, keep = defKeep } = options
 
   let propBind = params[prop]
@@ -30,7 +30,7 @@ export function copyBinding (params, prop, options = {}, defRequired, defKeep) {
   return propBind
 }
 
-export function copyBindings (defaults, params, obj = {}, defRequired, defKeep) {
+export function copyBindings(defaults, params, obj = {}, defRequired, defKeep) {
   for (const p in defaults) {
     obj[p] = copyBinding(params, p, defaults[p], defRequired, defKeep)
   }

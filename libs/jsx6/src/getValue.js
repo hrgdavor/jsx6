@@ -1,7 +1,7 @@
 import { isFunc } from './core'
 import { mapProp } from './mapProp'
 
-export function getValue (obj) {
+export function getValue(obj) {
   if (obj === null || obj === undefined) return obj
 
   if (isFunc(obj.getValue)) return obj.getValue()

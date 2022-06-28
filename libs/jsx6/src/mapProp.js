@@ -2,7 +2,7 @@ import { isObj, isArray } from './core'
 
 export const mapPropArray = (obj, callback) => mapProp(obj, callback, true)
 
-export function mapProp (obj, callback, asArray) {
+export function mapProp(obj, callback, asArray) {
   if (obj) {
     if (isObj(obj)) {
       const out = isArray ? [] : {}
