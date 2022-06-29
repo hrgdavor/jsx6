@@ -5,11 +5,11 @@
   "description": "JSX and ES6+ UI library",
   "main": "index.js",
   "unpkg": "cjs/index.js",
-  "module": "esm/index.js",
+  "module": "./index.js",
   "exports": {
     ".": {
       "require": "./cjs/index.js",
-      "default": "./esm/index.js"
+      "default": "./index.js"
     }
   },
   "files": [
