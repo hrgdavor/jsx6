@@ -8,8 +8,10 @@ import syntax_jsx from 'babel-plugin-syntax-jsx'
 
 const noEmpty = x => x
 
-console.log((availablePlugins['jsx-mi2'] = jsx_mi2))
-console.log((availablePlugins['syntax-jsx'] = syntax_jsx))
+insertBefore(document.body,<b>Hello world</b>)
+
+availablePlugins['jsx-mi2'] = jsx_mi2
+availablePlugins['syntax-jsx'] = syntax_jsx
 console.log(
   transform(
     `import { h, Jsx6, appendChild } from '@jsx6/jsx6'
