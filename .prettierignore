@@ -77,7 +77,8 @@ common/autoinstallers/*/.npmrc
 .history
 esm
 cjs
-
+deploy
+dist
 
 #-------------------------------------------------------------------------------------------------------------------
 # Prettier-specific overrides

@@ -7,9 +7,15 @@ body, html{
 }
 
 .c-iframe{
-  width:300px;
-  height:300px;
   position: relative;
   border: solid 1px red;
 }
 
+.c-left {
+  width: 300px;
+}
+
+.c-main{
+  display: grid;
+  grid-template-columns: minmax(25%, 300px) auto;
+}
