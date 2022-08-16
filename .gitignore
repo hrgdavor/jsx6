@@ -73,3 +73,5 @@ common/autoinstallers/*/.npmrc
 .history
 esm
 cjs
+deploy
+dist

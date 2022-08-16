@@ -1,4 +1,8 @@
 
+##pitfalls 
+ - tpl missing first parameter: h will cause issue because of missing parent
+ - - TODO throw an error that is more descriptive and/or make validation tool
+
 
 
 mixin example and test

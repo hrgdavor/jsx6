@@ -1,0 +1,22 @@
+.MiniEditor {
+  font-family: 'Roboto Mono', monospace;
+  font-size: 12px;
+  outline: none;
+  overflow-y: auto;
+  padding-left: 48px;
+  counter-reset: line;
+}
+
+.MiniEditor div {
+  display: block;
+  position: relative;
+  white-space: pre-wrap;
+}
+
+.MiniEditor div::before {
+  content: counter(line);
+  counter-increment: line;
+  position: absolute;
+  right: calc(100% + 16px);
+  opacity: 0.5;
+}

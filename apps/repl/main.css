@@ -1,0 +1,30 @@
+ /* display block commons case */
+.bl{ display: block; }
+.bli{ display: inline-block; }
+
+ /* flex */
+.fx    { display: flex; }
+.fxi   { display: inline-flex; }
+.fx1   { flex: 1; }
+ /* default is row, so class for column is needed */
+.fx-fc { display: flex; flex-flow: column;}
+ /* flex with everything stretched */
+.fxc { display: flex; justify-content: center; align-items: center;}
+ /* flex with everything centered */
+.fxs { display: flex; justify-content: stretch; align-items: stretch;}
+ /* flex justify tweaks */
+.fx-jc { justify-content: center; }
+.fx-ac { align-items: center; }
+.fx-js { justify-content: flex-start; }
+.fx-as { align-items: flex-start; }
+.fx-je { justify-content: flex-end; }
+.fx-ae { align-items: flex-end; }
+
+/* some very common sizes */
+.wa { width: auto; }
+.w100 { width: 100%; }
+.w50 { width: 50%; }
+.h100 { height: 100%; }
+/* often needed owerflow */
+.owh{ overflow: hidden;}
+.owa{ overflow: auto;}

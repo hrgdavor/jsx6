@@ -165,8 +165,7 @@ export function insertHtml(
     out = def.map(c => insertHtml(parent, before, c, _self, null, createElement))
   } else if (def instanceof Jsx6) {
     def.setParent(_self)
-    def.__init()
-    insertBefore(parent, def, before)
+    def.__init(parent, before)
     return def
   } else if (isNode(def)) {
     if (parent) insertBefore(parent, def, before)

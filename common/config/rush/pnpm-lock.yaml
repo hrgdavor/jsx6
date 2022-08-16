@@ -7,15 +7,16 @@ importers:
 
   ../../apps/repl:
     specifiers:
-      '@babel/standalone': ~7.18.6
+      '@babel/standalone': ~7.18.12
       '@jsx6/jsx6': workspace:^1.3.0
       babel-plugin-jsx-simple: ~1.1.0
       babel-plugin-syntax-jsx: ~6.18.0
       esbuild: ^0.14.39
       monaco-editor: ~0.33.0
       vite: ~2.9.13
+      vite-plugin-monaco-editor: ~1.0.11
     dependencies:
-      '@babel/standalone': 7.18.6
+      '@babel/standalone': 7.18.12
       '@jsx6/jsx6': link:../../libs/jsx6
       babel-plugin-jsx-simple: 1.1.0_babel-plugin-syntax-jsx@6.18.0
       babel-plugin-syntax-jsx: 6.18.0
@@ -23,6 +24,7 @@ importers:
     devDependencies:
       esbuild: 0.14.47
       vite: 2.9.13
+      vite-plugin-monaco-editor: 1.0.11_monaco-editor@0.33.0
 
   ../../libs/jsx6:
     specifiers:
@@ -32,8 +34,8 @@ importers:
 
 packages:
 
-  /@babel/standalone/7.18.6:
-    resolution: {integrity: sha512-lnmCNeuIl2OMWbIWojTIw66rL3n66h9+guiMYk2kfW3s9QlP2F3WoICFJnKP/0+WTFXzlMyonv6W0UZzJAklDA==}
+  /@babel/standalone/7.18.12:
+    resolution: {integrity: sha512-wDh3K5IUJiSMAY0MLYBFoCaj2RCZwvDz5BHn2uHat9KOsGWEVDFgFQFIOO+81Js2phFKNppLC45iOCsZVfJniw==}
     engines: {node: '>=6.9.0'}
     dev: false
 
@@ -313,6 +315,14 @@ packages:
   /supports-preserve-symlinks-flag/1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
+    dev: true
+
+  /vite-plugin-monaco-editor/1.0.11_monaco-editor@0.33.0:
+    resolution: {integrity: sha512-J+kOgwDVuVaNmQiwIevQBuO491v9PeV5SY+a9dJDXvDajo8JGOMAkQz3B6m8ffAKHo5FU4VHfSwQ23z4zfDKgw==}
+    peerDependencies:
+      monaco-editor: '>=0.33.0'
+    dependencies:
+      monaco-editor: 0.33.0
     dev: true
 
   /vite/2.9.13:

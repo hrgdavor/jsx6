@@ -45,11 +45,12 @@ export class Jsx6 {
     }
   }
 
-  __init() {
+  __init(parent, before) {
     if (this.__initialized) return
     this.createEl()
     this.initTemplate()
     this.insertChildren()
+    insertBefore(parent, this.el, before)
     this.init(this.state)
     this.__initialized = true
   }
