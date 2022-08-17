@@ -21,7 +21,8 @@
   "scripts": {
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm --log-level=error",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs --log-level=error",
-    "prepublishOnly": "npm run build && npm run build-cjs"
+    "prepublishOnly": "npm run build && npm run build-cjs",
+    "build-local-jsx6": "esbuild ../../libs/jsx6/index.js --bundle --outfile=dist/jsx6.js --sourcemap --format=cjs"
   },
   "repository": {
     "type": "git",

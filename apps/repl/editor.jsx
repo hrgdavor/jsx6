@@ -32,7 +32,7 @@ class Editor extends Jsx6 {
             <div class="fxs1 fxfc owh">
               <div class="fxs1 owh fxfc">
                 <div>Output</div>
-                <FlipFrame p="iframe" class="fx1" hidden />
+                <FlipFrame p="iframe" class="fx1" />
               </div>
             </div>
           </div>
@@ -71,16 +71,9 @@ self.doTest2 = () => {
     )
   })
 }
-
 const code = `import { h, Jsx6, insert } from '@jsx6/jsx6'
 
-insert(document.body,<h3>Hello World!{/* comment in jsx*/}</h3>)
-
-
-console.log('aaaaa')
-
-
-console.log('aaaaa')
+insert(document.body,<h3>Hello World!</h3>)
 
 
 
@@ -102,7 +95,6 @@ applyCodeChange(code)
 
 let changeTimer
 editor.editor.editor.getModel().onDidChangeContent(event => {
-  console.log('code change', event)
   clearTimeout(changeTimer)
   changeTimer = setTimeout(() => {
     applyCodeChange(editor.editor.getValue())
@@ -113,12 +105,12 @@ function applyCodeChange(code) {
   let time = performance.now()
   let codeTransformed = transform(code, {}).code
   let timeTransform1 = performance.now()
-  const codeToRun = transform(code, {}, { plugins: ['transform-modules-commonjs'] }).code
+  const transformedForRun = transform(code, {}, { plugins: ['transform-modules-commonjs'] })
+  const codeToRun = transformedForRun.code
   let timeTransform2 = performance.now()
 
   const count1 = countLines(code)
   const count2 = countLines(codeTransformed)
-  console.log(count1, count2)
 
   if (count1 > count2) {
     const arr = [codeTransformed]
@@ -131,4 +123,72 @@ function applyCodeChange(code) {
   console.log(code)
   console.log(timeTransform1 - time, codeTransformed)
   console.log(timeTransform2 - time, codeToRun)
+
+  editor.iframe.waitNext().then(iframe => runCode(codeToRun, iframe, code, transformedForRun.map))
 }
+
+function runCode(code, iframe, source) {
+  console.log('codeToRun', code, iframe)
+  const win = iframe.contentWindow
+  win.__mark = 'iframe_win'
+  self.__mark = 'main_win'
+  win.requireFile = requireFile
+  win.require = require
+  win.requireModule = requireModule
+  win.eval(code)
+}
+
+function requireFile(url) {
+  var X = new XMLHttpRequest()
+  X.open('GET', url, 0) // sync
+  X.send()
+  if (X.status && X.status !== 200) throw new Error(X.statusText)
+  return X.responseText
+}
+
+function require(url) {
+  //if (url.toLowerCase().substr(-3)!=='.js') url+='.js'; // to allow loading without js suffix;
+  if (require.urlAlias[url]) url = require.urlAlias[url]
+  console.log('require', url)
+  if (!url.startsWith('http')) {
+    if (url.startsWith('./')) {
+      //throw new Error('local files not supported')
+    } else {
+      url = 'https://unpkg.com/' + url
+    }
+  }
+  var exports = require.cache[url] //get from cache
+  if (!exports) {
+    //not cached
+    let module = requireModule(url)
+    require.cache[url] = exports = module.exports //cache obj exported by module
+  }
+  return exports //require returns object exported by module
+}
+
+function requireModule(url, source) {
+  try {
+    const exports = {}
+    source = source || requireFile(url)
+    const module = { id: url, uri: url, exports: exports, source } //according to node.js modules
+    // fix, add comment to show source on Chrome Dev Tools
+    //source="//@ sourceURL="+window.location.origin+url+"\n" + source;
+    //------
+    const anonFn = new Function('require', 'exports', 'module', source) //create a Fn with module code, and 3 params: require, exports & module
+    anonFn(require, exports, module) // call the Fn, Execute the module
+    return module
+  } catch (err) {
+    console.error('Error loading module ' + url + ': ' + err.message + '\n', err.stack, err)
+    console.log(source)
+    throw err
+  }
+}
+require.cache = {}
+require.urlAlias = {}
+require.alias = (alias, orig) => {
+  const cache = require.cache
+  cache[alias] = cache[orig]
+  if (alias.toLowerCase().substr(-3) !== '.js') require.cache[alias + '.js'] = cache[orig]
+  require.urlAlias[alias] = orig
+}
+require.alias('@jsx6/jsx6', './dist/jsx6.js')
