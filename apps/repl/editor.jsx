@@ -24,16 +24,13 @@ class Editor extends Jsx6 {
         <div class="fx1 c-main owh">
           {/* ---------------- left side  ----------------------- */}
           <div class="c-left fxs1 fxfc pad owh">
-            <div class="fxs1 owa">
+            <div class="fx1 owa">
               <h1>Title</h1>
               <p>Bla bla</p>
             </div>
             {/* right bottom */}
             <div class="fxs1 fxfc owh">
-              <div class="fxs1 owh fxfc">
-                <div>Output</div>
-                <FlipFrame p="iframe" class="fx1" />
-              </div>
+              <div class="fxs1 owh fxfc"></div>
             </div>
           </div>
 
@@ -46,8 +43,11 @@ class Editor extends Jsx6 {
             </div>
 
             {/* right bottom */}
-            <div class="fxs1 fxfc owh" hidden>
-              <div class="fxs1 owh"></div>
+            <div class="fxs1 fxfc owh">
+              <div class="fx1 owh">
+                <div>Output</div>
+                <FlipFrame p="iframe" class="fx1" />
+              </div>
             </div>
           </div>
         </div>
