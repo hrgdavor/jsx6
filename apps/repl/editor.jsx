@@ -28,7 +28,7 @@ class Editor extends Jsx6 {
               <h1>Title</h1>
               <p>Bla bla</p>
             </div>
-            {/* right bottom */}
+            {/* left bottom */}
             <div class="fxs1 fxfc owh">
               <div class="fxs1 owh fxfc"></div>
             </div>
