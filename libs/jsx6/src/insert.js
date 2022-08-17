@@ -1,7 +1,7 @@
 import { throwErr, ERR_REQUIRE_PARENT } from './core'
 import { toDomNode } from './toDomNode'
 
-export function insertBefore(parent, newChild, before) {
+export function insert(parent, newChild, before) {
   if (!parent) throwErr(ERR_REQUIRE_PARENT, { parent, newChild, before })
   const _parent = parent.insertBefore ? parent : toDomNode(parent)
 
@@ -18,23 +18,4 @@ export function insertBefore(parent, newChild, before) {
     throw error
   }
   return newChild
-}
-
-export const appendChild = insertBefore
-
-export function replaceChild(parent, newChild, before) {
-  insertBefore(parent, newChild, before)
-  removeChild(parent, before)
-  return newChild
-}
-
-export function removeChild(parent, child) {
-  const _parent = parent.removeChild ? parent : toDomNode(parent)
-  try {
-    // if (_child instanceof Array) _child = _child[0]
-    _parent.removeChild(toDomNode(child))
-  } catch (error) {
-    console.error('parent', parent, 'newChild', newChild, 'before', before)
-    throw error
-  }
 }

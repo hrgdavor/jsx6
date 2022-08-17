@@ -1,7 +1,7 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
 
-import { appendChild, domWithScope, insertBefore, Jsx6, setVisible } from '@jsx6/jsx6'
+import { insert, Jsx6 } from '@jsx6/jsx6'
 import { FlipFrame } from './src/FlipFrame'
 import { transform } from './src/transform'
 import { MonacoEditor } from './src/MonacoEditor'
@@ -49,14 +49,14 @@ class Editor extends Jsx6 {
   }
 }
 
-const editor = (self.APP = insertBefore(document.body, <Editor class="fxs1" />))
+const editor = (self.APP = insert(document.body, <Editor class="fxs1" />))
 
 self.doTest2 = () => {
   let time = performance.now()
   APP.iframe.counter = (APP.iframe.counter || 0) + 1
   APP.iframe.waitNext().then(iframe => {
     console.log('reloaded', performance.now() - time, iframe.__mark)
-    insertBefore(
+    insert(
       iframe.contentWindow.document.body,
       <h1>
         Hello iframe {iframe.loadCounter} / {APP.iframe.counter}
@@ -65,9 +65,9 @@ self.doTest2 = () => {
   })
 }
 
-const code = `import { h, Jsx6, insertBefore } from '@jsx6/jsx6'
+const code = `import { h, Jsx6, insert } from '@jsx6/jsx6'
 
-insertBefore(document.body,<h3>Hello World!{/* comment in jsx*/}</h3>)
+insert(document.body,<h3>Hello World!{/* comment in jsx*/}</h3>)
 
 
 console.log('aaaaa')

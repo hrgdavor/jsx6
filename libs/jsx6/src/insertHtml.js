@@ -1,5 +1,5 @@
 import { Jsx6 } from './Jsx6'
-import { insertBefore } from './insertBefore'
+import { insert } from './insert'
 import { isStr, isFunc, isObj, throwErr, Group, isNode } from './core'
 
 const NO_CONTEXT = {}
@@ -159,7 +159,7 @@ export function insertHtml(
   let out
   if (isFunc(def)) {
     out = _createText(textValue(def()))
-    if (parent) insertBefore(parent, out, before)
+    if (parent) insert(parent, out, before)
     makeUpdater(out, before, null, def, _self)
   } else if (def instanceof Array) {
     out = def.map(c => insertHtml(parent, before, c, _self, null, createElement))
@@ -168,7 +168,7 @@ export function insertHtml(
     def.__init(parent, before)
     return def
   } else if (isNode(def)) {
-    if (parent) insertBefore(parent, def, before)
+    if (parent) insert(parent, def, before)
   } else if (isObj(def)) {
     if (isSvg(def.tag) || isSvg(parent?.tagName)) createElement = _createElementSvg
 
@@ -177,12 +177,12 @@ export function insertHtml(
       // support for promise(.then) or observable(.next) values
       out = _createText('aaaa')
       toObserve.call(def, r => (out.textContent = r))
-      if (parent) insertBefore(parent, out, before)
+      if (parent) insert(parent, out, before)
     } else {
       if (!def.tag) throwErr(ERR_NULL_TAG, def)
       out = createElement(def.tag)
       insertAttr(def.attr, out, _self, component)
-      if (parent) insertBefore(parent, out, before)
+      if (parent) insert(parent, out, before)
 
       if (def.children && def.children.length) {
         insertHtml(out, null, def.children, _self, null, createElement)
@@ -190,7 +190,7 @@ export function insertHtml(
     }
   } else {
     out = _createText('' + def)
-    if (parent) insertBefore(parent, out, before)
+    if (parent) insert(parent, out, before)
   }
   return out
 }

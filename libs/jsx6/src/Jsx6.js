@@ -1,5 +1,5 @@
 import { makeState } from './dirty'
-import { insertBefore } from './insertBefore'
+import { insert } from './insert'
 import { insertHtml, insertAttr, h } from './insertHtml'
 import { isObj } from './core'
 
@@ -50,7 +50,7 @@ export class Jsx6 {
     this.createEl()
     this.initTemplate()
     this.insertChildren()
-    insertBefore(parent, this.el, before)
+    insert(parent, this.el, before)
     this.init(this.state)
     this.__initialized = true
   }
@@ -161,14 +161,14 @@ export class Jsx6 {
     return this.el.getBoundingClientRect()
   }
   appendChild(c) {
-    insertBefore(this.el, c)
+    insert(this.el, c)
   }
   insertBefore(c, before) {
     if (this.el instanceof Array) {
       const el = this.el[0]
-      this.el.push(insertBefore(el.parentNode, c, el))
+      this.el.push(insert(el.parentNode, c, el))
     } else {
-      insertBefore(this.contentArea || this.el, c, before)
+      insert(this.contentArea || this.el, c, before)
     }
   }
 
