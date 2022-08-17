@@ -1,4 +1,7 @@
- /* display block commons case */
+.hidden, [hidden]{ display: none !important;}
+
+
+/* display block commons case */
 .bl{ display: block; }
 .bli{ display: inline-block; }
 

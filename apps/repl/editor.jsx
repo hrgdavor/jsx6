@@ -23,9 +23,18 @@ class Editor extends Jsx6 {
       <>
         <div class="fx1 c-main owh">
           {/* ---------------- left side  ----------------------- */}
-          <div class="c-left fx1 pad owh">
-            <h1>Title</h1>
-            <p>Bla bla</p>
+          <div class="c-left fxs1 fxfc pad owh">
+            <div class="fxs1 owa">
+              <h1>Title</h1>
+              <p>Bla bla</p>
+            </div>
+            {/* right bottom */}
+            <div class="fxs1 fxfc owh">
+              <div class="fxs1 owh fxfc">
+                <div>Output</div>
+                <FlipFrame p="iframe" class="fx1" hidden />
+              </div>
+            </div>
           </div>
 
           {/* ---------------- right side  ----------------------- */}
@@ -37,10 +46,8 @@ class Editor extends Jsx6 {
             </div>
 
             {/* right bottom */}
-            <div class="fxs1 fxfc owh">
-              <div class="fxs1 owh">
-                <FlipFrame p="iframe" class="fx1" hidden />
-              </div>
+            <div class="fxs1 fxfc owh" hidden>
+              <div class="fxs1 owh"></div>
             </div>
           </div>
         </div>
@@ -74,8 +81,22 @@ console.log('aaaaa')
 
 
 console.log('aaaaa')
+
+
+
+
 `
 editor.editor.setValue(code)
+
+const countLines = str => {
+  let length = 0
+  for (let i = 0; i < str.length; ++i) {
+    if (str[i] == '\n') {
+      length++
+    }
+  }
+  return length
+}
 
 applyCodeChange(code)
 
@@ -90,12 +111,22 @@ editor.editor.editor.getModel().onDidChangeContent(event => {
 
 function applyCodeChange(code) {
   let time = performance.now()
-  const codeTransformed = transform(code, {}).code
+  let codeTransformed = transform(code, {}).code
   let timeTransform1 = performance.now()
   const codeToRun = transform(code, {}, { plugins: ['transform-modules-commonjs'] }).code
   let timeTransform2 = performance.now()
 
-  editor.compiled.setValue(codeTransformed + '\n')
+  const count1 = countLines(code)
+  const count2 = countLines(codeTransformed)
+  console.log(count1, count2)
+
+  if (count1 > count2) {
+    const arr = [codeTransformed]
+    for (let i = count2; i < count1; i++) arr.push('\n')
+    codeTransformed = arr.join('')
+  }
+
+  editor.compiled.setValue(codeTransformed)
 
   console.log(code)
   console.log(timeTransform1 - time, codeTransformed)
