@@ -2,6 +2,9 @@ import { throwErr, ERR_REQUIRE_PARENT } from './core'
 import { toDomNode } from './toDomNode'
 
 export function insert(parent, newChild, before) {
+  if (newChild instanceof Array) {
+    return newChild.map(c => insert(parent, c, before))
+  }
   if (!parent) throwErr(ERR_REQUIRE_PARENT, { parent, newChild, before })
   const _parent = parent.insertBefore ? parent : toDomNode(parent)
 
