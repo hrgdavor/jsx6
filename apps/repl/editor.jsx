@@ -3,7 +3,7 @@
 
 import { insert, Jsx6 } from '@jsx6/jsx6'
 import { FlipFrame } from './src/FlipFrame'
-import { transform } from './src/transform'
+import { transform } from './src/babel/transform'
 import { MonacoEditor } from './src/MonacoEditor'
 
 import styles from './editor.css'
@@ -73,7 +73,10 @@ self.doTest2 = () => {
 }
 const code = `import { h, Jsx6, insert } from '@jsx6/jsx6'
 
-insert(document.body,<h3>Hello World!</h3>)
+insert(document.body,<>
+  <h3>Hello World!</h3>
+  <div>Counter:</div>
+</>)
 
 
 
