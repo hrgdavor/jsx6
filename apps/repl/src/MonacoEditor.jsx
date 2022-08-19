@@ -22,3 +22,5 @@ export class MonacoEditor extends Jsx6 {
     })
   }
 }
+
+export const colorize = monaco.editor.colorize

@@ -4,9 +4,10 @@
 import { insert, Jsx6 } from '@jsx6/jsx6'
 import { FlipFrame } from './src/FlipFrame'
 import { transform } from './src/babel/transform'
-import { MonacoEditor } from './src/MonacoEditor'
+import { MonacoEditor, colorize } from './src/MonacoEditor'
 
 import styles from './editor.css'
+import { markdown } from './src/markdown/markdown'
 
 class Editor extends Jsx6 {
   init() {
@@ -16,6 +17,29 @@ class Editor extends Jsx6 {
       ed2.onDidScrollChange(e => ed1.setScrollTop(e.scrollTop))
     }
     syncScroll(this.editor.editor, this.compiled.editor)
+
+    const codeMark = '```'
+    const mdSample = `
+## h1
+
+bla bla
+
+${codeMark}javascript
+import { h, Jsx6, insert } from '@jsx6/jsx6'
+
+var x = 1;
+${codeMark}
+
+${codeMark}javascript
+function test(a,b){
+  return a+b
+}
+${codeMark}    
+        `
+
+    markdown(mdSample, colorize).then(html => {
+      this.md.innerHTML = html
+    })
   }
 
   tpl(h, state, $state) {
@@ -24,7 +48,7 @@ class Editor extends Jsx6 {
         <div class="fx1 c-main owh">
           {/* ---------------- left side  ----------------------- */}
           <div class="c-left fxs1 fxfc pad owh">
-            <div class="fx1 owa">
+            <div class="fx1 owa" p="md">
               <h1>Title</h1>
               <p>Bla bla</p>
             </div>
@@ -123,15 +147,15 @@ function applyCodeChange(code) {
 
   editor.compiled.setValue(codeTransformed)
 
-  console.log(code)
-  console.log(timeTransform1 - time, codeTransformed)
-  console.log(timeTransform2 - time, codeToRun)
+  // console.log(code)
+  // console.log(timeTransform1 - time, codeTransformed)
+  // console.log(timeTransform2 - time, codeToRun)
 
   editor.iframe.waitNext().then(iframe => runCode(codeToRun, iframe, code, transformedForRun.map))
 }
 
 function runCode(code, iframe, source) {
-  console.log('codeToRun', code, iframe)
+  // console.log('codeToRun', code, iframe)
   const win = iframe.contentWindow
   win.__mark = 'iframe_win'
   self.__mark = 'main_win'

@@ -55,6 +55,7 @@
     "babel-plugin-syntax-jsx": "~6.18.0",
     "babel-plugin-jsx-simple": "~1.4.0",
     "monaco-editor": "~0.33.0",
-    "@babel/standalone": "~7.18.12"
+    "@babel/standalone": "~7.18.12",
+    "markdown-it": "~13.0.1"
   }
 }

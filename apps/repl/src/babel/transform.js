@@ -2,7 +2,7 @@ import { transform as babelTransform, availablePlugins } from '@babel/standalone
 import jsx_mi2 from 'babel-plugin-jsx-simple'
 import syntax_jsx from 'babel-plugin-syntax-jsx'
 import { preventInfiniteLoops } from './preventInfiniteLoops'
-console.log(jsx_mi2.toString())
+
 availablePlugins['jsx-mi2'] = jsx_mi2
 availablePlugins['syntax-jsx'] = syntax_jsx
 availablePlugins['preventInfiniteLoops'] = preventInfiniteLoops
