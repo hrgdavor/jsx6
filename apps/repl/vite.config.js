@@ -25,4 +25,10 @@ export default defineConfig({
   define: {
     'process.env': process.env,
   },
+  server: {
+    fs: {
+      // Allow serving files from node modules that are in rush common folder
+      allow: ['../..'],
+    },
+  },
 })
