@@ -29,10 +29,6 @@ export function markdown(code, colorize) {
         }
         var reg = /\{\{colorize[^}]+\}\}/g
         rendered = rendered.replaceAll(reg, key => codeMap[key] || key)
-        console.log('keys', keys)
-        console.log('val', val)
-        console.log('rendered', rendered)
-        console.log('codeMap', codeMap)
         resolve(rendered)
       })
     })

@@ -121,11 +121,19 @@ const countLines = str => {
 applyCodeChange(code)
 
 let changeTimer
+let defApplyCodeDelay = 100
+let applyCodeDelay = defApplyCodeDelay
 editor.editor.editor.getModel().onDidChangeContent(event => {
   clearTimeout(changeTimer)
   changeTimer = setTimeout(() => {
-    applyCodeChange(editor.editor.getValue())
-  }, 300)
+    try {
+      applyCodeChange(editor.editor.getValue())
+      applyCodeDelay = defApplyCodeDelay
+    } catch (error) {
+      applyCodeDelay = 1000
+      throw error
+    }
+  }, applyCodeDelay)
 })
 
 function applyCodeChange(code) {
@@ -151,11 +159,26 @@ function applyCodeChange(code) {
   // console.log(timeTransform1 - time, codeTransformed)
   // console.log(timeTransform2 - time, codeToRun)
 
-  editor.iframe.waitNext().then(iframe => runCode(codeToRun, iframe, code, transformedForRun.map))
+  editor.iframe.waitNext().then(iframe => {
+    try {
+      runCode(codeToRun, iframe, code, transformedForRun.map)
+      applyCodeDelay = defApplyCodeDelay
+    } catch (error) {
+      applyCodeDelay = 1000
+      throw error
+    }
+  })
 }
 
 function runCode(code, iframe, source) {
   // console.log('codeToRun', code, iframe)
+  console.log(
+    `
+****************************************
+**********************  RUN CODE  ******
+****************************************
+`,
+  )
   const win = iframe.contentWindow
   win.__mark = 'iframe_win'
   self.__mark = 'main_win'
@@ -176,7 +199,6 @@ function requireFile(url) {
 function require(url) {
   //if (url.toLowerCase().substr(-3)!=='.js') url+='.js'; // to allow loading without js suffix;
   if (require.urlAlias[url]) url = require.urlAlias[url]
-  console.log('require', url)
   if (!url.startsWith('http')) {
     if (url.startsWith('./')) {
       //throw new Error('local files not supported')
