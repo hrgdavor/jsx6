@@ -5,6 +5,7 @@ import { insert, Jsx6 } from '@jsx6/jsx6'
 import { FlipFrame } from './src/FlipFrame'
 import { transform } from './src/babel/transform'
 import { MonacoEditor, colorize } from './src/MonacoEditor'
+import { parse } from 'mulmd'
 
 import styles from './editor.css'
 import { markdown } from './src/markdown/markdown'
@@ -56,7 +57,7 @@ ${codeMark}
               <p>Bla bla</p>
             </div>
             {/* left bottom */}
-            <div class="fxs1 fxfc owh">
+            <div class="fxs1 fxfc owh" hidden>
               <div class="fxs1 owh fxfc"></div>
             </div>
           </div>
