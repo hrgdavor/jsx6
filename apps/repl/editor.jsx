@@ -9,6 +9,9 @@ import { MonacoEditor, colorize } from './src/MonacoEditor'
 import styles from './editor.css'
 import { markdown } from './src/markdown/markdown'
 
+const transformcjs = (code, filename) =>
+  transform(code, { filename, sourceMaps: 'inline' }, { plugins: ['transform-modules-commonjs'] })
+
 class Editor extends Jsx6 {
   init() {
     this.compiled.editor.updateOptions({ readOnly: true })
@@ -122,15 +125,15 @@ applyCodeChange(code)
 
 let changeTimer
 let defApplyCodeDelay = 100
+const maxApplyCodeDelay = 1000
 let applyCodeDelay = defApplyCodeDelay
 editor.editor.editor.getModel().onDidChangeContent(event => {
   clearTimeout(changeTimer)
   changeTimer = setTimeout(() => {
     try {
       applyCodeChange(editor.editor.getValue())
-      applyCodeDelay = defApplyCodeDelay
     } catch (error) {
-      applyCodeDelay = 1000
+      applyCodeDelay = maxApplyCodeDelay
       throw error
     }
   }, applyCodeDelay)
@@ -140,7 +143,7 @@ function applyCodeChange(code) {
   let time = performance.now()
   let codeTransformed = transform(code, {}).code
   let timeTransform1 = performance.now()
-  const transformedForRun = transform(code, {}, { plugins: ['transform-modules-commonjs'] })
+  const transformedForRun = transformcjs(code, 'code_from_editor.js')
   const codeToRun = transformedForRun.code
   let timeTransform2 = performance.now()
 
@@ -161,10 +164,17 @@ function applyCodeChange(code) {
 
   editor.iframe.waitNext().then(iframe => {
     try {
+      let time = Date.now()
       runCode(codeToRun, iframe, code, transformedForRun.map)
-      applyCodeDelay = defApplyCodeDelay
+      time = Date.now() - time
+      if (time >= defApplyCodeDelay - 10) {
+        time = Math.min(time + defApplyCodeDelay, maxApplyCodeDelay)
+      } else {
+        applyCodeDelay = defApplyCodeDelay
+      }
     } catch (error) {
-      applyCodeDelay = 1000
+      const newLocal = maxApplyCodeDelay
+      applyCodeDelay = newLocal
       throw error
     }
   })
@@ -217,8 +227,10 @@ function require(url) {
 
 function requireModule(url, source) {
   try {
+    console.log('requireModule', url, source)
     const exports = {}
     source = source || requireFile(url)
+    source = transformcjs(source, '' + url).code
     const module = { id: url, uri: url, exports: exports, source } //according to node.js modules
     // fix, add comment to show source on Chrome Dev Tools
     //source="//@ sourceURL="+window.location.origin+url+"\n" + source;
