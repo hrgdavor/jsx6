@@ -21,26 +21,26 @@ class Editor extends Jsx6 {
       ed2.onDidScrollChange(e => ed1.setScrollTop(e.scrollTop))
     }
     syncScroll(this.editor.editor, this.compiled.editor)
-
     const codeMark = '```'
-    const mdSample = `
-## h1
+    const mdSample = `## h1
+({"id":1})
 
 bla bla
 
 ${codeMark}javascript
+({"id":1})
 import { h, Jsx6, insert } from '@jsx6/jsx6'
 
 var x = 1;
 ${codeMark}
-
+..
 ${codeMark}javascript
 function test(a,b){
   return a+b
 }
 ${codeMark}    
         `
-
+    console.log(parse(mdSample))
     markdown(mdSample, colorize).then(html => {
       this.md.innerHTML = html
     })

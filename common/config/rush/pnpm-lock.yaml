@@ -14,7 +14,7 @@ importers:
       esbuild: ^0.14.39
       markdown-it: ~13.0.1
       monaco-editor: ~0.33.0
-      mulmd: ~0.2.0
+      mulmd: ~0.3.0
       vite: ~2.9.13
       vite-plugin-monaco-editor: ~1.0.11
     dependencies:
@@ -24,7 +24,7 @@ importers:
       babel-plugin-syntax-jsx: 6.18.0
       markdown-it: 13.0.1
       monaco-editor: 0.33.0
-      mulmd: 0.2.0
+      mulmd: 0.3.0
     devDependencies:
       esbuild: 0.14.47
       vite: 2.9.13
@@ -343,8 +343,8 @@ packages:
     resolution: {integrity: sha512-VcRWPSLIUEgQJQIE0pVT8FcGBIgFoxz7jtqctE+IiCxWugD0DwgyQBcZBhdSrdMC84eumoqMZsGl2GTreOzwqw==}
     dev: false
 
-  /mulmd/0.2.0:
-    resolution: {integrity: sha512-I6XU/ReKvuQRucDaiFEb7HAu50ASkz7LMRkv3geUqSFe/LpLKwgw0Lshi+yg7LBGFbQiB+CksToPamFSRgWvcA==}
+  /mulmd/0.3.0:
+    resolution: {integrity: sha512-y9fbiGPJnzxRo7uO1dpEafRC0L/r9whPtpRP9ReiGeXfTQEgU2wo7VWsy8oeOh7yEDNNvYXDtGShHNfIHNs43Q==}
     hasBin: true
     dependencies:
       chalk: 4.1.2

@@ -57,6 +57,6 @@
     "monaco-editor": "~0.33.0",
     "@babel/standalone": "~7.18.12",
     "markdown-it": "~13.0.1",
-    "mulmd": "~0.2.0"
+    "mulmd": "~0.3.0"
   }
 }

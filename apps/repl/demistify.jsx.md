@@ -1,6 +1,17 @@
+```jsx
+({"provides":"jsx_import.jsx"})
+<h1>Hello JSX</h1>
+```
+
 # Intro
 
+({
+  "id":1
+})
+
 ```jsx
+({"code":"initial","runner":"render_jsx", 
+  "import":"./hello.jsx", "prefix":"jsx_import.jsx"})
 <h1>Hello JSX</h1>
 ```
 
@@ -11,12 +22,11 @@ Although it is a meme for a long time that JS community creates too many librari
 Even if you have no plans to make your own library that uses JSX, learning in detail how JSX works and what it actually is can help you better understand any library that uses JSX.
 
 ## JSX support in different tools
+
 ```jsx
 import {h} from './jsx2dom.js'
 //[^1]
 document.body.appendChild(<h1>Hello JSX</h1>)
-
 ```
 
 [^1]: comment
-
