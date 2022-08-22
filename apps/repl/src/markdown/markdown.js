@@ -36,3 +36,23 @@ export function markdown(code, colorize) {
     return Promise.resolve(rendered)
   }
 }
+
+export function extractProvided(mdParsed) {
+  const out = {}
+  if (mdParsed.sections) {
+    mdParsed.sections.forEach(section => {
+      if (section.lines) {
+        section.lines = section.lines.filter(line => {
+          if (line.code !== undefined) {
+            if (line.info?.provides) {
+              out[line.info.provides] = line
+              return false
+            }
+          }
+          return true
+        })
+      }
+    })
+  }
+  return out
+}

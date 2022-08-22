@@ -1,23 +1,33 @@
 import { Jsx6 } from '@jsx6/jsx6'
 import { FlipFrame } from './FlipFrame'
 import { MonacoEditor, colorize } from './MonacoEditor'
-import { parse } from 'mulmd'
-import { markdown } from './markdown/markdown'
+import { clean, parse, stringify } from 'mulmd'
+import { extractProvided, markdown } from './markdown/markdown'
 import { syncScroll } from './util/syncScroll'
 import { queueCodeChange } from './applyCodeChange'
+import { runCode } from './runner/simpleRunner'
 
 export class TutorialRunner extends Jsx6 {
+  codeRunner = runCode
   init() {
     this.compiled.editor.updateOptions({ readOnly: true })
     syncScroll(this.editor.editor, this.compiled.editor)
 
     this.editor.editor.getModel().onDidChangeContent(event => {
-      queueCodeChange(this.iframe, this.editor, { otherEditor: this.compiled })
+      queueCodeChange(this.iframe, this.editor, { otherEditor: this.compiled, codeRunner: this.codeRunner })
     })
   }
 
   showMd(md) {
-    console.log(parse(md))
+    const mdParsed = parse(md)
+    const provided = extractProvided(mdParsed)
+    console.log('mdParsed', mdParsed)
+    console.log('provided', provided)
+
+    md = clean(mdParsed)
+    console.log('cleaned', md)
+    md = stringify(md)
+    console.log('md', md)
     markdown(md, colorize).then(html => {
       this.md.innerHTML = html
     })

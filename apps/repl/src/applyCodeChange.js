@@ -6,18 +6,20 @@ let changeTimer
 let defApplyCodeDelay = 100
 const maxApplyCodeDelay = 1000
 let applyCodeDelay = defApplyCodeDelay
-export function queueCodeChange(iframe, editor, { otherEditor }) {
+
+export function queueCodeChange(iframe, editor, { otherEditor, codeRunner = runCode }) {
   clearTimeout(changeTimer)
   changeTimer = setTimeout(() => {
     try {
-      applyCodeChange(iframe, editor, { otherEditor })
+      applyCodeChange(iframe, editor, { otherEditor, codeRunner })
     } catch (error) {
       applyCodeDelay = maxApplyCodeDelay
       throw error
     }
   }, applyCodeDelay)
 }
-function applyCodeChange(iframe, editor, { otherEditor }) {
+
+function applyCodeChange(iframe, editor, { otherEditor, codeRunner = runCode }) {
   const code = editor.getValue()
   let time = performance.now()
   let codeTransformed = transform(code, {}).code
@@ -33,7 +35,7 @@ function applyCodeChange(iframe, editor, { otherEditor }) {
   iframe.waitNext().then(iframe => {
     try {
       let time = Date.now()
-      runCode(codeToRun, iframe)
+      codeRunner(codeToRun, iframe)
       time = Date.now() - time
       if (time >= defApplyCodeDelay - 10) {
         time = Math.min(time + defApplyCodeDelay, maxApplyCodeDelay)

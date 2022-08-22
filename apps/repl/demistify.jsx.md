@@ -1,8 +1,8 @@
-```jsx
+({"option":"value"})
+```
 ({"provides":"jsx_import.jsx"})
 <h1>Hello JSX</h1>
 ```
-
 # Intro
 
 ({

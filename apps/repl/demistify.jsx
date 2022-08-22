@@ -2,46 +2,18 @@
 // https://github.com/stacktracejs/error-stack-parser
 
 import { insert } from '@jsx6/jsx6'
+import { textSeparatorForeground } from 'monaco-editor/esm/vs/platform/theme/common/colorRegistry'
 
 import styles from './editor.css'
 import { TutorialRunner } from './src/TutorialRunner'
-
-const codeMark = '```'
-export const mdSample = `## h1
-({"id":1})
-
-bla bla
-
-${codeMark}javascript
-({"id":1})
-import { h, Jsx6, insert } from '@jsx6/jsx6'
-
-var x = 1;
-${codeMark}
-..
-${codeMark}javascript
-function test(a,b){
-return a+b
-}
-${codeMark}    
-      `
-const code = `import { h, Jsx6, insert } from '@jsx6/jsx6'
-
-insert(document.body,<>
-  <h3>Hello World!</h3>
-  <div>Counter:</div>
-</>)
-
-
-
-
-`
+import { fetchText } from './src/util/fetchText'
 
 /** @type {TutorialRunner} */
-const editor = (self.APP = <TutorialRunner class="fxs1" />)
-insert(document.body, editor)
+const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)
+insert(document.body, tutorialRunner)
+tutorialRunner.codeRunner = (...args) => {
+  console.log('run code ', ...args)
+}
 
-editor.editor.setValue(code)
-editor.showMd(mdSample)
-
-//applyCodeChange(code)
+const md = await fetchText('./demistify.jsx.md')
+tutorialRunner.showMd(md)
