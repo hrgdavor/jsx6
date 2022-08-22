@@ -15,7 +15,7 @@
 <h1>Hello JSX</h1>
 ```
 
-This is an interactive tutorial to explain some details of what JSX and why it is useful concept not only for React apps but can actually used in vanilla JavaScript with a simple function that is just few lines of code.
+This is an interactive tutorial to explain what JSX is behind the scenes and why it is useful concept. I will argue that it is not only useful for React apps but can actually be used in vanilla JavaScript with a simple function that is just few lines of code.
 
 Although it is a meme for a long time that JS community creates too many libraries, and does it all the time, I actually think it is a good thing, and I would glad if this tutorial causes more people building libraries with JSX included.
 
