@@ -13,14 +13,28 @@ export const transformDefaults = {
   presets: [],
 }
 
+function combineAppend(options = {}, append = {}) {
+  for (let p in append) {
+    if (options[p]) {
+      if (append[p] instanceof Array) options[p] = [...options[p], ...append[p]]
+      else options[p] = { ...options[p], ...append[p] }
+    } else {
+      options[p] = append[p]
+    }
+  }
+}
+
 export function transform(code, options = {}, append = {}) {
   const op = {
     ...transformDefaults,
     ...options,
   }
-  for (let p in append) {
-    if (append[p] instanceof Array) op[p] = [...op[p], ...append[p]]
-    else op[p] = { ...op[p], ...append[p] }
-  }
+  combineAppend(op, append)
   return babelTransform(code, op)
+}
+
+export const transformcjs = (code, options = {}, append = {}) => {
+  options = { sourceMaps: 'inline', ...options }
+  combineAppend(append, { plugins: ['transform-modules-commonjs'] })
+  return transform(code, options, append)
 }
