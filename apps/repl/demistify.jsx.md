@@ -8,13 +8,23 @@
 ```
 
 
-# How to use this tutorial
+# About this tutorial
 ```typescript
 ({"code":"initial","runner":"render_jsx"})
-<h1>HOWTO</h1>
+<>
+  <h1>About</h1>
+  <p>Your code goes here</p>
+  <p>And you can edit the code and paly with it as you follow along</p>
+</>
 ```
 
-Bla bla bla
+This is an interactive tutorial to explain what JSX is behind the scenes and why it is a very useful concept. 
+
+I will argue that it is not only useful for React and other big libraries, but can actually be used in vanilla JavaScript with a simple function that is just few lines of code.
+
+This tutorial can help you better understand libraries that do use JSX. You do not need to make your own JSX library for this tutorial to be useful to you.
+
+Even though it is a meme now that JS community creates too many libraries, I actually think it is a good thing.
 
 ## JSX Intro
 
@@ -26,13 +36,6 @@ Bla bla bla
 ({"code":"initial", "import":"hello_world.jsx"})
 ```
 
-This is an interactive tutorial to explain what JSX is behind the scenes and why it is a very useful concept. 
-
-I will argue that it is not only useful for React and other big libraries, but can actually be used in vanilla JavaScript with a simple function that is just few lines of code.
-
-This tutorial can help you better understand libraries that do use JSX. You do not need to make your own JSX library for this tutorial to be useful to you.
-
-Even though it is a meme now that JS community creates too many libraries, I actually think it is a good thing.
 
 ### JSX support in different tools
 
