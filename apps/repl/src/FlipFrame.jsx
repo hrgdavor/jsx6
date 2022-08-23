@@ -1,4 +1,4 @@
-import { Jsx6 } from '@jsx6/jsx6'
+import { Jsx6, observeResize } from '@jsx6/jsx6'
 import { Defered } from './async/Defered'
 
 export class FlipFrame extends Jsx6 {
@@ -8,7 +8,7 @@ export class FlipFrame extends Jsx6 {
     const iframeAttr = {
       sandbox: attr?.sandbox || 'allow-same-origin',
       src: attr?.src || 'about:blank',
-      style: 'position:absolute; width:100%; height:100%; display:none; border:none',
+      style: 'position:absolute; display:none; border:none',
     }
     this.iframes = [h('iframe', iframeAttr), h('iframe', iframeAttr)]
     this.frameIndex = 0
@@ -55,6 +55,13 @@ export class FlipFrame extends Jsx6 {
   init() {
     this.iframes.forEach((iframe, i) => {
       iframe.onload = evt => this.onload(evt)
+    })
+    observeResize(this.el, evt => {
+      this.iframes.forEach(iframe => {
+        const style = iframe.style
+        style.width = evt.contentRect.width + 'px'
+        style.height = evt.contentRect.height + 'px'
+      })
     })
   }
 }

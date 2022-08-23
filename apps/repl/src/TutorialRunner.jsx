@@ -200,9 +200,9 @@ export class TutorialRunner extends Jsx6 {
 
             {/* right bottom */}
             <div class="fxs1 fxfc owh">
-              <div class="fx1 owh">
+              <div class="fxs1 fxfc owh">
                 <div>Output</div>
-                <FlipFrame p="iframe" class="fx1" />
+                <FlipFrame p="iframe" class="fxs1 owh" />
               </div>
             </div>
             {/* END right bottom */}
