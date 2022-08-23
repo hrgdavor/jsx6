@@ -7,4 +7,6 @@ export default {
   JSX6E6:
     'If you are seeing this, you are using a binding function wrong\n - used $state instead state in template \n - called binding.toString()\nproperty that was used wrongly:',
   JSX6E7: 'Function required',
+  JSX6E8: 'Parent required',
+  JSX6E9: 'Event listener must be a function ',
 }

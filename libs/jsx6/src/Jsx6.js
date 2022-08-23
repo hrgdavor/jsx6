@@ -99,7 +99,6 @@ export class Jsx6 {
       if (this.el instanceof Array) {
         before = this.el[0]
         parent = before.parentNode
-        //        console.error('parent', parent, 'before', before)
       }
       insertHtml(parent, before, def, this)
       return def

@@ -1,6 +1,7 @@
 import { Jsx6 } from './Jsx6'
 import { insert } from './insert'
 import { isStr, isFunc, isObj, throwErr, Group, isNode } from './core'
+import { setAttribute } from './setAttribute'
 
 const NO_CONTEXT = {}
 
@@ -21,6 +22,7 @@ or also in production if so desired. The choice is yours :)
 */
 const ERR_NULL_TAG = 1 //           JSX6E1 - Tag is null
 const ERR_UNSUPPORTED_TAG = 2 //    JSX6E2 - Tag type is not supported
+const ERR_LISTENER_MUST_BE_FUNC = 9 //    JSX6E9 - Event listener must be a function
 
 if (typeof document !== 'undefined') {
   _createText = t => document.createTextNode(t)
@@ -241,21 +243,14 @@ export function makeNodeUpdater(node, func) {
 }
 
 export function makeAttrUpdater(node, attr, func) {
-  const ret = function () {
-    const newValue = func()
-    if (node.getAttribute(attr) !== newValue) {
-      if (newValue === false || newValue === null || newValue === undefined) {
-        node.removeAttribute(attr)
-      } else {
-        node.setAttribute(attr, newValue)
-      }
-    }
+  const out = function () {
+    setAttribute(node, attr, func())
   }
-  ret.node = node
-  ret.attr = attr
-  ret.func = func
-  ret() // set initial value for the attribute
-  return ret
+  out.node = node
+  out.attr = attr
+  out.func = func
+  out() // set initial value for the attribute
+  return out
 }
 
 export function insertAttr(attr, out, self, component) {
@@ -264,8 +259,12 @@ export function insertAttr(attr, out, self, component) {
   for (const a in attr) {
     const value = attr[a]
 
-    if (a[0] === 'o' && a[1] === 'n' && isFunc(value)) {
-      out.addEventListener(a.substring(2), value.bind(self))
+    if (a[0] === 'o' && a[1] === 'n') {
+      if (isFunc(value)) {
+        out.addEventListener(a.substring(2), value.bind(self))
+      } else {
+        throwErr(ERR_LISTENER_MUST_BE_FUNC, attr)
+      }
     } else if (a === 'key') {
       out.loopKey = value
       if (!out.$key) {
@@ -283,7 +282,8 @@ export function insertAttr(attr, out, self, component) {
       if (a === 'p') {
         setPropGroup(self, component || out, isStr(value) ? value.split('.') : value)
       }
-      if (out.setAttribute) out.setAttribute(a, a === 'p' && value instanceof Array ? value.join('.') : value)
+      if (out.setAttribute)
+        setAttribute(out, a, a === 'p' && value instanceof Array ? value.join('.') : value)
     }
   }
 }

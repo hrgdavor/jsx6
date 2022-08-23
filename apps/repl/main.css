@@ -1,3 +1,8 @@
+:root{
+  --default-content-padding: 20px;
+  --half-content-padding: 10px;
+}
+
 .hidden, [hidden]{ display: none !important;}
 
 
@@ -44,8 +49,22 @@
 .owh{ overflow: hidden;}
 .owa{ overflow: auto;}
 
+ /* POSITION common */
+.posr{ position: relative;}
+.posa{ position: absolute;}
 
 /* PADIING */
 .pad{
-  padding: 20px; 
+  padding: var(--default-content-padding); 
+}
+
+.bt-icon-large, .bt-icon-large, .bt-large {
+  cursor: pointer;
+}
+.bt-icon-large {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

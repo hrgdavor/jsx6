@@ -1,0 +1,28 @@
+:root {
+  --tutorial-text-bg: rgb(138, 138, 138);
+  --tutorial-text-fg: rgb(245, 245, 245);
+
+  --tutorial-code-fg: rgb(38, 38, 38);
+  --tutorial-code-bg: rgb(245, 245, 245);
+}
+
+.tutorial-text{
+  background-color: var(--tutorial-text-bg);
+  color: var(--tutorial-text-fg);
+}
+
+.tutorial-text pre code{
+  display: block;
+  background-color: var(--tutorial-code-bg);
+  color: var(--tutorial-code-fg);
+  padding: var(--default-content-padding);
+  padding-bottom: calc(var(--default-content-padding) - 14px);/* there is usually extra newline*/
+  margin-left: calc(var(--default-content-padding) * -1 + 2px);
+  margin-right: calc(var(--default-content-padding) * -1 + 2px);
+  overflow: auto;
+  border-radius: 8px;
+}
+
+.tutorial-text > h1:first-child, .tutorial-text > h2:first-child {
+  margin-top: 0;
+}

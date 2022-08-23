@@ -1,11 +1,9 @@
-import { Jsx6 } from '@jsx6/jsx6'
-
 /** Short but pretty usable support function for JSX.
  *
  * @param {String|Function} tag
  * @param {Object} attr
  * @param  {...any} children
- * @returns {Element|Jsx6}
+ * @returns {Element}
  */
 export function h(tag, attr, ...children) {
   if (!tag) return children // support JSX fragment: <></>
@@ -33,7 +31,7 @@ export function insert(parent, child, before) {
   if (child instanceof Array) {
     child.forEach(c => insert(parent, c))
   } else {
-    if (typeof child === 'string') child = document.createTextNode(child)
+    if (!(child instanceof Node)) child = document.createTextNode(child + '')
     parent.insertBefore(child, before)
   }
 }

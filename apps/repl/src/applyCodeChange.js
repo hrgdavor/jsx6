@@ -21,21 +21,17 @@ export function queueCodeChange(iframe, editor, { otherEditor, codeRunner = runC
 
 function applyCodeChange(iframe, editor, { otherEditor, codeRunner = runCode }) {
   const code = editor.getValue()
-  let time = performance.now()
-  let codeTransformed = transform(code, {}).code
-  let timeTransform1 = performance.now()
-  const transformedForRun = transformcjs(code, { filename: 'code_from_editor.js' })
-  const codeToRun = transformedForRun.code
-  let timeTransform2 = performance.now()
+  let codeTransformed = otherEditor ? transform(code, {}).code : ''
 
-  codeTransformed = addLinesToMatchCount(code, codeTransformed)
-
-  otherEditor.setValue(codeTransformed)
+  if (otherEditor) {
+    codeTransformed = addLinesToMatchCount(code, codeTransformed)
+    otherEditor.setValue(codeTransformed)
+  }
 
   iframe.waitNext().then(iframe => {
     try {
       let time = Date.now()
-      codeRunner(codeToRun, iframe)
+      codeRunner(code, iframe)
       time = Date.now() - time
       if (time >= defApplyCodeDelay - 10) {
         time = Math.min(time + defApplyCodeDelay, maxApplyCodeDelay)
