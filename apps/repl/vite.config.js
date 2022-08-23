@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import monacoEditorPlugin from 'vite-plugin-monaco-editor'
+import CustomHmr from './CustomHmr.js'
 
 console.log('monacoEditorPlugin 11', monacoEditorPlugin)
 export default defineConfig({
@@ -7,6 +8,7 @@ export default defineConfig({
     monacoEditorPlugin.default({
       //  languageWorkers: ['editorWorkerService', 'typescript'],
     }),
+    CustomHmr(),
   ],
   esbuild: {
     jsxFactory: 'h',

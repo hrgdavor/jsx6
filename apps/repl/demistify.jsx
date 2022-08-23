@@ -29,5 +29,15 @@ tutorialRunner.registerRunner('render_jsx', (code, iframe) => {
   runCode(codeToRun, iframe)
 })
 
-const md = await fetchText('./demistify.jsx.md')
+const mdName = 'demistify.jsx.md'
+const md = await fetchText('./' + mdName)
 tutorialRunner.showMd(md)
+
+if (import.meta.hot) {
+  import.meta.hot.on('md-update', data => {
+    if (data.file.includes(mdName)) {
+      tutorialRunner.showMd(data.content, true)
+    }
+    // console.log('md-update', data)
+  })
+}

@@ -13,7 +13,7 @@
 /* flex */
 .fx    { display: flex; }
 .fxi   { display: inline-flex; }
-.fx1, .fxs1, .fxc1 { flex: 1; }
+.fx1, .fxs1, .fxc1, .fxcv1 { flex: 1; }
 .fx2 {flex: 2;} .fx3 {flex: 3;} .fx4 {flex: 4;} .fx5 {flex: 5;} .fx6 {flex: 6;}
 .fx7 {flex: 7;} .fx8 {flex: 8;} .fx9 {flex: 9;} .fx10 {flex: 10;} .fx11 {flex: 11;}  .fx12 {flex: 12;}
  /* default is row, so class for column is needed */
@@ -21,6 +21,7 @@
 
  /* STRETCH flex with everything stretched (fxs1 is with flex:1) */
 .fxs, .fxs1 { display: flex; justify-content: stretch; align-items: stretch;}
+.fxc, .fxc1, .fxcv, .fxcv1 { display: flex; align-items: center;}
  /* CENTER flex with everything centered (fxc1 is with flex:1) */
 .fxc, .fxc1 { display: flex; justify-content: center; align-items: center;}
 
@@ -54,9 +55,10 @@
 .posa{ position: absolute;}
 
 /* PADIING */
-.pad{
-  padding: var(--default-content-padding); 
-}
+.pad{ padding: var(--default-content-padding); }
+.padh{ padding-left: var(--default-content-padding); padding-right: var(--default-content-padding);}
+.pad05{ padding: var(--half-content-padding); }
+.padh05{ padding-left: var(--half-content-padding); padding-right: var(--half-content-padding);}
 
 .bt-icon-large, .bt-icon-large, .bt-large {
   cursor: pointer;

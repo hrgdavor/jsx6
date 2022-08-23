@@ -14,7 +14,7 @@
 <h1>HOWTO</h1>
 ```
 
-Bla bla
+Bla bla bla
 
 ## JSX Intro
 
@@ -30,9 +30,9 @@ This is an interactive tutorial to explain what JSX is behind the scenes and why
 
 I will argue that it is not only useful for React and other big libraries, but can actually be used in vanilla JavaScript with a simple function that is just few lines of code.
 
-Although it is a meme for a long time that JS community creates too many libraries, and does it all the time, I actually think it is a good thing.
+This tutorial can help you better understand libraries that do use JSX. You do not need to make your own JSX library for this tutorial to be useful to you.
 
-Even if you have no plans to make your own library that uses JSX, learning in detail how JSX works and what it actually is can help you better understand any library that uses JSX.
+Even though it is a meme now that JS community creates too many libraries, I actually think it is a good thing.
 
 ### JSX support in different tools
 

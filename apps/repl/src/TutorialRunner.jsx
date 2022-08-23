@@ -83,23 +83,29 @@ export class TutorialRunner extends Jsx6 {
     observeResize(this.md, evt => ps.update())
   }
 
-  showMd(md) {
+  showMd(md, keepChapter) {
     const mdParsed = parse(md)
     const provided = extractProvided(mdParsed)
     this.chapters = splitChapters(mdParsed)
     this.providedMap = provided
-    this.showChapter(this.chapters[0].path)
+    this.showChapter(keepChapter ? this.chapterIndex : 0)
   }
 
-  showChapter(path, move = 0) {
+  showChapterPath(path) {
+    this.showChapter(this.chapters ? chapters.findIndex(c => c.path === path) : -1)
+  }
+
+  showChapter(index, move = 0) {
     const { state, chapters, providedMap, runnerMap } = this
 
     let mdIndex = this.chapterIndex + move
-    if (!move) mdIndex = this.chapters ? chapters.findIndex(c => c.path === path) : -1
+    if (!move) mdIndex = index
+
     this.chapterIndex = mdIndex
     const mdParsed = mdIndex >= 0 ? chapters[mdIndex] : null
 
     if (mdParsed) {
+      this.chapter
       insertImports(mdParsed, providedMap)
       let initialCode = ''
       this.codeRunner = this.defCodeRunner
@@ -156,7 +162,7 @@ export class TutorialRunner extends Jsx6 {
               >
                 &lt;
               </button>
-              <div class="fx1">
+              <div class="fxcv1 padh05">
                 <b>{$state.parentTitle}</b>
                 {$state.chapterTitle}
               </div>

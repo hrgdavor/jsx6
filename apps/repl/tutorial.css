@@ -1,5 +1,5 @@
 :root {
-  --tutorial-text-bg: rgb(138, 138, 138);
+  --tutorial-text-bg: rgb(109, 102, 102);
   --tutorial-text-fg: rgb(245, 245, 245);
 
   --tutorial-code-fg: rgb(38, 38, 38);
@@ -25,4 +25,8 @@
 
 .tutorial-text > h1:first-child, .tutorial-text > h2:first-child {
   margin-top: 0;
+  display: none;
+}
+.tutorial-text > h3, .tutorial-text > h3{
+  color: #fff4cc;
 }
