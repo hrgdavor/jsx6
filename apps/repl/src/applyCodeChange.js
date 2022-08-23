@@ -7,14 +7,23 @@ let defApplyCodeDelay = 100
 const maxApplyCodeDelay = 1000
 let applyCodeDelay = defApplyCodeDelay
 
+let lateThrowTimer
+
 export function queueCodeChange(iframe, editor, { otherEditor, codeRunner = runCode }) {
   clearTimeout(changeTimer)
+  clearTimeout(lateThrowTimer)
   changeTimer = setTimeout(() => {
     try {
       applyCodeChange(iframe, editor, { otherEditor, codeRunner })
     } catch (error) {
-      applyCodeDelay = maxApplyCodeDelay
-      throw error
+      if (error.toString().includes('SyntaxError')) {
+        lateThrowTimer = setTimeout(() => {
+          throw error
+        }, maxApplyCodeDelay)
+      } else {
+        applyCodeDelay = maxApplyCodeDelay
+        throw error
+      }
     }
   }, applyCodeDelay)
 }

@@ -88,11 +88,6 @@ export class TutorialRunner extends Jsx6 {
     const provided = extractProvided(mdParsed)
     this.chapters = splitChapters(mdParsed)
     this.providedMap = provided
-
-    console.log('mdParsed', mdParsed)
-    console.log('provided', provided)
-    console.log('chapters', this.chapters)
-
     this.showChapter(this.chapters[0].path)
   }
 
@@ -101,11 +96,8 @@ export class TutorialRunner extends Jsx6 {
 
     let mdIndex = this.chapterIndex + move
     if (!move) mdIndex = this.chapters ? chapters.findIndex(c => c.path === path) : -1
-    else console.log('this.chapterIndex', this.chapterIndex)
     this.chapterIndex = mdIndex
     const mdParsed = mdIndex >= 0 ? chapters[mdIndex] : null
-
-    console.log('showChapter', path, mdIndex, mdParsed)
 
     if (mdParsed) {
       insertImports(mdParsed, providedMap)
@@ -130,10 +122,7 @@ export class TutorialRunner extends Jsx6 {
         })
       })
       let md = clean(mdParsed)
-      console.log('cleaned', md)
       md = stringify(md)
-      console.log('md', md)
-      console.log('initialCode', initialCode)
 
       this.editor.setValue(initialCode)
       markdown(md, myColorize).then(html => {
@@ -146,7 +135,6 @@ export class TutorialRunner extends Jsx6 {
     state.chapterTitle = mdParsed?.title
     state.disablePrev = mdIndex <= 0
     state.disableNext = !(mdIndex >= 0 && mdIndex < chapters.length - 1)
-    console.log('state', JSON.stringify(state), this.chapterIndex)
   }
 
   registerRunner(code, runner) {

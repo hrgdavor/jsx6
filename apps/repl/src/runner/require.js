@@ -27,7 +27,6 @@ export function require(url) {
 }
 export function requireModule(url, source) {
   try {
-    console.log('requireModule', url, source)
     const exports = {}
     source = source || requireFile(url)
     source = transformcjs(source, { filename: '' + url }).code
