@@ -22,6 +22,7 @@ tutorialRunner.defCodeRunner = (code, iframe) => {
   const codeToRun = transformedForRun.code
   runCode(codeToRun, iframe)
 }
+
 tutorialRunner.registerRunner('render_jsx', (code, iframe) => {
   const improved = `import {h,insert} from './jsx2dom.js';const __JSX__ = ${code};\ninsert(document.body,__JSX__)`
   const transformedForRun = transformcjs(improved, { filename: 'code_from_editor.js' })
