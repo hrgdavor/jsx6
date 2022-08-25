@@ -99,4 +99,11 @@
   // 
   //   // "includeEmailInChangeFile": true
   // }
+  {
+    "policyName": "jsx6",
+    "definitionName": "lockStepVersion",
+    "version": "1.4.2",
+    "nextBump": "patch",
+    "mainProject": "@jsx6/jsx6"
+  }  
 ]

@@ -472,12 +472,14 @@
     {
       "packageName": "@jsx6/jsx6",
       "projectFolder": "libs/jsx6",
-      "tags": ["jsx", "ui"]
+      "tags": ["jsx", "ui"],
+      "versionPolicyName": "jsx6"
     },
     {
       "packageName": "@jsx6/repl",
       "projectFolder": "apps/repl",
-      "tags": ["tools", "repl"]
+      "tags": ["tools", "repl", "tutorial"],
+      "versionPolicyName": "jsx6"
     }
   ]
 }
