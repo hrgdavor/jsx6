@@ -22,3 +22,5 @@ export function insert(parent, newChild, before) {
   }
   return newChild
 }
+
+export const addToBody = n => insert(document.body, n)

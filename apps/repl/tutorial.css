@@ -50,21 +50,35 @@
 .tutorial-menu-pop{
   position: absolute;
   top:0;
-  left:40;
+  left:40px;
   z-index: 1;
   background-color: white;
   border: solid 1px gray;
+  max-height: 50%;
+  overflow: auto;
 }
-.tutorial-menu-pop > div{
-  padding: 4px 20px;
+
+/* focus-within does not work if using display:none or visibility:hidden as you can not focus items inside
+https://stackoverflow.com/questions/21351476/why-changing-visibility-display-on-focus-does-not-work 
+*/
+.tutorial-menu-pop:not(:focus-within){
+  opacity: 0;
+  overflow: hidden;
+  height:0;
+  padding:0;
 }
-.tutorial-menu-pop > div:hover, .tutorial-menu-pop > div.selected{
+.tutorial-menu-pop > button{
+  padding: 8px 20px;
+  display: block;
+  text-align: left;
+}
+.tutorial-menu-pop > button:hover, .tutorial-menu-pop > button.selected{
   background-color: #eee;
 }
-.tutorial-menu-pop > div[level="1"]{
+.tutorial-menu-pop > button[level="1"]{
   font-weight: bold;
 }
-.tutorial-menu-pop > div[level="2"]{
+.tutorial-menu-pop > button[level="2"]{
   padding-left: calc(var(--default-content-padding) + 20px);
 }
 

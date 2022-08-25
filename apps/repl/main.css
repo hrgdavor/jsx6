@@ -5,6 +5,11 @@
 
 .hidden, [hidden]{ display: none !important;}
 
+button{
+  background: none;
+  border: none;
+}
+
 
 /* display block commons case */
 .bl{ display: block; }
@@ -60,10 +65,10 @@
 .pad05{ padding: var(--half-content-padding); }
 .padh05{ padding-left: var(--half-content-padding); padding-right: var(--half-content-padding);}
 
-.bt-icon-large, .bt-icon-large, .bt-large {
+.btn-icon-large, .btn-icon-large, .btn-large, .btn {
   cursor: pointer;
 }
-.bt-icon-large {
+.btn-icon-large {
   width: 42px;
   height: 42px;
   display: flex;

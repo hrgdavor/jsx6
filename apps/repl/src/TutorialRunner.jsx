@@ -1,4 +1,4 @@
-import { insert, Jsx6, observeResize, classIf } from '@jsx6/jsx6'
+import { insert, Jsx6, observeResize, classIf, addToBody } from '@jsx6/jsx6'
 import { FlipFrame } from './FlipFrame'
 import { MonacoEditor, colorize } from './MonacoEditor'
 import { clean, parse, stringify } from 'mulmd'
@@ -42,10 +42,9 @@ function splitChapters(mdParsed) {
     } else if (current) {
       current.sections.push(section)
     } else {
-      console.warn('skipping section without parent ', section)
+      if (section.title) console.warn('skipping section without parent ', section)
     }
   })
-  console.log('chapters', out)
   return out
 }
 
@@ -95,16 +94,7 @@ export class TutorialRunner extends Jsx6 {
     this.chapters = splitChapters(mdParsed)
 
     this.menuItems.innerHTML = ''
-    insert(
-      this.menuItems,
-      this.chapters.map(c => {
-        return (
-          <div level={c.level} path={c.path} onclick={() => this.showChapterPath(c.path)}>
-            {c.title}
-          </div>
-        )
-      }),
-    )
+    insert(this.menuItems, this.chapters.map(this.tplChapterButton))
 
     this.providedMap = provided
     this.showChapter(keepChapter ? this.chapterIndex : 0)
@@ -124,11 +114,11 @@ export class TutorialRunner extends Jsx6 {
     const mdParsed = mdIndex >= 0 ? chapters[mdIndex] : null
 
     if (mdParsed) {
-      console.log('this.menuItems.chlidNodes', [...this.menuItems.children])
       ;[...this.menuItems.children].forEach(c => {
         if (c.getAttribute) {
-          console.log(c.getAttribute('path'), mdParsed.path)
-          classIf(c, 'selected', c.getAttribute('path') === mdParsed.path)
+          const isCurrent = c.getAttribute('path') === mdParsed.path
+          classIf(c, 'selected', isCurrent)
+          if (isCurrent) this.currentChapterButton = c
         }
       })
       insertImports(mdParsed, providedMap)
@@ -163,10 +153,13 @@ export class TutorialRunner extends Jsx6 {
       this.md.innerHTML = ''
     }
 
-    state.chapterTitle = mdParsed?.title
-    state.parentTitle = suffix(mdParsed?.parentTitle, ' / ')
+    state.chapterTitle = mdParsed?.level == 1 ? '' : mdParsed?.title
+    state.parentTitle = mdParsed?.level == 1 ? mdParsed?.title : suffix(mdParsed?.parentTitle, ' / ')
     state.disablePrev = mdIndex <= 0
     state.disableNext = !(mdIndex >= 0 && mdIndex < chapters.length - 1)
+    setTimeout(() => {
+      this.nextButton.focus()
+    }, 1)
   }
 
   registerRunner(code, runner) {
@@ -176,33 +169,60 @@ export class TutorialRunner extends Jsx6 {
   tpl(h, $state, state) {
     state.menuHidden = true
 
+    // this declaration is intentionaly here to have access to scope and scoped `h` function
+    // nice side-effect of such declaration is that CTRL+R works in vscode to find it
+    this.tplChapterButton = chapter => (
+      <button
+        class="btn"
+        level={chapter.level}
+        path={chapter.path}
+        onclick={() => this.showChapterPath(chapter.path)}
+      >
+        {chapter.title}
+      </button>
+    )
+
+    const showMenu = evt => {
+      const target = this.chapterName
+      const style = this.menuItems.style
+      setTimeout(() => {
+        style.top = target.offsetHeight + 'px'
+        style.left = target.offsetLeft + 'px'
+        style.width = target.offsetWidth + 'px'
+        this.currentChapterButton?.focus()
+      }, 0)
+    }
+
+    const tplTutorialHeader = (
+      <div class="tutorial-menu fxs posr">
+        <button class="btn-icon-large" disabled={$state.disablePrev} onclick={() => this.showChapter(0, -1)}>
+          &lt;
+        </button>
+        <button p="chapterName" class="fxcv1 padh05 btn" onclick={showMenu}>
+          <b>{$state.parentTitle}</b>
+          {$state.chapterTitle}
+        </button>
+
+        <button
+          p="nextButton"
+          class="btn-icon-large"
+          disabled={$state.disableNext}
+          onclick={() => this.showChapter(0, 1)}
+        >
+          &gt;
+        </button>
+      </div>
+    )
+
+    addToBody((this.menuItems = <button class="tutorial-menu-pop pad05 fxs fxfc"></button>))
+
     return (
       <>
         <div class="fx1 c-main owh">
           {/* ---------------- left side  ----------------------- */}
           <div class="c-left fxs1 fxfc owh">
             {/* ---------------- menu  ----------------------- */}
-            <div class="tutorial-menu fxs">
-              <button
-                class="bt-icon-large"
-                disabled={$state.disablePrev}
-                onclick={() => this.showChapter(0, -1)}
-              >
-                &lt;
-              </button>
-              <div class="fxcv1 padh05" onclick={() => (state.menuHidden = !state.menuHidden)}>
-                <b>{$state.parentTitle}</b>
-                {$state.chapterTitle}
-                <div hidden={$state.menuHidden} p="menuItems" class="tutorial-menu-pop pad05"></div>
-              </div>
-              <button
-                class="bt-icon-large"
-                disabled={$state.disableNext}
-                onclick={() => this.showChapter(0, 1)}
-              >
-                &gt;
-              </button>
-            </div>
+            {tplTutorialHeader}
 
             {/* ---------------- tutorial text  ----------------------- */}
             <div class="fx1 owh posr tutorial-text pad" p="md"></div>
