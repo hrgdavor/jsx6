@@ -42,3 +42,29 @@
   color: #fff4cc;
 }
 
+.tutorial-menu{
+  position: relative;
+  cursor: pointer;
+}
+
+.tutorial-menu-pop{
+  position: absolute;
+  top:0;
+  left:40;
+  z-index: 1;
+  background-color: white;
+  border: solid 1px gray;
+}
+.tutorial-menu-pop > div{
+  padding: 4px 20px;
+}
+.tutorial-menu-pop > div:hover, .tutorial-menu-pop > div.selected{
+  background-color: #eee;
+}
+.tutorial-menu-pop > div[level="1"]{
+  font-weight: bold;
+}
+.tutorial-menu-pop > div[level="2"]{
+  padding-left: calc(var(--default-content-padding) + 20px);
+}
+

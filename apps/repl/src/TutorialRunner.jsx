@@ -1,4 +1,4 @@
-import { Jsx6, observeResize } from '@jsx6/jsx6'
+import { insert, Jsx6, observeResize, classIf } from '@jsx6/jsx6'
 import { FlipFrame } from './FlipFrame'
 import { MonacoEditor, colorize } from './MonacoEditor'
 import { clean, parse, stringify } from 'mulmd'
@@ -13,6 +13,7 @@ import stylesPS from './perfect-scrollbar.css'
 const langMap = { js: 'typescript', jsx: 'typescript' }
 
 const myColorize = (code, lang) => colorize(code, langMap[lang] || lang)
+const suffix = (val, suf) => (val !== undefined ? val + suf : '')
 
 function trimTitle(title) {
   if (title && title[0] === '#') {
@@ -92,12 +93,25 @@ export class TutorialRunner extends Jsx6 {
     const mdParsed = parse(md)
     const provided = extractProvided(mdParsed)
     this.chapters = splitChapters(mdParsed)
+
+    this.menuItems.innerHTML = ''
+    insert(
+      this.menuItems,
+      this.chapters.map(c => {
+        return (
+          <div level={c.level} path={c.path} onclick={() => this.showChapterPath(c.path)}>
+            {c.title}
+          </div>
+        )
+      }),
+    )
+
     this.providedMap = provided
     this.showChapter(keepChapter ? this.chapterIndex : 0)
   }
 
   showChapterPath(path) {
-    this.showChapter(this.chapters ? chapters.findIndex(c => c.path === path) : -1)
+    this.showChapter(this.chapters ? this.chapters.findIndex(c => c.path === path) : -1)
   }
 
   showChapter(index, move = 0) {
@@ -110,7 +124,13 @@ export class TutorialRunner extends Jsx6 {
     const mdParsed = mdIndex >= 0 ? chapters[mdIndex] : null
 
     if (mdParsed) {
-      this.chapter
+      console.log('this.menuItems.chlidNodes', [...this.menuItems.children])
+      ;[...this.menuItems.children].forEach(c => {
+        if (c.getAttribute) {
+          console.log(c.getAttribute('path'), mdParsed.path)
+          classIf(c, 'selected', c.getAttribute('path') === mdParsed.path)
+        }
+      })
       insertImports(mdParsed, providedMap)
       let initialCode = ''
       this.codeRunner = this.defCodeRunner
@@ -144,6 +164,7 @@ export class TutorialRunner extends Jsx6 {
     }
 
     state.chapterTitle = mdParsed?.title
+    state.parentTitle = suffix(mdParsed?.parentTitle, ' / ')
     state.disablePrev = mdIndex <= 0
     state.disableNext = !(mdIndex >= 0 && mdIndex < chapters.length - 1)
   }
@@ -153,6 +174,8 @@ export class TutorialRunner extends Jsx6 {
   }
 
   tpl(h, $state, state) {
+    state.menuHidden = true
+
     return (
       <>
         <div class="fx1 c-main owh">
@@ -167,10 +190,10 @@ export class TutorialRunner extends Jsx6 {
               >
                 &lt;
               </button>
-              <div class="fxcv1 padh05">
+              <div class="fxcv1 padh05" onclick={() => (state.menuHidden = !state.menuHidden)}>
                 <b>{$state.parentTitle}</b>
                 {$state.chapterTitle}
-                <div hidden p="menuItems"></div>
+                <div hidden={$state.menuHidden} p="menuItems" class="tutorial-menu-pop pad05"></div>
               </div>
               <button
                 class="bt-icon-large"
