@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/repl",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "type": "module",
   "description": "JSX6 REPL engine",
   "main": "index.js",
@@ -19,8 +19,8 @@
     "cjs"
   ],
   "scripts": {
-    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm --log-level=error",
-    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs --log-level=error",
+    "build": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm --log-level=error",
+    "build-cjs": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs --log-level=error",
     "prepublishOnly": "npm run build && npm run build-cjs",
     "build-local-jsx6": "esbuild ../../libs/jsx6/index.js --bundle --outfile=dist/jsx6.js --sourcemap --format=cjs"
   },
@@ -51,7 +51,7 @@
     "vite-plugin-monaco-editor": "~1.0.11"
   },
   "dependencies": {
-    "@jsx6/jsx6": "workspace:^1.4.2",
+    "@jsx6/jsx6": "workspace:^1.4.3",
     "babel-plugin-syntax-jsx": "~6.18.0",
     "babel-plugin-jsx-simple": "~1.4.0",
     "monaco-editor": "~0.33.0",

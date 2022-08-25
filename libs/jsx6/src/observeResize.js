@@ -24,7 +24,7 @@ export function observeResize(el, callback) {
 
   // function that removes the observer
   return function () {
-    const arr = listenMap.get(el)
+    let arr = listenMap.get(el)
     if (arr) {
       listenMap.set(el, (arr = arr.filter(f => f !== callback)))
     }
