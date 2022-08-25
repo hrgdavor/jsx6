@@ -1,15 +1,21 @@
 import { toDomNode } from './toDomNode'
 
+const listenMap = new WeakMap()
+
 export function observeResize(el, callback) {
   el = toDomNode(el)
-  let arr = el[symbol]
-  if (!arr) arr = el[symbol] = []
+  let arr = listenMap.get(el)
+
+  if (!arr) {
+    listenMap.set(el, (arr = []))
+  }
+
   if (!arr.length) observer.observe(el)
   arr.push(callback)
 
   // function that removes the listener
   return function () {
-    const arr = el[symbol]
+    const arr = listenMap.get(el)
     if (arr) {
       const idx = arr.findIndex(f => f === callback)
       if (idx != -1) {
@@ -20,11 +26,9 @@ export function observeResize(el, callback) {
   }
 }
 
-const symbol = (observeResize.symbol = Symbol('observeResize'))
-
 const observer = (observeResize.observer = new ResizeObserver(entries => {
   entries.forEach(entry => {
-    entry.target[symbol]?.forEach(fn => {
+    listenMap.get(entry.target)?.forEach(fn => {
       try {
         fn(entry)
       } catch (e) {
