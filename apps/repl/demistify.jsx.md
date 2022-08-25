@@ -11,23 +11,31 @@ import { h, insert } from './jsx2dom.js'
 
 
 # About this tutorial
-```typescript
-({"code":"initial","runner":"render_jsx"})
-<>
-  <h1>About</h1>
-  <p>Your code goes here</p>
-  <p>And you can edit the code and play with it as you follow along</p>
-</>
-```
 
-This is an interactive tutorial to explain what `JSX` is behind the scenes and why it is a very useful concept. 
+This is an interactive tutorial to explain `JSX` in more detail and also show how it works behind the scenes.
 
 ### Why?
-I will argue that `JSX` is not only useful for React and other big libraries, and can easily be used in vanilla JavaScript with a simple function that is just few lines of code.
+I will argue that `JSX` can also be useful in vanilla JavaScript, and not just in React or other big libraries. Useful use cases in vanilla JS can be easily achieved with a rather short and simple function.
 
 This tutorial can help you better understand libraries that do use `JSX`. You do not need to make your own JSX library for this tutorial to be useful to you.
 
-Even though it is a meme now that JS community creates too many libraries, I see it as a good thing.
+### A quick look
+
+Take a quick look at the sample code, to get a feeling of what JSX is when you write it versus what JavaScript interpreter will see.
+
+Do not analyze it too much, it will be explained better and in more detail in the following chapters.
+
+```typescript
+({"code":"initial","runner":"render_jsx"})
+<p class="intro">
+{`Example code will be shown in the editor,`}<br/>
+{'and'} actual {'JSX'} in the second editor <br/>
+{'and'} rendered in <b>Output</b> section
+</p>
+```
+The sample code above is written intentionally this way to cause specific layout in the second editor and output.
+
+
 
 ## JSX Intro
 
