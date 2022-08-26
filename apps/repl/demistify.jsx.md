@@ -5,8 +5,8 @@ import { h, insert } from './jsx2dom.js'
 ```
 
 ```typescript
-({"provides":"hello_world.jsx","runner":"render_jsx"})
-<h1>Hello JSX</h1>
+({"provides":"hello.jsx","runner":"render_jsx"})
+<h1 class="main">Hello JSX</h1>
 ```
 
 
@@ -29,26 +29,21 @@ Do not analyze it too much, it will be explained better and in more detail in th
 ({"code":"initial","runner":"render_jsx"})
 <p class="intro">
 {`Example code will be shown in the editor,`}<br/>
-{'and'} actual {'JSX'} in the second editor <br/>
+{'and'} actual {'JSX'} in the {1+1}nd editor <br/>
 {'and'} rendered in <b>Output</b> section
 </p>
 ```
-The sample code above is written intentionally this way to cause specific layout in the second editor and output.
+The sample code above is written intentionally this way to cause specific layout in the second editor(babel transform) and output.
 
-
-
-## JSX Intro
-
-({
-  "id":1
-})
-
+# JSX - the excellent tooling support
 ```typescript
-({"code":"initial", "import":"hello_world.jsx"})
+({"code":"initial", "hidden":true, "import":"hello.jsx"})
 ```
+It is important to emphasize that tooling support for JSX is widespread in such way you might think it is part of the JavaScript language itself
+
+### esbuild - super-fast bundler
 
 
-### JSX support in different tools
 
 ```jsx
 //[^1]
@@ -56,6 +51,13 @@ document.body.appendChild(<h1>Hello JSX</h1>)
 ```
 
 [^1]: comment
+
+
+# JSX
+
+```typescript
+({"code":"initial", "import":"hello.jsx"})
+```
 
 
 # Main chapter

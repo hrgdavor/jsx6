@@ -121,9 +121,12 @@ export class TutorialRunner extends Jsx6 {
           if (isCurrent) this.currentChapterButton = c
         }
       })
+
       insertImports(mdParsed, providedMap)
+
       let initialCode = ''
       this.codeRunner = this.defCodeRunner
+
       mdParsed.sections?.forEach(section => {
         section.lines?.forEach(line => {
           if (!initialCode && line.code) {
@@ -142,8 +145,9 @@ export class TutorialRunner extends Jsx6 {
           }
         })
       })
-      let md = clean(mdParsed)
-      md = stringify(md)
+
+      // let md = clean(mdParsed)
+      let md = stringify(mdParsed, true)
 
       this.editor.setValue(initialCode)
       markdown(md, myColorize).then(html => {
