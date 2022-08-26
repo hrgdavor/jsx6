@@ -57,7 +57,7 @@ function insertImports(mdParsed, providedMap = {}) {
           const provided = providedMap[importName]
           if (provided) {
             line.lines = line.lines.concat(provided.lines)
-            line.info = { ...provided.info, ...line.info }
+            line.info = { ...provided.info, ...line.info, hidden: line.info?.hidden }
             delete line.info.import
           } else {
             console.log('import not found', importName)
@@ -147,7 +147,7 @@ export class TutorialRunner extends Jsx6 {
       })
 
       // let md = clean(mdParsed)
-      let md = stringify(mdParsed, true)
+      let md = stringify(mdParsed, '', true, true)
 
       this.editor.setValue(initialCode)
       markdown(md, myColorize).then(html => {

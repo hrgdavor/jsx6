@@ -14,7 +14,7 @@ importers:
       esbuild: ^0.14.39
       markdown-it: ~13.0.1
       monaco-editor: ~0.33.0
-      mulmd: ~0.5.0
+      mulmd: ~0.7.0
       perfect-scrollbar: ~1.5.5
       vite: ~2.9.13
       vite-plugin-monaco-editor: ~1.0.11
@@ -25,7 +25,7 @@ importers:
       babel-plugin-syntax-jsx: 6.18.0
       markdown-it: 13.0.1
       monaco-editor: 0.33.0
-      mulmd: 0.5.0
+      mulmd: 0.7.0
       perfect-scrollbar: 1.5.5
     devDependencies:
       esbuild: 0.14.47
@@ -345,8 +345,8 @@ packages:
     resolution: {integrity: sha512-VcRWPSLIUEgQJQIE0pVT8FcGBIgFoxz7jtqctE+IiCxWugD0DwgyQBcZBhdSrdMC84eumoqMZsGl2GTreOzwqw==}
     dev: false
 
-  /mulmd/0.5.0:
-    resolution: {integrity: sha512-BxSsOzJzsiteZ+Rg2BI2X9GHeB97zu5yjpWK2YYSckNgTSXA3Tnv+VcGmjL+WyQKZvU+4yrWPuzfM4B9C8O/tA==}
+  /mulmd/0.7.0:
+    resolution: {integrity: sha512-knbbQRJepGbSGKjSbYA+9oLjaIPIHfJ63nUwW/qsRiTi4jOxhyrR8mfu5JFdjsZkXInmjTlFgTumiMX7PWSjIQ==}
     hasBin: true
     dependencies:
       chalk: 4.1.2

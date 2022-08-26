@@ -5,7 +5,7 @@ import { h, insert } from './jsx2dom.js'
 ```
 
 ```typescript
-({"provides":"hello.jsx","runner":"render_jsx"})
+({"provides":"hello.jsx","runner":"render_jsx", "hidden":true})
 <h1 class="main">Hello JSX</h1>
 ```
 
@@ -37,20 +37,17 @@ The sample code above is written intentionally this way to cause specific layout
 
 # JSX - the excellent tooling support
 ```typescript
-({"code":"initial", "hidden":true, "import":"hello.jsx"})
+({"code":"initial", "runner":"render_jsx", "hidden":true})
+<h1 class="main">JSX - the excellent tooling support</h1>
 ```
 It is important to emphasize that tooling support for JSX is widespread in such way you might think it is part of the JavaScript language itself
 
 ### esbuild - super-fast bundler
 
+Claimed 10-100x performance boost for builds!
 
+JSX is supported without plugins in [esbuild](https://esbuild.github.io/) so it can be used full speed.
 
-```jsx
-//[^1]
-document.body.appendChild(<h1>Hello JSX</h1>)
-```
-
-[^1]: comment
 
 
 # JSX
