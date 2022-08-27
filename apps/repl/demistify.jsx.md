@@ -35,18 +35,42 @@ Do not analyze it too much, it will be explained better and in more detail in th
 ```
 The sample code above is written intentionally this way to cause specific layout in the second editor(babel transform) and output.
 
-# JSX - the excellent tooling support
+# JSX - and excellent tooling support
 ```typescript
 ({"code":"initial", "runner":"render_jsx", "hidden":true})
-<h1 class="main">JSX - the excellent tooling support</h1>
+<h1 class="main">JSX - and excellent tooling support</h1>
 ```
-It is important to emphasize that tooling support for JSX is widespread in such way you might think it is part of the JavaScript language itself
+It is important to emphasize that support for JSX is so widespread you might think it is part of the JavaScript language itself.
 
 ### esbuild - super-fast bundler
 
 Claimed 10-100x performance boost for builds!
 
-JSX is supported without plugins in [esbuild](https://esbuild.github.io/) so it can be used full speed.
+`JSX` is supported without plugins in [esbuild](https://esbuild.github.io/) so it can be used full speed.
+
+Here is a quick example of esbuild with options to get started with jsx
+
+```
+ esbuild index.js --jsx-factory=h --jsx-fragment=null --loader:.js=jsx 
+```
+
+### Babel 7 and libraries with JSX
+
+[Babel](https://babeljs.io/) is widely used, much slower from esbuild but much more powerful with AST transformations. 
+Even if you do not use Babel directly, you are likely using it behing the scenes via webpack or some other build tool.
+
+The [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) plugin is used to convert examples in this tutorial so they can be executed in the browser as you type.
+
+Unlike esbuild that has configurable `JSX` ouput, each library has own plugin for `JSX` transformation.
+
+Googling for `JSX` babel plugins I was able to found these libraries that use `JSX` (there is likely more).
+- [React](https://reactjs.org/) -- [babel-plugin-transform-react-jsx](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx)
+- [Vue](https://vuejs.org/) -- [babel-plugin-jsx](https://github.com/vuejs/babel-plugin-jsx)
+- [emotionjs](https://emotion.sh/docs/introduction) -- [babel-plugin-jsx-pragmatic](https://github.com/emotion-js/emotion/tree/main/packages/babel-plugin-jsx-pragmatic) forked from [jmm](https://github.com/jmm/babel-plugin-jsx-pragmatic)
+- [htm](https://github.com/developit/htm) -- [babel-plugin-transform-jsx-to-htm](https://www.npmjs.com/package/babel-plugin-transform-jsx-to-htm)
+
+
+For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) or [babel-plugin-jsx-pragmatic](https://github.com/jmm/babel-plugin-jsx-pragmatic).
 
 
 
@@ -54,8 +78,18 @@ JSX is supported without plugins in [esbuild](https://esbuild.github.io/) so it 
 
 ```typescript
 ({"code":"initial", "import":"hello.jsx"})
-```
 
+sample formatting to use to format jsx
+
+<h1 class="main">
+  JSX - and excellent tooling support
+</h1>
+
+h("h1", { "class": "main" }, 
+  "JSX - and excellent tooling support"
+);//</h1>
+
+```
 
 # Main chapter
 
