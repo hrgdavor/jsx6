@@ -20,3 +20,9 @@ h("h1", { "class": "main" },
 );//</h1>
 
 ``` 
+
+
+# multiple JSX
+
+- how to compile different JSX in singel project
+- how to publish library that uses JSX to be able to inspect code, but not need JSX compiler in top level project (or have different JSX setup in top-level)
