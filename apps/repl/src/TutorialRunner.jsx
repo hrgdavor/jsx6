@@ -80,12 +80,12 @@ export class TutorialRunner extends Jsx6 {
       queueCodeChange(this.iframe, this.editor, { otherEditor: this.compiled, codeRunner: this.codeRunner })
     })
 
-    const ps = new PerfectScrollbar(this.md, {
+    const ps = (this.mdArea.scroller = new PerfectScrollbar(this.mdArea, {
       wheelSpeed: 2,
       wheelPropagation: true,
       minScrollbarLength: 20,
-    })
-    observeResize(this.md, evt => ps.update())
+    }))
+    observeResize(this.mdArea, evt => ps.update())
   }
 
   showMd(md, keepChapter) {
@@ -163,6 +163,8 @@ export class TutorialRunner extends Jsx6 {
     state.disableNext = !(mdIndex >= 0 && mdIndex < chapters.length - 1)
     setTimeout(() => {
       this.nextButton.focus()
+      this.mdArea.scrollTop = 0
+      this.mdArea.scroller.update()
     }, 1)
   }
 
@@ -172,7 +174,7 @@ export class TutorialRunner extends Jsx6 {
 
   tpl(h, $state, state) {
     state.menuHidden = true
-
+    const nextChapter = () => this.showChapter(0, 1)
     // this declaration is intentionaly here to have access to scope and scoped `h` function
     // nice side-effect of such declaration is that CTRL+R works in vscode to find it
     this.tplChapterButton = chapter => (
@@ -207,12 +209,7 @@ export class TutorialRunner extends Jsx6 {
           {$state.chapterTitle}
         </button>
 
-        <button
-          p="nextButton"
-          class="btn-icon-large"
-          disabled={$state.disableNext}
-          onclick={() => this.showChapter(0, 1)}
-        >
+        <button p="nextButton" class="btn-icon-large" disabled={$state.disableNext} onclick={nextChapter}>
           &gt;
         </button>
       </div>
@@ -229,7 +226,14 @@ export class TutorialRunner extends Jsx6 {
             {tplTutorialHeader}
 
             {/* ---------------- tutorial text  ----------------------- */}
-            <div class="fx1 owh posr tutorial-text pad" p="md"></div>
+            <div class="fx1 owh posr tutorial-section" p="mdArea">
+              <div class="tutorial-text pad" p="md"></div>
+              <div class="fx fxje pad tutorial-buttons-bottom">
+                <button class="btn btn1" disabled={$state.disableNext} onclick={nextChapter}>
+                  Next
+                </button>
+              </div>
+            </div>
 
             {/* left bottom */}
             <div class="fxs1 fxfc owh" hidden>

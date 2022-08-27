@@ -14,8 +14,6 @@ import { h, insert } from './jsx2dom.js'
 
 This is an interactive tutorial to explain `JSX` in more detail and also show how it works behind the scenes.
 
-JSX was created in 2013 a part of React by Jordan Walke [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)).
-
 ### Why?
 I will argue that `JSX` can also be useful in vanilla JavaScript, and not just in React or other big libraries. Useful use cases in vanilla JS can be easily achieved with a rather short and simple function.
 
@@ -37,7 +35,18 @@ Do not analyze it too much, it will be explained better and in more detail in th
 ```
 The sample code above is written intentionally this way to cause specific layout in the second editor(babel transform) and output.
 
-# JSX - and excellent tooling support
+# JSX
+```typescript
+({"code":"initial", "runner":"render_jsx", "hidden":true})
+<h1>JSX</h1>
+```
+JSX was created in 2013 
+
+It was created as part of React by Jordan Walke [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)).
+
+It has a lot of potential. Learn more about it in the follwoing chapters
+
+## the excellent tooling support
 ```typescript
 ({"code":"initial", "runner":"render_jsx", "hidden":true})
 <h1 class="main">JSX - and excellent tooling support</h1>
@@ -76,7 +85,11 @@ For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://
 
 
 
-# JSX - much more than template
+## much more than just a template
+```typescript
+({"code":"initial", "runner":"render_jsx"})
+<h1>JSX - much more than just a template</h1>
+```
 
 `JSX` is a brilliant step forward from different types of template engines. 
 
@@ -88,8 +101,27 @@ If new JavaScript syntax is added it will just work.
 
 Exceptions and errors can easily show stack traces even inside `JSX`.
 
+## JSX tag
 
-# JSX - More complex example
+A `JSX` tag is simply converted to a function call where
+- first parameter is tag name
+- second parameter is an Object with those attributes
+- rest are children (more on that in the next chapter)
+
+A tag without attributes `<input/>` becomes `h("div", null)`
+
+And with attributes
+```typescript
+({"code":"initial", "runner":"render_jsx"})
+<input type="text" value="nice"/>
+```
+it becomes
+```typescript
+h("input", { type: "text", value: "nice" });
+```
+
+
+## A more complex example
 ```typescript
 ({"code":"initial", "hidden":true, "runner":"render_jsx"})
 <div class="sth">

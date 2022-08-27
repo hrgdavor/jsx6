@@ -10,12 +10,14 @@
   --tutorial-incode-fg: rgb(245, 245, 245);
 }
 
-.tutorial-text{
+.tutorial-section{
   background-color: var(--tutorial-text-bg);
   color: var(--tutorial-text-fg);
 }
+.tutorial-text{
+}
 
-.tutorial-text > p > code {
+.tutorial-text > p > code, .tutorial-text > ul code, .tutorial-text > li code {
   padding: 2px 6px;
   border-radius: 4px;
   background-color: var(--tutorial-incode-bg);
@@ -75,7 +77,7 @@ https://stackoverflow.com/questions/21351476/why-changing-visibility-display-on-
   text-align: left;
 }
 .tutorial-menu-pop > button:hover, .tutorial-menu-pop > button.selected{
-  background-color: #eee;
+  background-color: #ccc;
 }
 .tutorial-menu-pop > button[level="1"]{
   font-weight: bold;

@@ -26,3 +26,5 @@ h("h1", { "class": "main" },
 
 - how to compile different JSX in singel project
 - how to publish library that uses JSX to be able to inspect code, but not need JSX compiler in top level project (or have different JSX setup in top-level)
+- with babel each folder can have own set of plugins
+- how to do it with esbuild ?
