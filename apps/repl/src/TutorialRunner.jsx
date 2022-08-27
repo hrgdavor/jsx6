@@ -162,7 +162,7 @@ export class TutorialRunner extends Jsx6 {
     state.disablePrev = mdIndex <= 0
     state.disableNext = !(mdIndex >= 0 && mdIndex < chapters.length - 1)
     setTimeout(() => {
-      this.nextButton.focus()
+      this.chapterName.focus()
       this.mdArea.scrollTop = 0
       this.mdArea.scroller.update()
     }, 1)
@@ -205,7 +205,7 @@ export class TutorialRunner extends Jsx6 {
           &lt;
         </button>
         <button p="chapterName" class="fxcv1 padh05 btn" onclick={showMenu}>
-          <b>{$state.parentTitle}</b>
+          <b style="margin-right: 0.5em">{$state.parentTitle}</b>
           {$state.chapterTitle}
         </button>
 

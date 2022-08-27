@@ -44,7 +44,7 @@ JSX was created in 2013
 
 It was created as part of React by Jordan Walke [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)).
 
-It has a lot of potential. Learn more about it in the follwoing chapters
+It has a lot of potential. Learn more about it in the following chapters. You really should.
 
 ## the excellent tooling support
 ```typescript
@@ -142,28 +142,5 @@ equivalent.
   1+1={1+1}            |   "1+1=", 1+1
 </div>                 | )/*h1*/;
 ```
-Take a look at the code here and what babel produces in the second editor panel. The resulting code works the same.
-
-
-# Main chapter
-
-## subchapter 1 with content
-
-subchapter 1 with content
-
-## subchapter 2 with content
-
-subchapter 2 with content
-
-
-# Main chapter with content
-
-main with content
-
-## subchapter 1 with content
-
-subchapter 1 with content
-
-## subchapter 2 with content
-
-subchapter 2 with content
+Take a look at the code here and what babel produces in the second editor panel. 
+The resulting code works the same, it is just manually better aligned here to be easier to compare.
