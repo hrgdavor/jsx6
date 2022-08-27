@@ -14,6 +14,8 @@ import { h, insert } from './jsx2dom.js'
 
 This is an interactive tutorial to explain `JSX` in more detail and also show how it works behind the scenes.
 
+JSX was created in 2013 a part of React by Jordan Walke [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)).
+
 ### Why?
 I will argue that `JSX` can also be useful in vanilla JavaScript, and not just in React or other big libraries. Useful use cases in vanilla JS can be easily achieved with a rather short and simple function.
 
@@ -40,7 +42,7 @@ The sample code above is written intentionally this way to cause specific layout
 ({"code":"initial", "runner":"render_jsx", "hidden":true})
 <h1 class="main">JSX - and excellent tooling support</h1>
 ```
-It is important to emphasize that support for JSX is so widespread you might think it is part of the JavaScript language itself.
+Support for `JSX` is excellent, so much so you might think it is part of the JavaScript language itself.
 
 ### esbuild - super-fast bundler
 
