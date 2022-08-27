@@ -76,22 +76,42 @@ For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://
 
 
 
-# JSX
+# JSX - much more than template
 
+`JSX` is a brilliant step forward from different types of template engines. 
+
+It does look like a template, but it is actually a simple transformation that makes it regular JavaScript code. 
+
+This means that there is no special template engine needed to run code inside `JSX`. 
+
+If new JavaScript syntax is added it will just work. 
+
+Exceptions and errors can easily show stack traces even inside `JSX`.
+
+
+# JSX - More complex example
 ```typescript
-({"code":"initial", "import":"hello.jsx"})
-
-sample formatting to use to format jsx
-
-<h1 class="main">
-  JSX - and excellent tooling support
-</h1>
-
-h("h1", { "class": "main" }, 
-  "JSX - and excellent tooling support"
-);//</h1>
-
+({"code":"initial", "hidden":true, "runner":"render_jsx"})
+<div class="sth">
+  <b>example JS:</b>
+  1+1={1+1}
+</div>
 ```
+
+Babel option `retainLines` is good in producing code that will give real line numbers in exception traces,
+but is less readable. 
+
+Here is a more complex example with manual formating to more clearly show how `JSX` compares to JavaScript
+equivalent.
+```typescript
+({"code":"initial", "runner":"render_jsx"})
+<div class="sth">      | h("div", { "class": "sth" },
+  <b>example JS:</b>   |   h("b", null, "example JS:")/*b*/,
+  1+1={1+1}            |   "1+1=", 1+1
+</div>                 | )/*h1*/;
+```
+Take a look at the code here and what babel produces in the second editor panel. The resulting code works the same.
+
 
 # Main chapter
 
