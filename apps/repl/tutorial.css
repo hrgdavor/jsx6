@@ -1,6 +1,7 @@
 :root {
   --tutorial-text-bg: rgb(109, 102, 102);
   --tutorial-text-fg: rgb(245, 245, 245);
+  --tutorial-text-fgh: #fff4cc;
 
   --tutorial-code-fg: rgb(38, 38, 38);
   --tutorial-code-bg: rgb(245, 245, 245);
@@ -38,8 +39,8 @@
   display: none;
 }
 
-.tutorial-text > h3, .tutorial-text > h3{
-  color: #fff4cc;
+.tutorial-text > h3, .tutorial-text > h3, .tutorial-text > p > a, .tutorial-text > ul a, .tutorial-text > li a{
+  color: var(--tutorial-text-fgh);
 }
 
 .tutorial-menu{
