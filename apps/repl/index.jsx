@@ -1,7 +1,7 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
-
 import { insert, insertHtml } from '@jsx6/jsx6'
+
 import './main.css'
 
 insert(

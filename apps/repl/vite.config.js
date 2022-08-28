@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import monacoEditorPlugin from 'vite-plugin-monaco-editor'
+
 import CustomHmr from './CustomHmr.js'
 
 export default defineConfig({

@@ -1,6 +1,5 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
-
 import { insert } from '@jsx6/jsx6'
 
 import styles from './editor.css'
