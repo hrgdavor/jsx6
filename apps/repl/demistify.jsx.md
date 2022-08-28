@@ -40,7 +40,7 @@ The sample code above is written intentionally this way to cause specific layout
 ({"code":"initial", "runner":"render_jsx", "hidden":true})
 <h1>JSX</h1>
 ```
-JSX was created in 2013 
+JSX was created in 2013
 
 It was created as part of React by Jordan Walke [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)).
 
@@ -62,12 +62,12 @@ Claimed 10-100x performance boost for builds!
 Here is a quick example of esbuild with options to get started with jsx
 
 ```
- esbuild index.js --jsx-factory=h --jsx-fragment=null --loader:.js=jsx 
+ esbuild index.js --jsx-factory=h --jsx-fragment=null --loader:.js=jsx
 ```
 
 ### Babel 7 and libraries with JSX
 
-[Babel](https://babeljs.io/) is widely used, much slower from esbuild but much more powerful with AST transformations. 
+[Babel](https://babeljs.io/) is widely used, much slower from esbuild but much more powerful with AST transformations.
 Even if you do not use Babel directly, you are likely using it behing the scenes via webpack or some other build tool.
 
 The [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) plugin is used to convert examples in this tutorial so they can be executed in the browser as you type.
@@ -91,13 +91,13 @@ For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://
 <h1>JSX - much more than just a template</h1>
 ```
 
-`JSX` is a brilliant step forward from different types of template engines. 
+`JSX` is a brilliant step forward from different types of template engines.
 
-It does look like a template, but it is actually a simple transformation that makes it regular JavaScript code. 
+It does look like a template, but it is actually a simple transformation that makes it regular JavaScript code.
 
-This means that there is no special template engine needed to run code inside `JSX`. 
+This means that there is no special template engine needed to run code inside `JSX`.
 
-If new JavaScript syntax is added it will just work. 
+If new JavaScript syntax is added it will just work.
 
 Exceptions and errors can easily show stack traces even inside `JSX`.
 
@@ -122,8 +122,35 @@ it becomes
 h("input", { type: "text", value: "nice" });
 ```
 
-Function name I have chosen is `h` because I like a short function name here to make less visual noise 
+Function name I have chosen is `h` because I like a short function name here to make less visual noise
 in the generated code. Also it is short for `html` which is ultimately what it represents.
+
+## JSX tag with children
+
+When a `JSX` tag has children they are nested as parameters of the parent tag function call.
+
+```typescript
+({"code":"initial",  "hidden":true, "runner":"render_jsx"})
+<div class="sth">
+  <span>
+    <b>label:</b>
+    <input/>
+  </span>
+</div>
+```
+
+```typescript
+<div class="sth">   |  h("div", { "class": "sth" },
+  <span>            |    h("span", null,
+    <b>label:</b>   |      h("b", null, "label:"),//b is 3rd param for span
+    <input/>        |      h("input", null)// input is 4th param for span
+  </span>           |    ),//span is 3rd param for div
+</div>              |  )//div
+```
+
+It is also important to notice that JavaScript will execute inner functions first. 
+This must be done to produce values that will be then passed as parameters to the parent function call.
+
 
 ## A more complex example
 ```typescript
@@ -135,16 +162,16 @@ in the generated code. Also it is short for `html` which is ultimately what it r
 ```
 
 Babel option `retainLines` is good in producing code that will give real line numbers in exception traces,
-but is less readable. 
+but is less readable.
 
 Here is a more complex example with manual formating to more clearly show how `JSX` compares to JavaScript
 equivalent.
 ```typescript
 ({"code":"initial", "runner":"render_jsx"})
 <div class="sth">      | h("div", { "class": "sth" },
-  <b>example JS:</b>   |   h("b", null, "example JS:")/*b*/,
+  <b>example JS:</b>   |   h("b", null, "example JS:"),//b
   1+1={1+1}            |   "1+1=", 1+1
-</div>                 | )/*h1*/;
+</div>                 | )//h1
 ```
-Take a look at the code here and what babel produces in the second editor panel. 
+Take a look at the code here and what babel produces in the second editor panel.
 The resulting code works the same, it is just manually better aligned here to be easier to compare.
