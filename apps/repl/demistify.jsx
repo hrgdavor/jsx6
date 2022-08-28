@@ -13,26 +13,8 @@ import { fetchText } from './src/util/fetchText'
 /** can be removed if wanting to cut a little bit on the output size, but get coded error messages */
 setTranslations(errTranslations)
 
-/** @type {TutorialRunner} */
-const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)
-insert(document.body, tutorialRunner)
-
-tutorialRunner.defCodeRunner = (code, iframe) => {
-  injectStyle(iframe)
-  const transformedForRun = transformcjs(code, { filename: 'code_from_editor.js' })
-  const codeToRun = transformedForRun.code
-  runCode(codeToRun, iframe)
-}
-
-tutorialRunner.registerRunner('render_jsx', (code, iframe) => {
-  injectStyle(iframe)
-  const improved = `import {h,insert} from './jsx2dom.js';const __JSX__ = ${code};\ninsert(document.body,__JSX__)`
-  const transformedForRun = transformcjs(improved, { filename: 'code_from_editor.js' })
-  const codeToRun = transformedForRun.code
-  runCode(codeToRun, iframe)
-})
-
 const injectStyle = iframe => {
+  console.log('injectStyle', iframe)
   insert(
     iframe.contentDocument.head,
     <style>{`
@@ -51,6 +33,24 @@ body{
   `}</style>,
   )
 }
+
+/** @type {TutorialRunner} */
+const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)
+insert(document.body, tutorialRunner)
+tutorialRunner.onPrepareIframe(injectStyle)
+
+tutorialRunner.defCodeRunner = (code, iframe) => {
+  const transformedForRun = transformcjs(code, { filename: 'code_from_editor.js' })
+  const codeToRun = transformedForRun.code
+  runCode(codeToRun, iframe)
+}
+
+tutorialRunner.registerRunner('render_jsx', (code, iframe) => {
+  const improved = `import {h,insert} from './jsx2dom.js';const __JSX__ = ${code};\ninsert(document.body,__JSX__)`
+  const transformedForRun = transformcjs(improved, { filename: 'code_from_editor.js' })
+  const codeToRun = transformedForRun.code
+  runCode(codeToRun, iframe)
+})
 
 const mdName = 'demistify.jsx.md'
 const md = await fetchText('./' + mdName)

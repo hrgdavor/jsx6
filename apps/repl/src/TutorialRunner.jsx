@@ -9,64 +9,13 @@ import PerfectScrollbar from 'perfect-scrollbar'
 
 import styles2 from '../tutorial.css'
 import stylesPS from './perfect-scrollbar.css'
+import { splitChapters } from './markdown/splitChapters'
+import { insertImports } from './markdown/insertImports'
 
 const langMap = { js: 'typescript', jsx: 'typescript' }
 
 const myColorize = (code, lang) => colorize(code, langMap[lang] || lang)
 const suffix = (val, suf) => (val !== undefined ? val + suf : '')
-
-function trimTitle(title) {
-  if (title && title[0] === '#') {
-    const idx = title.indexOf(' ')
-    title = title.substring(idx + 1)
-  }
-  return title
-}
-
-function splitChapters(mdParsed) {
-  const out = []
-  let current
-  let currentTop
-  mdParsed.sections?.forEach((section, i) => {
-    if (section.level && section.level < 3) {
-      current = {
-        title: trimTitle(section.title),
-        path: section.info?.path || i + '',
-        info: section.info,
-        level: section.level,
-        sections: [section],
-      }
-      if (current.level > 1 && currentTop) current.parentTitle = currentTop.title
-      if (current.level == 1) currentTop = current
-      out.push(current)
-    } else if (current) {
-      current.sections.push(section)
-    } else {
-      if (section.title) console.warn('skipping section without parent ', section)
-    }
-  })
-  return out
-}
-
-function insertImports(mdParsed, providedMap = {}) {
-  mdParsed.sections?.forEach(section => {
-    section.lines?.forEach(line => {
-      if (line.code !== undefined) {
-        const importName = line.info?.import
-        if (importName) {
-          const provided = providedMap[importName]
-          if (provided) {
-            line.lines = line.lines.concat(provided.lines)
-            line.info = { ...provided.info, ...line.info, hidden: line.info?.hidden }
-            delete line.info.import
-          } else {
-            console.log('import not found', importName)
-          }
-        }
-      }
-    })
-  })
-}
 
 export class TutorialRunner extends Jsx6 {
   defCodeRunner = function () {}
@@ -86,6 +35,10 @@ export class TutorialRunner extends Jsx6 {
       minScrollbarLength: 20,
     }))
     observeResize(this.mdArea, evt => ps.update())
+  }
+
+  onPrepareIframe(listener) {
+    return this.iframe.onPrepareIframe(listener)
   }
 
   showMd(md, keepChapter) {

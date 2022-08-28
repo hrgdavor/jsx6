@@ -1,5 +1,37 @@
-import { Jsx6, observeResize } from '@jsx6/jsx6'
+import { fireEvent, Jsx6, observeResize } from '@jsx6/jsx6'
 import { Defered } from './async/Defered'
+
+const onPrepareIframe = 'onPrepareIframe'
+const eventMap = new WeakMap()
+
+function getEventListenerArr(obj, name, create = false) {
+  let objMap = eventMap.get(obj)
+  if (!objMap) {
+    if (create) eventMap.set(obj, (objMap = new Map()))
+    else return
+  }
+  let arr = objMap.get(name)
+  if (!arr) {
+    if (create) objMap.set(name, (arr = []))
+    else return
+  }
+  return arr
+}
+
+function addEventListener(obj, name, listener) {
+  getEventListenerArr(obj, name, true).push(listener)
+  // todo return clear function
+}
+
+function fireEventListener(obj, name, params) {
+  getEventListenerArr(obj, name)?.forEach(listener => {
+    try {
+      listener(...params)
+    } catch (error) {
+      console.error(error.message, error, 'listener', listener)
+    }
+  })
+}
 
 export class FlipFrame extends Jsx6 {
   constructor(...args) {
@@ -16,6 +48,11 @@ export class FlipFrame extends Jsx6 {
 
   reloadFrame(cb) {
     cb(this.next())
+  }
+
+  onPrepareIframe(listener) {
+    addEventListener(this, onPrepareIframe, listener)
+    this.iframes.forEach(listener)
   }
 
   waitNext() {
@@ -44,6 +81,7 @@ export class FlipFrame extends Jsx6 {
     const iframe = evt.target
     evt.target.loadCounter = (evt.target.loadCounter || 0) + 1
     evt.target.__loading = false
+    fireEventListener(this, onPrepareIframe, [iframe])
     this.promise?.resolve(iframe)
     this.promise = null
   }
