@@ -1,16 +1,16 @@
-import { insert, Jsx6, observeResize, classIf, addToBody } from '@jsx6/jsx6'
-import { FlipFrame } from './FlipFrame'
-import { MonacoEditor, colorize } from './MonacoEditor'
-import { clean, parse, stringify } from 'mulmd'
-import { extractProvided, markdown } from './markdown/markdown'
-import { syncScroll } from './util/syncScroll'
-import { queueCodeChange } from './applyCodeChange'
+import { Jsx6, addToBody, classIf, insert, observeResize } from '@jsx6/jsx6'
+import { parse, stringify } from 'mulmd'
 import PerfectScrollbar from 'perfect-scrollbar'
 
 import styles2 from '../tutorial.css'
-import stylesPS from './perfect-scrollbar.css'
-import { splitChapters } from './markdown/splitChapters'
+import { FlipFrame } from './FlipFrame'
+import { MonacoEditor, colorize } from './MonacoEditor'
+import { queueCodeChange } from './applyCodeChange'
 import { insertImports } from './markdown/insertImports'
+import { extractProvided, markdown } from './markdown/markdown'
+import { splitChapters } from './markdown/splitChapters'
+import stylesPS from './perfect-scrollbar.css'
+import { syncScroll } from './util/syncScroll'
 
 const langMap = { js: 'typescript', jsx: 'typescript' }
 
@@ -21,6 +21,15 @@ export class TutorialRunner extends Jsx6 {
   defCodeRunner = function () {}
   codeRunner
   runnerMap = {}
+
+  onPrepareIframe(listener) {
+    return this.iframe.onPrepareIframe(listener)
+  }
+
+  registerRunner(code, runner) {
+    this.runnerMap[code] = runner
+  }
+
   init() {
     this.compiled.editor.updateOptions({ readOnly: true })
     syncScroll(this.editor.editor, this.compiled.editor)
@@ -35,10 +44,6 @@ export class TutorialRunner extends Jsx6 {
       minScrollbarLength: 20,
     }))
     observeResize(this.mdArea, evt => ps.update())
-  }
-
-  onPrepareIframe(listener) {
-    return this.iframe.onPrepareIframe(listener)
   }
 
   showMd(md, keepChapter) {
@@ -119,10 +124,6 @@ export class TutorialRunner extends Jsx6 {
       this.mdArea.scrollTop = 0
       this.mdArea.scroller.update()
     }, 1)
-  }
-
-  registerRunner(code, runner) {
-    this.runnerMap[code] = runner
   }
 
   tpl(h, $state, state) {

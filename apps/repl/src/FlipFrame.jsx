@@ -1,4 +1,5 @@
-import { fireEvent, Jsx6, observeResize } from '@jsx6/jsx6'
+import { Jsx6, fireEvent, observeResize } from '@jsx6/jsx6'
+
 import { Defered } from './async/Defered'
 
 const onPrepareIframe = 'onPrepareIframe'

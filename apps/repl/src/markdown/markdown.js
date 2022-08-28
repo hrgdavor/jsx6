@@ -1,4 +1,5 @@
 import MarkDownIt from 'markdown-it'
+
 import { isPromise } from '../async/isPromise'
 
 export function markdown(code, colorize) {

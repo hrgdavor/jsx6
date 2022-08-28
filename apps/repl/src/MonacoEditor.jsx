@@ -1,5 +1,7 @@
 import { Jsx6 } from '@jsx6/jsx6'
+
 import { monaco } from './customMonaco'
+
 // import * as monaco from 'monaco-editor'
 
 export class MonacoEditor extends Jsx6 {

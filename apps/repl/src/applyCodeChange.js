@@ -1,6 +1,6 @@
 import { transform, transformcjs } from './babel/transform'
-import { addLinesToMatchCount } from './util/addLinesToMatchCount'
 import { runCode } from './runner/simpleRunner'
+import { addLinesToMatchCount } from './util/addLinesToMatchCount'
 
 let changeTimer
 let defApplyCodeDelay = 100

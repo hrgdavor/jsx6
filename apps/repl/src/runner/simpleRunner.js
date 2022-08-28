@@ -1,4 +1,4 @@
-import { requireFile, require, requireModule } from './require'
+import { require, requireFile, requireModule } from './require'
 
 export function runCode(code, iframe) {
   // console.log('codeToRun', code, iframe)
