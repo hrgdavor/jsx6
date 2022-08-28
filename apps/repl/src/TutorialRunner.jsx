@@ -128,7 +128,7 @@ export class TutorialRunner extends Jsx6 {
 
   tpl(h, $state, state) {
     state.menuHidden = true
-    const nextChapter = () => this.showChapter(0, 1)
+    const nextChapterClick = () => this.showChapter(0, 1)
     // this declaration is intentionaly here to have access to scope and scoped `h` function
     // nice side-effect of such declaration is that CTRL+R works in vscode to find it
     this.tplChapterButton = chapter => (
@@ -142,7 +142,7 @@ export class TutorialRunner extends Jsx6 {
       </button>
     )
 
-    const showMenu = evt => {
+    const showMenuClick = evt => {
       const target = this.chapterName
       const style = this.menuItems.style
       setTimeout(() => {
@@ -158,36 +158,42 @@ export class TutorialRunner extends Jsx6 {
         <button class="btn-icon-large" disabled={$state.disablePrev} onclick={() => this.showChapter(0, -1)}>
           &lt;
         </button>
-        <button p="chapterName" class="fxcv1 padh05 btn" onclick={showMenu}>
+        <button p="chapterName" class="fxcv1 padh05 btn" onclick={showMenuClick}>
           <b style="margin-right: 0.5em">{$state.parentTitle}</b>
           {$state.chapterTitle}
         </button>
 
-        <button p="nextButton" class="btn-icon-large" disabled={$state.disableNext} onclick={nextChapter}>
+        <button
+          p="nextButton"
+          class="btn-icon-large"
+          disabled={$state.disableNext}
+          onclick={nextChapterClick}
+        >
           &gt;
         </button>
       </div>
     )
 
+    const tplTutorialText = (
+      <div class="fx1 owh posr tutorial-section" p="mdArea">
+        <div class="tutorial-text pad" p="md"></div>
+        <div class="fx fxje pad tutorial-buttons-bottom">
+          <button class="btn btn1" disabled={$state.disableNext} onclick={nextChapterClick}>
+            Next -&gt;
+          </button>
+        </div>
+      </div>
+    )
+
     addToBody((this.menuItems = <button class="tutorial-menu-pop pad05 fxs fxfc"></button>))
 
-    return (
+    const tplLayout = (
       <>
         <div class="fx1 c-main owh">
           {/* ---------------- left side  ----------------------- */}
           <div class="c-left fxs1 fxfc owh">
-            {/* ---------------- menu  ----------------------- */}
             {tplTutorialHeader}
-
-            {/* ---------------- tutorial text  ----------------------- */}
-            <div class="fx1 owh posr tutorial-section" p="mdArea">
-              <div class="tutorial-text pad" p="md"></div>
-              <div class="fx fxje pad tutorial-buttons-bottom">
-                <button class="btn btn1" disabled={$state.disableNext} onclick={nextChapter}>
-                  Next
-                </button>
-              </div>
-            </div>
+            {tplTutorialText}
 
             {/* left bottom */}
             <div class="fxs1 fxfc owh" hidden>
@@ -216,5 +222,6 @@ export class TutorialRunner extends Jsx6 {
         </div>
       </>
     )
+    return tplLayout
   }
 }
