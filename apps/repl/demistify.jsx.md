@@ -103,10 +103,12 @@ Exceptions and errors can easily show stack traces even inside `JSX`.
 
 ## JSX tag
 
-A `JSX` tag is simply converted to a function call where
-- first parameter is tag name
-- second parameter is an Object with those attributes
-- rest are children (more on that in the next chapter)
+Let's start with the basic example of what a single `JSX` tag looks like and how it translatest to JavaScript.
+
+A `JSX` tag is simply converted to a `function call` where
+- first parameter - is tag name
+- second parameter - is an Object with those attributes
+- ...rest  - are children (more on that in the next chapter)
 
 A tag without attributes `<input/>` becomes `h("div", null)`
 
@@ -120,6 +122,8 @@ it becomes
 h("input", { type: "text", value: "nice" });
 ```
 
+Function name I have chosen is `h` because I like a short function name here to make less visual noise 
+in the generated code. Also it is short for `html` which is ultimately what it represents.
 
 ## A more complex example
 ```typescript

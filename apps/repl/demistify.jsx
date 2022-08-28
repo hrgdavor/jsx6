@@ -18,17 +18,39 @@ const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)
 insert(document.body, tutorialRunner)
 
 tutorialRunner.defCodeRunner = (code, iframe) => {
+  injectStyle(iframe)
   const transformedForRun = transformcjs(code, { filename: 'code_from_editor.js' })
   const codeToRun = transformedForRun.code
   runCode(codeToRun, iframe)
 }
 
 tutorialRunner.registerRunner('render_jsx', (code, iframe) => {
+  injectStyle(iframe)
   const improved = `import {h,insert} from './jsx2dom.js';const __JSX__ = ${code};\ninsert(document.body,__JSX__)`
   const transformedForRun = transformcjs(improved, { filename: 'code_from_editor.js' })
   const codeToRun = transformedForRun.code
   runCode(codeToRun, iframe)
 })
+
+const injectStyle = iframe => {
+  insert(
+    iframe.contentDocument.head,
+    <style>{`
+@import url(http://fonts.googleapis.com/css?family=Roboto:400,100,100italic,300,300ita‌​lic,400italic,500,500italic,700,700italic,900italic,900);
+html, body {
+  font-family: 'Roboto', sans-serif;
+  width:100%;
+  height:100%;
+  padding:0;
+  margin:0;
+  box-sizing: border-box;
+}  
+body{
+  padding: 20px;
+}
+  `}</style>,
+  )
+}
 
 const mdName = 'demistify.jsx.md'
 const md = await fetchText('./' + mdName)
