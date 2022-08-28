@@ -2,7 +2,7 @@ JSX6
 
 # Development
 
-Befor you start you need 3 global modules
+Before you start you need these global modules
 - `npm install -g pnpm` - https://pnpm.io/ - npm alternative
 - `npm install -g rush` - https://rushjs.io/ - monorepo management
 - `npm install -g vite` - https://vitejs.dev/ - project runner and bundler
@@ -13,6 +13,6 @@ so Rush was chosen to manage it.
 
 After cloning the repository you need to initialize  project.
 
-In the base dir of the project run `rush update`.
+In the base dir of the project run `rush update`, and it will download dependencies using pnpm and link internal dependencies inside the monorepo.
 
 
