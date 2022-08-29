@@ -1,7 +1,17 @@
+## components and functional style
+looks like in JS calling new on a function is not a problem if function returns value
+in that case it acts like regular function
+
+so, if function is tagname we can call new anyway, and that means we can support both regular components
+and simple functions that return dom node taht will be inserted. Also we could add a pattern that returned
+object if it is not a dom node can have a function that return the dom node upon calling the function.
+
+this can allow reordering of component instantiation because it could be initialized on first time adding to DOM
+
 
 ##pitfalls 
  - tpl missing first parameter: h will cause issue because of missing parent
- - - TODO throw an error that is more descriptive and/or make validation tool
+ - TODO throw an error that is more descriptive and/or make validation tool
 
 
 
