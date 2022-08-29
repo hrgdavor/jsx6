@@ -213,6 +213,28 @@ When a `JSX` tag has children they are nested as parameters of the parent tag fu
 It is also important to notice that JavaScript will execute inner functions first. 
 This must be done to produce values that will be then passed as parameters to the parent function call.
 
-## code inside JSX markup
+# JavaScript code inside JSX
 
-Thre brilliant part of the `JSX` comes from how regular javascript code is mixed-in.
+The brilliant part of the `JSX` comes from how regular javascript code is mixed-in.
+
+JSX is converted to JavaScript using few simple rules
+
+```typescript
+import { h, insert } from './jsx2dom.js'
+```
+
+## simple and clean looking translation function
+
+How nice would id be if you could inject translations like this
+```typescript
+<div class="title">{t`package_info`}</div>
+```
+
+Well, it is because how javascript [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals#tagged_templates) work.
+
+To call a function with regular string you need to use the function call syntax with parenthesis
+```typescript
+<div class="title">{t('package_info')}</div>
+```
+Which is not toobad, but the example at the begining of this chapter is nicer and cleaner to read.
+
