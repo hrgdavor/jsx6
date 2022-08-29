@@ -236,5 +236,27 @@ To call a function with regular string you need to use the function call syntax 
 ```typescript
 <div class="title">{t('package_info')}</div>
 ```
-Which is not toobad, but the example at the begining of this chapter is nicer and cleaner to read.
+Which is not too bad, but the example at the begining of this chapter is nicer and cleaner to read.
 
+
+### Sample implementation
+
+The translation function is actually trivial to implement, and you can change where it gets the translations from
+
+```typescript
+({"code":"initial"})
+import { h, insert } from './jsx2dom.js'
+
+const TRANS = {'package_info':'Package Information'}
+
+const t = (code)=>{
+  if(code instanceof Array) code = code[0] // when used with template literals
+  return TRANS[code] || code
+}
+
+insert(document.body,<div class="title">{t`package_info`}:</div>)
+insert(document.body,<div class="title">{t('package_info')}:</div>)
+
+insert(document.body,<div class="title">{t`missing_translation`}:</div>)
+
+```
