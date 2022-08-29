@@ -86,10 +86,6 @@ For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://
 It is harder to find a code editor without `JSX` support that those with it. Whichever editor you prefer right now will just work.
 
 ## much more than just a template
-```typescript
-({"code":"initial", "runner":"render_jsx"})
-<h1>JSX - much more than just a template</h1>
-```
 
 `JSX` is a brilliant step forward from different types of template engines.
 
@@ -100,6 +96,31 @@ This means that there is no special template engine needed to run code inside `J
 If new JavaScript syntax is added it will just work.
 
 Exceptions and errors can easily show stack traces even inside `JSX`.
+
+### A more complex example
+```typescript
+({"code":"initial", "hidden":true, "runner":"render_jsx"})
+<div class="sth">
+  <b>example JS:</b>
+  1+1={1+1}
+</div>
+```
+
+Babel option `retainLines` is good in producing code that will give real line numbers in exception traces,
+but is less readable.
+
+Here is a more complex example with manual formating to more clearly show how `JSX` compares to JavaScript
+equivalent.
+```typescript
+({"code":"initial", "runner":"render_jsx"})
+<div class="sth">      | h("div", { "class": "sth" },
+  <b>example JS:</b>   |   h("b", null, "example JS:"),//b
+  1+1={1+1}            |   "1+1=", 1+1
+</div>                 | )//h1
+```
+Take a look at the code here and what babel produces in the second editor panel.
+The resulting code works the same, it is just manually better aligned here to be easier to compare.
+
 
 ## JSX tag
 
@@ -152,15 +173,15 @@ use our variable as tag name. Since it is capitalised, quotes are not added in t
 import { h, insert } from './jsx2dom.js'
 
 function genList(numbered){
-  const TagName = numbered ? 'OL':'UL'
+  const TagName = numbered ? 'ol':'ul'
   return <TagName>
     <li>One</li>
     <li>Two</li>
   </TagName>
 }
 
-insert(document.body, genList())// gen unordered list  <UL>...</UL>
-insert(document.body, genList(true))// gen ordered list <OL>...</OL>
+insert(document.body, genList())// gen unordered list  <ul>...</ul>
+insert(document.body, genList(true))// gen ordered list <ol>...</ol>
 
 ```
 Notice that JavaScript produced by babel `TagName` has no quotes `h(TagName, null,` and `li` the quotes are added  `h("li", null, "One")`.
@@ -195,27 +216,3 @@ This must be done to produce values that will be then passed as parameters to th
 ## code inside JSX markup
 
 Thre brilliant part of the `JSX` comes from how regular javascript code is mixed-in.
-
-## A more complex example
-```typescript
-({"code":"initial", "hidden":true, "runner":"render_jsx"})
-<div class="sth">
-  <b>example JS:</b>
-  1+1={1+1}
-</div>
-```
-
-Babel option `retainLines` is good in producing code that will give real line numbers in exception traces,
-but is less readable.
-
-Here is a more complex example with manual formating to more clearly show how `JSX` compares to JavaScript
-equivalent.
-```typescript
-({"code":"initial", "runner":"render_jsx"})
-<div class="sth">      | h("div", { "class": "sth" },
-  <b>example JS:</b>   |   h("b", null, "example JS:"),//b
-  1+1={1+1}            |   "1+1=", 1+1
-</div>                 | )//h1
-```
-Take a look at the code here and what babel produces in the second editor panel.
-The resulting code works the same, it is just manually better aligned here to be easier to compare.
