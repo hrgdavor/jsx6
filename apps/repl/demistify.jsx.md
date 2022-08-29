@@ -40,9 +40,7 @@ The sample code above is written intentionally this way to cause specific layout
 ({"code":"initial", "runner":"render_jsx", "hidden":true})
 <h1>JSX</h1>
 ```
-JSX was created in 2013
-
-It was created as part of React by Jordan Walke [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)).
+JSX was created in **2013**, as part of React, by **Jordan Walke**. Checkout this [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)) link for more details.
 
 It has a lot of potential. Learn more about it in the following chapters. You really should.
 
