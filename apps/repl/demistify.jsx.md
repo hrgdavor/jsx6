@@ -83,7 +83,9 @@ Googling for `JSX` babel plugins I was able to found these libraries that use `J
 
 For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) or [babel-plugin-jsx-pragmatic](https://github.com/jmm/babel-plugin-jsx-pragmatic).
 
+### editors
 
+It is harder to find a code editor without `JSX` support that those with it. Whichever editor you prefer right now will just work.
 
 ## much more than just a template
 ```typescript
@@ -125,6 +127,47 @@ h("input", { type: "text", value: "nice" });
 Function name I have chosen is `h` because I like a short function name here to make less visual noise
 in the generated code. Also it is short for `html` which is ultimately what it represents.
 
+## JSX tag Capitalized
+
+To continue from the a single `JSX` tag, let's explain the special case that is used when tag
+name is capitalized.
+
+For this example we will temporarily switch to displaying the complete script that is needed to put some JSX into a document.
+
+
+When tag name is capitalized JavaScript code that is generated is different in a very small way but with very useful consequences.
+
+```typescript
+<tagName/>  |  h("tagName",null)
+<TagName/>  |  h(TagName, null)
+```
+This changes the first parameter from string to a reference, and the side-effect depend on what tha reference points to.
+
+In React, this is used to pass reference to a component, which is then created instead of the usual simple DOM element.
+
+In our example we do not have a component library, so to demonstrate the effects we are declaring a variable capitalised
+and assigning different html tag depending if ordered or unordered list is needed. I the `JSX` template part we
+use our variable as tag name. Since it is capitalised, quotes are not added in the resulting JavaScript.
+
+```typescript
+({"code":"initial"})
+import { h, insert } from './jsx2dom.js'
+
+function genList(numbered){
+  const TagName = numbered ? 'OL':'UL'
+  return <TagName>
+    <li>One</li>
+    <li>Two</li>
+  </TagName>
+}
+
+insert(document.body, genList())// gen unordered list  <UL>...</UL>
+insert(document.body, genList(true))// gen ordered list <OL>...</OL>
+
+```
+Notice that JavaScript produced by babel `TagName` has no quotes `h(TagName, null,` and `li` the quotes are added  `h("li", null, "One")`.
+
+
 ## JSX tag with children
 
 When a `JSX` tag has children they are nested as parameters of the parent tag function call.
@@ -151,6 +194,9 @@ When a `JSX` tag has children they are nested as parameters of the parent tag fu
 It is also important to notice that JavaScript will execute inner functions first. 
 This must be done to produce values that will be then passed as parameters to the parent function call.
 
+## code inside JSX markup
+
+Thre brilliant part of the `JSX` comes from how regular javascript code is mixed-in.
 
 ## A more complex example
 ```typescript
