@@ -223,23 +223,18 @@ JavaScript can be used to supply values for attributes or generate content betwe
 ({"code":"initial"})
 import { h, insert } from './jsx2dom.js'
 
-const outerStyle = 'width:100px; border: solid 1px gray; maring: 5px; display: inline-block'
-const innerStyle = 'height: 12px; background-color: #afa'
+const outerStyle = 'width:100px; border:solid 1px gray; margin:5px;'
+const innerStyle = 'background-color: #afa'
 
-function makeProgress(percent){
-  return (<div>
-  {percent}%
-  <div style={outerStyle}>
-    <div style={`width:${percent}px; ${innerStyle}`}/>
-  </div>
-</div>)
-}
+const makeProgress = (percent)=>(<div style={outerStyle}>
+    <div style={`width:${percent}px; ${innerStyle}`}>
+      {percent}%
+    </div>
+  </div>)
 
-insert(document.body, makeProgress(20))
+insert(document.body, makeProgress(13))
 insert(document.body, makeProgress(40))
 insert(document.body, makeProgress(90))
-
-
 ```
 In the example above we used percent to disaply it as text and also use it in style attribute to
 set width of the green bar.
