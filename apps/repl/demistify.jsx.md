@@ -217,11 +217,33 @@ This must be done to produce values that will be then passed as parameters to th
 
 The brilliant part of the `JSX` comes from how regular javascript code is mixed-in.
 
-JSX is converted to JavaScript using few simple rules
+JavaScript can be used to supply values for attributes or generate content between tags.
 
 ```typescript
+({"code":"initial"})
 import { h, insert } from './jsx2dom.js'
+
+const outerStyle = 'width:100px; border: solid 1px gray; maring: 5px; display: inline-block'
+const innerStyle = 'height: 12px; background-color: #afa'
+
+function makeProgress(percent){
+  return (<div>
+  {percent}%
+  <div style={outerStyle}>
+    <div style={`width:${percent}px; ${innerStyle}`}/>
+  </div>
+</div>)
+}
+
+insert(document.body, makeProgress(20))
+insert(document.body, makeProgress(40))
+insert(document.body, makeProgress(90))
+
+
 ```
+In the example above we used percent to disaply it as text and also use it in style attribute to
+set width of the green bar.
+
 
 ## simple and clean looking translation function
 
