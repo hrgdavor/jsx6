@@ -1,4 +1,3 @@
-console.trace('SELF', self)
 /** Short but pretty usable support function for JSX.
  *
  * @param {String|Function} tag
@@ -29,7 +28,6 @@ export function h(tag, attr, ...children) {
  * @param {Node|null} before optional Node to insert before instead the default (append)
  */
 export function insert(parent, child, before) {
-  console.log(self._mark)
   if (child instanceof Array) {
     child.forEach(c => insert(parent, c))
   } else {
