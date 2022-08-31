@@ -10,8 +10,8 @@ export function runCode(code, iframe) {
 `,
   )
   const win = iframe.contentWindow
-  win.requireFile = requireFile
-  win.require = require
-  win.requireModule = requireModule
+  win.requireFile = requireFile.bind(win)
+  win.require = require.bind(win)
+  win.requireModule = requireModule.bind(win)
   win.eval(code)
 }

@@ -239,6 +239,26 @@ insert(document.body, makeProgress(90))
 In the example above we used percent to disaply it as text and also use it in style attribute to
 set width of the green bar.
 
+## advanced usage: spread operator (...)
+
+[Spread](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax) syntax can be 
+convenient in many cases. And for the `JSX` it is very useful to pass multiple attributes to a tag.
+
+
+```typescript
+({"code":"initial"})
+import { h, addToBody } from './jsx2dom.js'
+
+const extraAttributes = { 
+  type:'text', 
+  style:'width: 100px; margin: 10px;', 
+  readonly: true
+}
+
+addToBody(<input value="first" {...extraAttributes}/>)
+addToBody(<input value="second" {...extraAttributes}/>)
+
+```
 
 ## simple and clean looking translation function
 

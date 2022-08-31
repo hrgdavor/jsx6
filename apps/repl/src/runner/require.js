@@ -7,6 +7,7 @@ export function requireFile(url) {
   if (X.status && X.status !== 200) throw new Error(X.statusText)
   return X.responseText
 }
+
 export function require(url) {
   //if (url.toLowerCase().substr(-3)!=='.js') url+='.js'; // to allow loading without js suffix;
   if (require.urlAlias[url]) url = require.urlAlias[url]
@@ -17,25 +18,27 @@ export function require(url) {
       url = 'https://unpkg.com/' + url
     }
   }
-  var exports = require.cache[url] //get from cache
+  if (!this.___require_cache) this.___require_cache = {}
+  var exports = this.___require_cache[url] //get from cache
   if (!exports) {
     //not cached
-    let module = requireModule(url)
-    require.cache[url] = exports = module.exports //cache obj exported by module
+    let module = this.requireModule(url)
+    this.___require_cache[url] = exports = module.exports //cache obj exported by module
   }
   return exports //require returns object exported by module
 }
 export function requireModule(url, source) {
+  console.log('require mark ', this._mark)
   try {
     const exports = {}
-    source = source || requireFile(url)
+    source = source || this.requireFile(url)
     source = transformcjs(source, { filename: '' + url }).code
     const module = { id: url, uri: url, exports: exports, source } //according to node.js modules
 
     // fix, add comment to show source on Chrome Dev Tools
     //source="//@ sourceURL="+window.location.origin+url+"\n" + source;
     //------
-    const anonFn = new Function('require', 'exports', 'module', source) //create a Fn with module code, and 3 params: require, exports & module
+    const anonFn = new this.Function('require', 'exports', 'module', source).bind(this) //create a Fn with module code, and 3 params: require, exports & module
     anonFn(require, exports, module) // call the Fn, Execute the module
     return module
   } catch (err) {

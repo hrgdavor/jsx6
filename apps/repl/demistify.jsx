@@ -11,7 +11,7 @@ import { fetchText } from './src/util/fetchText'
 
 /** can be removed if wanting to cut a little bit on the output size, but get coded error messages */
 setTranslations(errTranslations)
-
+self._mark = 'MAIN'
 const injectStyle = iframe => {
   console.log('injectStyle', iframe)
   insert(
