@@ -35,23 +35,15 @@ Do not analyze it too much, it will be explained better and in more detail in th
 ```
 The sample code above is written intentionally this way to cause specific layout in the second editor(babel transform) and output.
 
-# JSX
-```typescript
-({"code":"initial", "runner":"render_jsx", "hidden":true})
-<h1>JSX</h1>
-```
-JSX was created in **2013**, as part of React, by **Jordan Walke**. Checkout this [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)) link for more details.
 
-It has a lot of potential. Learn more about it in the following chapters. You really should.
-
-## the excellent tooling support
+# JSX tooling 
 ```typescript
 ({"code":"initial", "runner":"render_jsx", "hidden":true})
 <h1 class="main">JSX - and excellent tooling support</h1>
 ```
 Support for `JSX` is excellent, so much so you might think it is part of the JavaScript language itself.
 
-### esbuild - super-fast bundler
+## esbuild - super-fast bundler
 
 Claimed 10-100x performance boost for builds!
 
@@ -63,41 +55,13 @@ Here is a quick example of esbuild with options to get started with jsx
  esbuild index.js --jsx-factory=h --jsx-fragment=null --loader:.js=jsx
 ```
 
-### Babel 7 and libraries with JSX
+## Babel 7 - powerful transformations
 
-[Babel](https://babeljs.io/) is widely used, much slower from esbuild but much more powerful with AST transformations.
-Even if you do not use Babel directly, you are likely using it behing the scenes via webpack or some other build tool.
+[Babel](https://babeljs.io/) is widely used, much slower from `esbuild `but much more powerful using AST and transformations on it.
+Even if you do not use Babel directly, you are likely using it behind the scenes via `webpack `or some other build tool.
 
 The [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) plugin is used to convert examples in this tutorial so they can be executed in the browser as you type.
 
-Unlike esbuild that has configurable `JSX` ouput, each library has own plugin for `JSX` transformation.
-
-Googling for `JSX` babel plugins I was able to found these libraries that use `JSX` (there is likely more).
-- [React](https://reactjs.org/) -- [babel-plugin-transform-react-jsx](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx)
-- [Vue](https://vuejs.org/) -- [babel-plugin-jsx](https://github.com/vuejs/babel-plugin-jsx)
-- [emotionjs](https://emotion.sh/docs/introduction) -- [babel-plugin-jsx-pragmatic](https://github.com/emotion-js/emotion/tree/main/packages/babel-plugin-jsx-pragmatic) forked from [jmm](https://github.com/jmm/babel-plugin-jsx-pragmatic)
-- [htm](https://github.com/developit/htm) -- [babel-plugin-transform-jsx-to-htm](https://www.npmjs.com/package/babel-plugin-transform-jsx-to-htm)
-
-
-For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) or [babel-plugin-jsx-pragmatic](https://github.com/jmm/babel-plugin-jsx-pragmatic).
-
-### editors
-
-It is harder to find a code editor without `JSX` support that those with it. Whichever editor you prefer right now will just work.
-
-## much more than just a template
-
-`JSX` is a brilliant step forward from different types of template engines.
-
-It does look like a template, but it is actually a simple transformation that makes it regular JavaScript code.
-
-This means that there is no special template engine needed to run code inside `JSX`.
-
-If new JavaScript syntax is added it will just work.
-
-Exceptions and errors can easily show stack traces even inside `JSX`.
-
-### A more complex example
 ```typescript
 ({"code":"initial", "hidden":true, "runner":"render_jsx"})
 <div class="sth">
@@ -120,7 +84,44 @@ equivalent.
 ```
 Take a look at the code here and what babel produces in the second editor panel.
 The resulting code works the same, it is just manually better aligned here to be easier to compare.
+### Configuration
 
+For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) or [babel-plugin-jsx-pragmatic](https://github.com/jmm/babel-plugin-jsx-pragmatic).
+
+## Some libraries with JSX
+
+Unlike esbuild that has configurable `JSX` ouput, each library has own plugin for `JSX` transformation.
+
+Googling for `JSX` babel plugins I was able to found these libraries that use `JSX` (there is likely more).
+- [React](https://reactjs.org/) -- [babel-plugin-transform-react-jsx](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx)
+- [Vue](https://vuejs.org/) -- [babel-plugin-jsx](https://github.com/vuejs/babel-plugin-jsx)
+- [emotionjs](https://emotion.sh/docs/introduction) -- [babel-plugin-jsx-pragmatic](https://github.com/emotion-js/emotion/tree/main/packages/babel-plugin-jsx-pragmatic) forked from [jmm](https://github.com/jmm/babel-plugin-jsx-pragmatic)
+- [htm](https://github.com/developit/htm) -- [babel-plugin-transform-jsx-to-htm](https://www.npmjs.com/package/babel-plugin-transform-jsx-to-htm)
+
+
+## Code editors
+
+It is harder to find a code editor without `JSX` support that those with it. Whichever editor you prefer right now will just work.
+
+
+# JSX
+```typescript
+({"code":"initial", "runner":"render_jsx", "hidden":true})
+<h1>JSX</h1>
+```
+JSX was created in **2013**, as part of React, by **Jordan Walke**. Checkout this [wiki](https://en.wikipedia.org/wiki/React_(JavaScript_library)) link for more details.
+
+`JSX` is a brilliant step forward from different types of template engines.
+
+It does look like a template, but it is actually a simple transformation that makes it regular JavaScript code.
+
+This means that there is no special template engine needed to run code inside `JSX`.
+
+If new JavaScript syntax is added it will just work.
+
+Exceptions and errors can easily show stack traces even inside `JSX`.
+
+It has a lot of potential. Learn more about it in the following chapters. You really should.
 
 ## JSX tag
 
@@ -213,6 +214,7 @@ When a `JSX` tag has children they are nested as parameters of the parent tag fu
 It is also important to notice that JavaScript will execute inner functions first. 
 This must be done to produce values that will be then passed as parameters to the parent function call.
 
+
 # JavaScript code inside JSX
 
 The brilliant part of the `JSX` comes from how regular javascript code is mixed-in.
@@ -236,10 +238,10 @@ insert(document.body, makeProgress(13))
 insert(document.body, makeProgress(40))
 insert(document.body, makeProgress(90))
 ```
-In the example above we used percent to disaply it as text and also use it in style attribute to
+In the example above we used percent to display it as text and also use it in style attribute to
 set width of the green bar.
 
-## advanced usage: spread operator (...)
+## Advanced usage: spread operator (...)
 
 [Spread](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax) syntax can be 
 convenient in many cases. And for the `JSX` it is very useful to pass multiple attributes to a tag.
@@ -260,7 +262,7 @@ addToBody(<input value="second" {...extraAttributes}/>)
 
 ```
 
-## simple and clean looking translation function
+## Simple and clean looking translation function
 
 How nice would id be if you could inject translations like this
 ```typescript
@@ -273,7 +275,7 @@ To call a function with regular string you need to use the function call syntax 
 ```typescript
 <div class="title">{t('package_info')}</div>
 ```
-Which is not too bad, but the example at the begining of this chapter is nicer and cleaner to read.
+Which is not too bad, but the example at the beginning of this chapter is nicer and cleaner to read.
 
 
 ### Sample implementation
