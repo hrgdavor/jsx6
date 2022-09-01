@@ -1,6 +1,5 @@
-({"option":"value"})
 ```typescript
-({"provides":"jsx_import.jsx"})
+({"provides":"jsx_import.jsx", "hidden":true})
 import { h, insert } from './jsx2dom.js'
 ```
 
@@ -23,7 +22,7 @@ This tutorial can help you better understand libraries that do use `JSX`. You do
 
 Take a quick look at the sample code, to get a feeling of what JSX is when you write it versus what JavaScript interpreter will see.
 
-Do not analyze it too much, it will be explained better and in more detail in the following chapters.
+Do not analyse it too much, it will be explained better and in more detail in the following chapters.
 
 ```typescript
 ({"code":"initial","runner":"render_jsx"})
@@ -75,6 +74,7 @@ but is less readable.
 
 Here is a more complex example with manual formating to more clearly show how `JSX` compares to JavaScript
 equivalent.
+
 ```typescript
 ({"code":"initial", "runner":"render_jsx"})
 <div class="sth">      | h("div", { "class": "sth" },
@@ -214,6 +214,36 @@ When a `JSX` tag has children they are nested as parameters of the parent tag fu
 It is also important to notice that JavaScript will execute inner functions first. 
 This must be done to produce values that will be then passed as parameters to the parent function call.
 
+## JSX fragment
+
+[React.Fragment](https://reactjs.org/blog/2017/11/28/react-v16.2.0-fragment-support.html) was added to React 16.2.0 in 2017.
+
+It is very common to generate multiple html elements to populate a target  or in React for a component to return multiple children.
+
+It is possible to generate an array  `[<tag/>,<tag/>,<tag/>]` without Fragment, but that is a bit messy because you need to make sure to add comma `,` after each tag.
+
+ Fragments allow for a more natural feeling syntax  `<><tag/><tag/><tag/></>`.
+
+
+```typescript
+({"code":"initial"})
+import { h, insert } from './jsx2dom.js'
+// array with mutliple solo JSX tags is a bit confusing
+insert(document.body, [
+    <h1>Title</h1>,
+    <p>paragraph text</p>,
+    <p>paragraph text</p>
+])
+// version using Fragment (shorthand) is just cleaner
+insert(document.body, <>
+    <h1>Title</h1>
+    <p>paragraph text</p>
+    <p>paragraph text</p>
+</>)
+
+
+```
+
 
 # JavaScript code inside JSX
 
@@ -299,3 +329,11 @@ insert(document.body,<div class="title">{t('package_info')}:</div>)
 insert(document.body,<div class="title">{t`missing_translation`}:</div>)
 
 ```
+
+
+
+# jsx2dom
+
+It does not take a lot of code to use `JSX` without large libraries. Going through the steps of implementing a utility function for `JSX` is in my opinion a good way to understand `JSX` even better.
+
+ 
