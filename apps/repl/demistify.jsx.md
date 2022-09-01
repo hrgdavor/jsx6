@@ -171,7 +171,7 @@ use our variable as tag name. Since it is capitalised, quotes are not added in t
 
 ```typescript
 ({"code":"initial"})
-import { h, insert } from './jsx2dom.js'
+import { h, addToBody } from './jsx2dom.js'
 
 function genList(numbered){
   const TagName = numbered ? 'ol':'ul'
@@ -181,8 +181,8 @@ function genList(numbered){
   </TagName>
 }
 
-insert(document.body, genList())// gen unordered list  <ul>...</ul>
-insert(document.body, genList(true))// gen ordered list <ol>...</ol>
+addToBody(genList())// gen unordered list  <ul>...</ul>
+addToBody(genList(true))// gen ordered list <ol>...</ol>
 
 ```
 Notice that JavaScript produced by babel `TagName` has no quotes `h(TagName, null,` and `li` the quotes are added  `h("li", null, "One")`.
@@ -227,15 +227,15 @@ It is possible to generate an array  `[<tag/>,<tag/>,<tag/>]` without Fragment, 
 
 ```typescript
 ({"code":"initial"})
-import { h, insert } from './jsx2dom.js'
+import { h, addToBody } from './jsx2dom.js'
 // array with mutliple solo JSX tags is a bit confusing
-insert(document.body, [
+addToBody([
     <h1>Title</h1>,
     <p>paragraph text</p>,
     <p>paragraph text</p>
 ])
 // version using Fragment (shorthand) is just cleaner
-insert(document.body, <>
+addToBody(<>
     <h1>Title</h1>
     <p>paragraph text</p>
     <p>paragraph text</p>
@@ -253,7 +253,7 @@ JavaScript can be used to supply values for attributes or generate content betwe
 
 ```typescript
 ({"code":"initial"})
-import { h, insert } from './jsx2dom.js'
+import { h, addToBody } from './jsx2dom.js'
 
 const outerStyle = 'width:100px; border:solid 1px gray; margin:5px;'
 const innerStyle = 'background-color: #afa'
@@ -264,9 +264,9 @@ const makeProgress = (percent)=>(<div style={outerStyle}>
     </div>
   </div>)
 
-insert(document.body, makeProgress(13))
-insert(document.body, makeProgress(40))
-insert(document.body, makeProgress(90))
+addToBody(makeProgress(13))
+addToBody(makeProgress(40))
+addToBody(makeProgress(90))
 ```
 In the example above we used percent to display it as text and also use it in style attribute to
 set width of the green bar.
@@ -314,7 +314,7 @@ The translation function is actually trivial to implement, and you can change wh
 
 ```typescript
 ({"code":"initial"})
-import { h, insert } from './jsx2dom.js'
+import { h, addToBody } from './jsx2dom.js'
 
 const TRANS = {'package_info':'Package Information'}
 
@@ -323,10 +323,10 @@ const t = (code)=>{
   return TRANS[code] || code
 }
 
-insert(document.body,<div class="title">{t`package_info`}:</div>)
-insert(document.body,<div class="title">{t('package_info')}:</div>)
+addToBody(<div class="title">{t`package_info`}:</div>)
+addToBody(<div class="title">{t('package_info')}:</div>)
 
-insert(document.body,<div class="title">{t`missing_translation`}:</div>)
+addToBody(<div class="title">{t`missing_translation`}:</div>)
 
 ```
 
@@ -343,11 +343,11 @@ It is just matter of configuring your build tool to generate `h(tag,attr, ...)` 
 ```typescript
 ({"code":"initial"})
 function h(tag, attr){
-	const out = document.createElement(tag)
+	const node = document.createElement(tag)
     if(attr){
-        for(let aName in attr) out.setAttribute(aName, attr[aName])
+        for(let aName in attr) node.setAttribute(aName, attr[aName])
     }
-    return out
+    return node
 }
 
 document.body.appendChild(<input type="text" value="nice"/>)
@@ -356,4 +356,55 @@ document.body.appendChild(<input type="text" value="nice"/>)
 
 It is just matter of configuring your build tool to generate `h(tag,attr, ...)` instead of `React.createComponent(tag,attr, ...)`.
 
-There are few considerations you will run into surely if you do try to use such function for something concrete and useful.
+There are few considerations you will run into surely if you do try to use such function for something concrete.
+
+## handling children
+
+Before we can fully use our `JSX` utility function we need another utility to help with inserting stuff that is not `JSX` (like text or numbers) and also help handling  `null `and `undefined`.
+
+```typescript
+({"code":"initial"})
+function insert(parent, child, before) {
+  if (child instanceof Array) {
+    child.forEach(c => insert(parent, c))
+  } else {
+    if(child === null || child === undefined) return
+    if (!(child instanceof Node)) {
+      if (typeof child !== 'string') child += ''
+      child = document.createTextNode(child)
+    }
+    parent.insertBefore(child, before)
+  }
+}
+// document.body.appendChild('some text')//throws an error
+insert(document.body, 'appendChild would fail if we try to use string')
+```
+
+First part of the function just handles case when we have multiple elements to insert. Nothing fancy, just calls itself for each element.
+
+This function will be used at the end of the `h` function to insert the passed children, but also can be used standalone(and it is used a lot in this tutorial via `addToBody`).
+
+```typescript
+const addToBody = child => insert(document.body, child)
+```
+
+
+
+## handling some advanced cases for attributes
+
+## handling JSX fragments
+
+Looking back to introduction about the tooling support remember that for `esbuild` we used the option `--jsx-fragment=null` which means jsx fragments are converted this way:
+
+```typescript
+<></>            |  h(null,null)
+<><br/><br/></>  |  h(null, null, h("br", null), h("br", null))
+```
+
+So, to add Fragment support we just need to add one line on the top of the `h` function:
+
+```typescript
+function h(tag, attr, ...children){
+  if (!tag) return children // support JSX fragment: <></>
+```
+

@@ -9,12 +9,12 @@ export function h(tag, attr, ...children) {
   if (!tag) return children // support JSX fragment: <></>
   const node = document.createElement(tag)
   if (attr) {
-    for (let key in attr) {
-      const value = attr[key]
-      if (value !== false && value !== null && value !== undefined) node.setAttribute(key, value)
+    for (let aName in attr) {
+      const value = attr[aName]
+      if (value !== false && value !== null && value !== undefined) node.setAttribute(aName, value)
     }
   }
-  if (children?.length) insert(node, children)
+  children.forEach(c => insert(node, c))
   return node
 }
 
@@ -31,7 +31,11 @@ export function insert(parent, child, before) {
   if (child instanceof Array) {
     child.forEach(c => insert(parent, c))
   } else {
-    if (!(child instanceof Node)) child = document.createTextNode(child + '')
+    if (child === null || child === undefined) return
+    if (!(child instanceof Node)) {
+      if (typeof child !== 'string') child += ''
+      child = document.createTextNode(child)
+    }
     parent.insertBefore(child, before)
   }
 }
