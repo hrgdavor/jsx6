@@ -28,7 +28,7 @@ export function queueCodeChange(iframe, editor, { otherEditor, codeRunner = runC
   }, applyCodeDelay)
 }
 
-function applyCodeChange(iframe, editor, { otherEditor, codeRunner = runCode }) {
+function applyCodeChange(iframeHandler, editor, { otherEditor, codeRunner = runCode }) {
   const code = editor.getValue()
   let codeTransformed = otherEditor ? transform(code, {}).code : ''
 
@@ -37,7 +37,7 @@ function applyCodeChange(iframe, editor, { otherEditor, codeRunner = runCode }) 
     otherEditor.setValue(codeTransformed)
   }
 
-  iframe.waitNext().then(iframe => {
+  iframeHandler.waitNext(false).then(iframe => {
     try {
       let time = Date.now()
       codeRunner(code, iframe)
@@ -51,6 +51,10 @@ function applyCodeChange(iframe, editor, { otherEditor, codeRunner = runCode }) 
       const newLocal = maxApplyCodeDelay
       applyCodeDelay = newLocal
       throw error
+    } finally {
+      setTimeout(() => {
+        iframeHandler.applyVisibility()
+      }, 50)
     }
   })
 }

@@ -308,7 +308,7 @@ To call a function with regular string you need to use the function call syntax 
 Which is not too bad, but the example at the beginning of this chapter is nicer and cleaner to read.
 
 
-### Sample implementation
+### Sample implementation of translations function
 
 The translation function is actually trivial to implement, and you can change where it gets the translations from
 
@@ -336,4 +336,24 @@ insert(document.body,<div class="title">{t`missing_translation`}:</div>)
 
 It does not take a lot of code to use `JSX` without large libraries. Going through the steps of implementing a utility function for `JSX` is in my opinion a good way to understand `JSX` even better.
 
- 
+It takes a little bit more than this, but not much more. So let us start by declaring the function that will handle the markup that is created when we write `JSX`. 
+
+It is just matter of configuring your build tool to generate `h(tag,attr, ...)` instead of `React.createComponent(tag,attr, ...)`.
+
+```typescript
+({"code":"initial"})
+function h(tag, attr){
+	const out = document.createElement(tag)
+    if(attr){
+        for(let aName in attr) out.setAttribute(aName, attr[aName])
+    }
+    return out
+}
+
+document.body.appendChild(<input type="text" value="nice"/>)
+
+```
+
+It is just matter of configuring your build tool to generate `h(tag,attr, ...)` instead of `React.createComponent(tag,attr, ...)`.
+
+There are few considerations you will run into surely if you do try to use such function for something concrete and useful.

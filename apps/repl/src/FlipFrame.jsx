@@ -41,7 +41,7 @@ export class FlipFrame extends Jsx6 {
     const iframeAttr = {
       sandbox: attr?.sandbox || 'allow-same-origin',
       src: attr?.src || 'about:blank',
-      style: 'position:absolute; display:none; border:none',
+      style: 'position:absolute; opacity:0; border:none',
     }
     this.iframes = [h('iframe', iframeAttr), h('iframe', iframeAttr)]
     this.frameIndex = 0
@@ -56,9 +56,9 @@ export class FlipFrame extends Jsx6 {
     this.iframes.forEach(listener)
   }
 
-  waitNext() {
+  waitNext(flipVisibilityNow = true) {
     this.promise?.reject('skipped')
-    const next = this.next()
+    const next = this.next(flipVisibilityNow)
     if (next.__loading) {
       this.promise = new Defered()
       return this.promise.promise
@@ -67,15 +67,25 @@ export class FlipFrame extends Jsx6 {
     }
   }
 
-  next() {
+  next(flipVisibilityNow = true) {
     const old = this.iframes[this.frameIndex]
     this.frameIndex = (this.frameIndex + 1) % this.iframes.length
     const next = this.iframes[this.frameIndex]
+
+    this.toShow = next
     old.__loading = true
-    old.contentWindow.document.location.reload()
-    old.style.display = 'none'
-    next.style.display = ''
+    this.toClean = old
+    if (flipVisibilityNow) this.applyVisibility()
+
     return next
+  }
+
+  applyVisibility() {
+    // this.iframes.forEach(ifr => (ifr.style.display = ifr == this.toShow ? '' : 'none'))
+    this.iframes.forEach(ifr => (ifr.style.opacity = ifr == this.toShow ? '1' : '0'))
+    this.iframes.forEach(ifr => (ifr.style.zIndex = ifr == this.toShow ? '1' : '0'))
+    const old = this.toClean
+    old.contentWindow.document.location.reload()
   }
 
   onload(evt) {

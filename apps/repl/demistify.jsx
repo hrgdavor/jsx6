@@ -13,7 +13,6 @@ import { fetchText } from './src/util/fetchText'
 setTranslations(errTranslations)
 self._mark = 'MAIN'
 const injectStyle = iframe => {
-  console.log('injectStyle', iframe)
   insert(
     iframe.contentDocument.head,
     <style>{`
