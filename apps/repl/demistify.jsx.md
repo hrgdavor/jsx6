@@ -392,6 +392,10 @@ const addToBody = child => insert(document.body, child)
 
 ## handling some advanced cases for attributes
 
+....
+
+
+
 ## handling JSX fragments
 
 Looking back to introduction about the tooling support remember that for `esbuild` we used the option `--jsx-fragment=null` which means jsx fragments are converted this way:
@@ -401,10 +405,19 @@ Looking back to introduction about the tooling support remember that for `esbuil
 <><br/><br/></>  |  h(null, null, h("br", null), h("br", null))
 ```
 
-So, to add Fragment support we just need to add one line on the top of the `h` function:
+To add Fragment support we just need to add one line on the top of the `h` function:
 
 ```typescript
 function h(tag, attr, ...children){
   if (!tag) return children // support JSX fragment: <></>
+```
+
+in that case these two lines are equivalent
+
+```typescript
+addToBody(h(null, null, h("br", null), h("br", null)))
+// when tag is null 'h' will not create a Node, but just return the children
+// so this is what will effectively happen
+addToBody([h("br", null), h("br", null)])
 ```
 
