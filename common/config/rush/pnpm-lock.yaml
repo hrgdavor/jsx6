@@ -14,7 +14,7 @@ importers:
       babel-plugin-syntax-jsx: ~6.18.0
       esbuild: ^0.14.39
       markdown-it: ~13.0.1
-      monaco-editor: ~0.33.0
+      monaco-editor: ~0.34.0
       mulmd: ~0.7.0
       perfect-scrollbar: ~1.5.5
       prettier: ~2.7.1
@@ -26,7 +26,7 @@ importers:
       babel-plugin-jsx-simple: 1.4.0
       babel-plugin-syntax-jsx: 6.18.0
       markdown-it: 13.0.1
-      monaco-editor: 0.33.0
+      monaco-editor: 0.34.0
       mulmd: 0.7.0
       perfect-scrollbar: 1.5.5
     devDependencies:
@@ -34,7 +34,24 @@ importers:
       esbuild: 0.14.47
       prettier: 2.7.1
       vite: 2.9.13
-      vite-plugin-monaco-editor: 1.0.11_monaco-editor@0.33.0
+      vite-plugin-monaco-editor: 1.0.11_monaco-editor@0.34.0
+
+  ../../libs/editor-monaco:
+    specifiers:
+      '@trivago/prettier-plugin-sort-imports': ~3.3.0
+      esbuild: ^0.14.39
+      monaco-editor: ~0.34.0
+      prettier: ~2.7.1
+      vite: ~2.9.13
+      vite-plugin-monaco-editor: ~1.0.11
+    dependencies:
+      monaco-editor: 0.34.0
+    devDependencies:
+      '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
+      esbuild: 0.14.47
+      prettier: 2.7.1
+      vite: 2.9.13
+      vite-plugin-monaco-editor: 1.0.11_monaco-editor@0.34.0
 
   ../../libs/jsx6:
     specifiers:
@@ -752,8 +769,8 @@ packages:
     resolution: {integrity: sha512-/sKlQJCBYVY9Ers9hqzKou4H6V5UWc/M59TH2dvkt+84itfnq7uFOMLpOiOS4ujvHP4etln18fmIxA5R5fll0g==}
     dev: false
 
-  /monaco-editor/0.33.0:
-    resolution: {integrity: sha512-VcRWPSLIUEgQJQIE0pVT8FcGBIgFoxz7jtqctE+IiCxWugD0DwgyQBcZBhdSrdMC84eumoqMZsGl2GTreOzwqw==}
+  /monaco-editor/0.34.0:
+    resolution: {integrity: sha512-VF+S5zG8wxfinLKLrWcl4WUizMx+LeJrG4PM/M78OhcwocpV0jiyhX/pG6Q9jIOhrb/ckYi6nHnaR5OojlOZCQ==}
     dev: false
 
   /ms/2.1.2:
@@ -899,12 +916,12 @@ packages:
       picocolors: 1.0.0
     dev: true
 
-  /vite-plugin-monaco-editor/1.0.11_monaco-editor@0.33.0:
+  /vite-plugin-monaco-editor/1.0.11_monaco-editor@0.34.0:
     resolution: {integrity: sha512-J+kOgwDVuVaNmQiwIevQBuO491v9PeV5SY+a9dJDXvDajo8JGOMAkQz3B6m8ffAKHo5FU4VHfSwQ23z4zfDKgw==}
     peerDependencies:
       monaco-editor: '>=0.33.0'
     dependencies:
-      monaco-editor: 0.33.0
+      monaco-editor: 0.34.0
     dev: true
 
   /vite/2.9.13:

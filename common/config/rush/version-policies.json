@@ -105,5 +105,9 @@
     "version": "1.4.3",
     "nextBump": "patch",
     "mainProject": "@jsx6/jsx6"
-  }  
+  },
+  {
+    "policyName": "individual",
+    "definitionName": "individualVersion"
+  }
 ]

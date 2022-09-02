@@ -476,6 +476,12 @@
       "versionPolicyName": "jsx6"
     },
     {
+      "packageName": "@jsx6/editor-monaco",
+      "projectFolder": "libs/editor-monaco",
+      "tags": ["editor", "ui", "monaco", "javascript", "markdown"],
+      "versionPolicyName": "individual"
+    },
+    {
       "packageName": "@jsx6/repl",
       "projectFolder": "apps/repl",
       "tags": ["tools", "repl", "tutorial"],
