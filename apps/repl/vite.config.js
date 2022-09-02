@@ -23,6 +23,12 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        main: './index.html',
+        demistify: './demistify.jsx.html',
+      },
+    },
   },
   define: {
     'process.env': process.env,
