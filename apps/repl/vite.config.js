@@ -4,6 +4,7 @@ import monacoEditorPlugin from 'vite-plugin-monaco-editor'
 import CustomHmr from './CustomHmr.js'
 
 export default defineConfig({
+  base: '',
   plugins: [
     monacoEditorPlugin.default({
       //  languageWorkers: ['editorWorkerService', 'typescript'],
