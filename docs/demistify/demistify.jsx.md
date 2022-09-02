@@ -11,7 +11,7 @@ import { h, insert } from './jsx2dom.js'
 
 # About this tutorial
 
-This is an interactive tutorial to explain `JSX` in more detail and also show how it works behind the scenes.
+This is an interactive tutorial to explain `JSX` in more detail and also show how it works behind the scenes. You can paly with the code, but be aware that when you go to next page of the tutorial, the example for that page will replace what you just changed in the editor.
 
 ### Why?
 I will argue that `JSX` can also be useful in vanilla JavaScript, and not just in React or other big libraries. Useful use cases in vanilla JS can be easily achieved with a rather short and simple function.
@@ -358,6 +358,38 @@ It is just matter of configuring your build tool to generate `h(tag,attr, ...)` 
 
 There are few considerations you will run into surely if you do try to use such function for something concrete.
 
+
+## handling some advanced cases for attributes
+
+Instead of blindly setting the attribute we will ignore `false`, `null`, `undefined`. Also one small but useful addition is to help with listening to events by separately handling attributes that start with `on`.
+
+```typescript
+({"code":"initial"})
+function h(tag, attr, ...children) {
+  if (!tag) return children // support JSX fragment: <></>
+  const node = document.createElement(tag)
+  if (attr) {
+    for (let aName in attr) {
+      const value = attr[aName]
+      if (value !== false && value !== null && value !== undefined) {
+        if (aName.startsWith('on') && typeof value === 'function') {
+          node.addEventListener(aName.substring(2), value)
+        } else {
+          node.setAttribute(aName, value)
+        }
+      }
+    }
+  }
+  return node
+}
+
+document.body.appendChild(<input type="text" value="nice" oninput={e=>console.log(e.target.value)}/>)
+
+```
+
+
+
+
 ## handling children
 
 Before we can fully use our `JSX` utility function we need another utility to help with inserting stuff that is not `JSX` (like text or numbers) and also help handling  `null `and `undefined`.
@@ -389,13 +421,6 @@ const addToBody = child => insert(document.body, child)
 ```
 
 
-
-## handling some advanced cases for attributes TODO
-
-....
-
-
-
 ## handling JSX fragments
 
 Looking back to introduction about the tooling support remember that for `esbuild` we used the option `--jsx-fragment=null` which means jsx fragments are converted this way:
@@ -421,3 +446,32 @@ addToBody(h(null, null, h("br", null), h("br", null)))
 addToBody([h("br", null), h("br", null)])
 ```
 
+The final version of `h` function for the purpose of this tutorial now looks like this:
+```typescript
+({"code":"initial"})
+import { insert, addToBody } from './jsx2dom.js'
+function h(tag, attr, ...children) {
+  if (!tag) return children // support JSX fragment: <></>
+  const node = document.createElement(tag)
+  if (attr) {
+    for (let aName in attr) {
+      const value = attr[aName]
+      if (value !== false && value !== null && value !== undefined) {
+        if (aName.startsWith('on') && typeof value === 'function') {
+          node.addEventListener(aName.substring(2), value)
+        } else {
+          node.setAttribute(aName, value)
+        }
+      }
+    }
+  }
+  children.forEach(c => insert(node, c))
+  return node
+}
+
+addToBody(<>
+    <label>Label:</label>
+    <input type="text" value="nice" oninput={e=>console.log(e.target.value)}/>
+    </>)
+
+```

@@ -16,11 +16,13 @@
     "index.js",
     "src",
     "esm",
+    "iife",
     "cjs"
   ],
   "scripts": {
-    "build": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm --log-level=error",
-    "build-cjs": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs --log-level=error",
+    "build": "esbuild index.js --outdir=esm --bundle --sourcemap --minify --loader:.ttf=file  --format=esm --log-level=error",
+    "build-cjs": "esbuild index.js --outdir=cjs --bundle --sourcemap --minify --loader:.ttf=file --format=cjs --log-level=error",
+    "build-iife": "esbuild index.js editor.worker.js ts.worker.js --outdir=iife --bundle --sourcemap --minify --loader:.ttf=file --format=iife --log-level=error --global-name=monaco",
     "format": "prettier --write \"./src/**/*.{js,jsx,json}\"",
     "prepublishOnly": "npm run build && npm run build-cjs",
     "build-local-jsx6": "esbuild ../../libs/jsx6/index.js --bundle --outfile=dist/jsx6.js --sourcemap --format=cjs"
@@ -53,7 +55,8 @@
     "vite": "~2.9.13",
     "vite-plugin-monaco-editor": "~1.0.11",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
-    "prettier": "~2.7.1"
+    "prettier": "~2.7.1",
+    "http-server": "~14.1.1"
   },
   "dependencies": {
     "monaco-editor": "~0.34.0"

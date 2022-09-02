@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="./iife/index.js"></script>
+    <script>self["MonacoEnvironment"] = (function (paths) {
+          return {
+            globalAPI: false,
+            getWorkerUrl : function (moduleId, label) {
+              var result =  paths[label];
+              if (/^((http:)|(https:)|(file:)|(\/\/))/.test(result)) {
+                var currentUrl = String(window.location);
+                var currentOrigin = currentUrl.substr(0, currentUrl.length - window.location.hash.length - window.location.search.length - window.location.pathname.length);
+                if (result.substring(0, currentOrigin.length) !== currentOrigin) {
+                  var js = './*' + label + '*/importScripts("' + result + '");';
+                  var blob = new Blob([js], { type: 'application/javascript' });
+                  console.log('js urls', js)
+                  return URL.createObjectURL(blob);
+                }
+              }
+              return result;
+            }
+          };
+        })({
+  "editorWorkerService": "./iife/editor.worker.js",
+  "css": "./iife/css.worker.js",
+  "html": "./iife/html.worker.js",
+  "json": "./iife/json.worker.js",
+  "typescript": "./iife/ts.worker.js",
+  "javascript": "./iife/ts.worker.js",
+  "less": "./iife/css.worker.js",
+  "scss": "./iife/css.worker.js",
+  "handlebars": "./iife/html.worker.js",
+  "razor": "./iife/html.worker.js"
+});</script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pre-built monaco editor</title>
+    <link rel="stylesheet" href="./iife/index.css">
+    <style>
+      *{ box-sizing: border-box;}
+      body, html{
+        margin: 0; padding: 0; width: 100%; height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container" style="height:100%"></div>
+  </body>
+  </html>
+
+<script>
+  self.monaco = monaco.monaco // for some rason can not get monaco exported directly in esbuild iife
+  var editor = monaco.editor.create(document.getElementById('container'), {
+	value: "// First line\nfunction hello() {\n\talert('Hello world!');\n}\n// Last line",
+	language: 'javascript',
+
+	lineNumbers: 'on',
+	roundedSelection: false,
+	scrollBeyondLastLine: false,
+	readOnly: false,
+  automaticLayout: true,
+	theme: 'vs-dark'
+});
+</script>
+  

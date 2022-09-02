@@ -39,7 +39,7 @@ export class FlipFrame extends Jsx6 {
     super(...args)
     const [attr] = args
     const iframeAttr = {
-      sandbox: attr?.sandbox || 'allow-same-origin',
+      sandbox: attr?.sandbox || 'allow-same-origin allow-scripts',
       src: attr?.src || 'about:blank',
       style: 'position:absolute; opacity:0; border:none',
     }
