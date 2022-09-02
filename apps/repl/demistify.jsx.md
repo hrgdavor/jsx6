@@ -390,7 +390,7 @@ const addToBody = child => insert(document.body, child)
 
 
 
-## handling some advanced cases for attributes
+## handling some advanced cases for attributes TODO
 
 ....
 
