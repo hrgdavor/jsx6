@@ -42,7 +42,6 @@ setBabelModule(Babel)
 setMonacoModule(monaco)
 
 // tell monaco environment where worker js files are
-const base = './monaco'
 const workerMap = {
   editorWorkerService: 'editor',
   css: 'css',
@@ -56,7 +55,9 @@ const workerMap = {
   razor: 'html',
 }
 
-self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => `${base}/${workerMap[label]}.worker.js` }
+self.MonacoEnvironment = {
+  getWorkerUrl: (moduleId, label) => `${self.MONACO_BASE}/${workerMap[label]}.worker.js`,
+}
 
 /** @type {TutorialRunner} */
 const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)
