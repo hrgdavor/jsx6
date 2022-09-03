@@ -39,6 +39,7 @@ export default defineConfig({
       input: {
         main: './index.html',
         demistify: './demistify.jsx.html',
+        demistify_online: './demistify.jsx.online.html',
       },
       external: exclude,
     },

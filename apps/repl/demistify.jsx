@@ -55,9 +55,8 @@ const workerMap = {
   razor: 'html',
 }
 
-self.MonacoEnvironment = {
-  getWorkerUrl: (moduleId, label) => `${self.MONACO_BASE}/${workerMap[label]}.worker.js`,
-}
+// we rely on index page to provide function that will generate worker url
+self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => self.MONACO_URL_FUNC(workerMap[label]) }
 
 /** @type {TutorialRunner} */
 const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)

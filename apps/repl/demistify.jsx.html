@@ -11,6 +11,7 @@
     <script src="./monaco/index.js"></script>
     <script>
       self.MONACO_BASE = './monaco'
+      self.MONACO_URL_FUNC = worker=>`${self.MONACO_BASE}/${worker}.worker.js`
     </script>    
     <!-- pre-built Babel passed later to setBabelModule -->
     <script src="./babel/babel.min.js"></script>

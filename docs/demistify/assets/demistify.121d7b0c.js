@@ -53,6 +53,6 @@ html, body {
 body{
   padding: 20px;
 }
-  `))};ir(Babel);In(monaco);const qH={editorWorkerService:"editor",css:"css",html:"html",json:"json",typescript:"ts",javascript:"ts",less:"css",scss:"css",handlebars:"html",razor:"html"};self.MonacoEnvironment={getWorkerUrl:(e,t)=>`${self.MONACO_BASE}/${qH[t]}.worker.js`};const ut=self.APP=vt(AH,{class:"fxs1"});Zt(document.body,ut);ut.onPrepareIframe(DH);ut.defCodeRunner=(e,t)=>{const r=Qt(e,{filename:"code_from_editor.js"}).code;Ct(r,t)};ut.registerRunner("render_jsx",(e,t)=>{const n=`import {h,insert} from './jsx2dom.js';const __JSX__ = ${e};
+  `))};ir(Babel);In(monaco);const qH={editorWorkerService:"editor",css:"css",html:"html",json:"json",typescript:"ts",javascript:"ts",less:"css",scss:"css",handlebars:"html",razor:"html"};self.MonacoEnvironment={getWorkerUrl:(e,t)=>self.MONACO_URL_FUNC(qH[t])};const ut=self.APP=vt(AH,{class:"fxs1"});Zt(document.body,ut);ut.onPrepareIframe(DH);ut.defCodeRunner=(e,t)=>{const r=Qt(e,{filename:"code_from_editor.js"}).code;Ct(r,t)};ut.registerRunner("render_jsx",(e,t)=>{const n=`import {h,insert} from './jsx2dom.js';const __JSX__ = ${e};
 insert(document.body,__JSX__)`,o=Qt(n,{filename:"code_from_editor.js"}).code;Ct(o,t)});const SH="demistify.jsx.md";EH("./"+SH).then(e=>{ut.showMd(e)});
-//# sourceMappingURL=demistify.3c0f198d.js.map
+//# sourceMappingURL=demistify.121d7b0c.js.map
