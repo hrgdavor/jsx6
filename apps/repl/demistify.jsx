@@ -32,7 +32,7 @@ body{
   )
 }
 
-// we load iife babel andd supply it to our transform utility
+// we load iife babel and supply it to our transform utility
 setBabelModule(Babel)
 
 // we loaded pre-built monaco that exposes global variable: 'monaco'
