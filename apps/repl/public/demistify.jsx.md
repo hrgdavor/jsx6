@@ -56,7 +56,7 @@ It has a lot of potential. Learn more about it in the following chapters. You re
 
 ## JSX tag
 
-Let's start with the basic example of what a single `JSX` tag looks like and how it translatest to JavaScript.
+Let's start with the basic example of what a single `JSX` tag looks like and how it translates to JavaScript.
 
 A `JSX` tag is simply converted to a `function call` where
 - first parameter - is tag name
