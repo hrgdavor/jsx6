@@ -21,7 +21,6 @@ importers:
       vite: ~3.0.9
       vite-plugin-static-copy: ~0.9.0
     dependencies:
-      '@babel/standalone': 7.18.12
       '@jsx6/jsx6': link:../../libs/jsx6
       babel-plugin-jsx-simple: 1.4.0
       babel-plugin-syntax-jsx: 6.18.0
@@ -29,6 +28,7 @@ importers:
       mulmd: 0.7.0
       perfect-scrollbar: 1.5.5
     devDependencies:
+      '@babel/standalone': 7.18.12
       '@jsx6/editor-monaco': link:../../libs/editor-monaco
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
       esbuild: 0.14.47
@@ -242,7 +242,7 @@ packages:
   /@babel/standalone/7.18.12:
     resolution: {integrity: sha512-wDh3K5IUJiSMAY0MLYBFoCaj2RCZwvDz5BHn2uHat9KOsGWEVDFgFQFIOO+81Js2phFKNppLC45iOCsZVfJniw==}
     engines: {node: '>=6.9.0'}
-    dev: false
+    dev: true
 
   /@babel/template/7.18.10:
     resolution: {integrity: sha512-TI+rCtooWHr3QJ27kJxfjutghu44DLnasDMwpDqCXVTal9RLp3RSYNh4NdBrRP2cQAoG9A8juOQl6P6oZG4JxA==}

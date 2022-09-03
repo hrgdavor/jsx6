@@ -1,12 +1,20 @@
-import { availablePlugins, transform as babelTransform } from '@babel/standalone'
 import jsx_mi2 from 'babel-plugin-jsx-simple'
 import syntax_jsx from 'babel-plugin-syntax-jsx'
 
 import { preventInfiniteLoops } from './preventInfiniteLoops'
 
-availablePlugins['jsx-mi2'] = jsx_mi2
-availablePlugins['syntax-jsx'] = syntax_jsx
-availablePlugins['preventInfiniteLoops'] = preventInfiniteLoops
+const babelMissing = () => {
+  throw new Error('Babel module is missing. Please load bable module and call setBabelModule')
+}
+let BABEL = { transform: babelMissing }
+
+export function setBabelModule(B) {
+  BABEL = B
+  const { availablePlugins } = B
+  availablePlugins['jsx-mi2'] = jsx_mi2
+  availablePlugins['syntax-jsx'] = syntax_jsx
+  availablePlugins['preventInfiniteLoops'] = preventInfiniteLoops
+}
 
 export const transformDefaults = {
   retainLines: true,
@@ -31,7 +39,7 @@ export function transform(code, options = {}, append = {}) {
     ...options,
   }
   combineAppend(op, append)
-  return babelTransform(code, op)
+  return BABEL.transform(code, op)
 }
 
 export const transformcjs = (code, options = {}, append = {}) => {

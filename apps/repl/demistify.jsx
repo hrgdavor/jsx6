@@ -5,7 +5,7 @@ import { errTranslations, insert, setTranslations } from '@jsx6/jsx6'
 import styles from './editor.css'
 import { setMonacoModule } from './src/MonacoEditor'
 import { TutorialRunner } from './src/TutorialRunner'
-import { transformcjs } from './src/babel/transform'
+import { setBabelModule, transformcjs } from './src/babel/transform'
 import { runCode } from './src/runner/simpleRunner'
 import { fetchText } from './src/util/fetchText'
 
@@ -32,6 +32,9 @@ body{
   )
 }
 
+// we load iife babel andd supply it to our transform utility
+setBabelModule(Babel)
+
 // we loaded pre-built monaco that exposes global variable: 'monaco'
 // give reference to monaco module
 // this way MonacoEditor component can be declared and used while
@@ -41,19 +44,19 @@ setMonacoModule(monaco)
 // tell monaco environment where worker js files are
 const base = './monaco'
 const workerMap = {
-  editorWorkerService: '/editor.worker.js',
-  css: '/css.worker.js',
-  html: '/html.worker.js',
-  json: '/json.worker.js',
-  typescript: '/ts.worker.js',
-  javascript: '/ts.worker.js',
-  less: '/css.worker.js',
-  scss: '/css.worker.js',
-  handlebars: '/html.worker.js',
-  razor: '/html.worker.js',
+  editorWorkerService: 'editor',
+  css: 'css',
+  html: 'html',
+  json: 'json',
+  typescript: 'ts',
+  javascript: 'ts',
+  less: 'css',
+  scss: 'css',
+  handlebars: 'html',
+  razor: 'html',
 }
 
-self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => base + workerMap[label] }
+self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => `${base}/${workerMap[label]}.worker.js` }
 
 /** @type {TutorialRunner} */
 const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)

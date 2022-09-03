@@ -52,13 +52,13 @@
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "prettier": "~2.7.1",
     "@jsx6/editor-monaco": "workspace:^0.34.0",
+    "@babel/standalone": "~7.18.12",
     "vite-plugin-static-copy": "~0.9.0"
   },
   "dependencies": {
     "@jsx6/jsx6": "workspace:^1.4.3",
     "babel-plugin-syntax-jsx": "~6.18.0",
     "babel-plugin-jsx-simple": "~1.4.0",
-    "@babel/standalone": "~7.18.12",
     "markdown-it": "~13.0.1",
     "mulmd": "~0.7.0",
     "perfect-scrollbar": "~1.5.5"

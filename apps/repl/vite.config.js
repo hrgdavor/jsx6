@@ -14,6 +14,10 @@ export default defineConfig({
           src: 'node_modules/@jsx6/editor-monaco/dist/*',
           dest: 'monaco',
         },
+        {
+          src: 'node_modules/@babel/standalone/babel.min.js*',
+          dest: 'babel',
+        },
       ],
     }),
     CustomHmr(),
