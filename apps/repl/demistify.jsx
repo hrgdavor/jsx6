@@ -16,7 +16,7 @@ const injectStyle = iframe => {
   insert(
     iframe.contentDocument.head,
     <style>{`
-@import url(http://fonts.googleapis.com/css?family=Roboto:400,100,100italic,300,300ita‌​lic,400italic,500,500italic,700,700italic,900italic,900);
+@import url(https://fonts.googleapis.com/css?family=Roboto:400,100,100italic,300,300ita‌​lic,400italic,500,500italic,700,700italic,900italic,900);
 html, body {
   font-family: 'Roboto', sans-serif;
   width:100%;
