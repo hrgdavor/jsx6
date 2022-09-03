@@ -17,9 +17,9 @@
   ],
   "scripts": {
     "build": "npm run build-editor && npm run build-editor-esm && npm run build-workers",
-    "build-editor": "esbuild index.js --outdir=dist --bundle --sourcemap --minify --loader:.ttf=file --format=iife --log-level=error --global-name=monaco",
-    "build-editor-esm": "esbuild index.js --outfile=dist/index.esm.js --bundle --sourcemap --minify --loader:.ttf=file --format=esm --log-level=error",
-    "build-workers": "esbuild editor.worker.js ts.worker.js json.worker.js html.worker.js css.worker.js --outdir=dist --bundle --sourcemap --minify --loader:.ttf=file --format=iife --log-level=error",
+    "build-editor": "esbuild index.js --outdir=dist --bundle --sourcemap --minify --loader:.ttf=file --format=iife --global-name=monaco",
+    "build-editor-esm": "esbuild index.js --outfile=dist/index.esm.js --bundle --sourcemap --minify --loader:.ttf=file --format=esm",
+    "build-workers": "esbuild editor.worker.js ts.worker.js json.worker.js html.worker.js css.worker.js --outdir=dist --bundle --sourcemap --minify --loader:.ttf=file",
     "format": "prettier --write \"./*.{js,jsx,json}\"",
     "prepublishOnly": "npm run build"
   },

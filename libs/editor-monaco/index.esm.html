@@ -22,6 +22,8 @@
 
 <script type="module">
   import * as monaco from './dist/index.esm.js'
+
+  // tell monaco environment where worker js files are
   const base = './dist'
   const workerMap = {
   "editorWorkerService": "/editor.worker.js",
