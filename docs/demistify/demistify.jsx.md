@@ -8,7 +8,6 @@ import { h, insert } from './jsx2dom.js'
 <h1 class="main">Hello JSX</h1>
 ```
 
-
 # About this tutorial
 
 This is an interactive tutorial to explain `JSX` in more detail and also show how it works behind the scenes. You can paly with the code, but be aware that when you go to next page of the tutorial, the example for that page will replace what you just changed in the editor.
@@ -34,74 +33,6 @@ Do not analyse it too much, it will be explained better and in more detail in th
 ```
 The sample code above is written intentionally this way to cause specific layout in the second editor(babel transform) and output.
 
-
-# JSX tooling 
-```typescript
-({"code":"initial", "runner":"render_jsx", "hidden":true})
-<h1 class="main">JSX - and excellent tooling support</h1>
-```
-Support for `JSX` is excellent, so much so you might think it is part of the JavaScript language itself.
-
-## esbuild - super-fast bundler
-
-Claimed 10-100x performance boost for builds!
-
-`JSX` is supported without plugins in [esbuild](https://esbuild.github.io/) so it can be used full speed.
-
-Here is a quick example of esbuild with options to get started with jsx
-
-```
- esbuild index.js --jsx-factory=h --jsx-fragment=null --loader:.js=jsx
-```
-
-## Babel 7 - powerful transformations
-
-[Babel](https://babeljs.io/) is widely used, much slower from `esbuild `but much more powerful using AST and transformations on it.
-Even if you do not use Babel directly, you are likely using it behind the scenes via `webpack `or some other build tool.
-
-The [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) plugin is used to convert examples in this tutorial so they can be executed in the browser as you type.
-
-```typescript
-({"code":"initial", "hidden":true, "runner":"render_jsx"})
-<div class="sth">
-  <b>example JS:</b>
-  1+1={1+1}
-</div>
-```
-
-Babel option `retainLines` is good in producing code that will give real line numbers in exception traces,
-but is less readable.
-
-Here is a more complex example with manual formating to more clearly show how `JSX` compares to JavaScript
-equivalent.
-
-```typescript
-({"code":"initial", "runner":"render_jsx"})
-<div class="sth">      | h("div", { "class": "sth" },
-  <b>example JS:</b>   |   h("b", null, "example JS:"),//b
-  1+1={1+1}            |   "1+1=", 1+1
-</div>                 | )//h1
-```
-Take a look at the code here and what babel produces in the second editor panel.
-The resulting code works the same, it is just manually better aligned here to be easier to compare.
-### Configuration
-
-For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) or [babel-plugin-jsx-pragmatic](https://github.com/jmm/babel-plugin-jsx-pragmatic).
-
-## Some libraries with JSX
-
-Unlike esbuild that has configurable `JSX` ouput, each library has own plugin for `JSX` transformation.
-
-Googling for `JSX` babel plugins I was able to found these libraries that use `JSX` (there is likely more).
-- [React](https://reactjs.org/) -- [babel-plugin-transform-react-jsx](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx)
-- [Vue](https://vuejs.org/) -- [babel-plugin-jsx](https://github.com/vuejs/babel-plugin-jsx)
-- [emotionjs](https://emotion.sh/docs/introduction) -- [babel-plugin-jsx-pragmatic](https://github.com/emotion-js/emotion/tree/main/packages/babel-plugin-jsx-pragmatic) forked from [jmm](https://github.com/jmm/babel-plugin-jsx-pragmatic)
-- [htm](https://github.com/developit/htm) -- [babel-plugin-transform-jsx-to-htm](https://www.npmjs.com/package/babel-plugin-transform-jsx-to-htm)
-
-
-## Code editors
-
-It is harder to find a code editor without `JSX` support that those with it. Whichever editor you prefer right now will just work.
 
 
 # JSX
@@ -475,3 +406,73 @@ addToBody(<>
     </>)
 
 ```
+
+
+# JSX tooling 
+```typescript
+({"code":"initial", "runner":"render_jsx", "hidden":true})
+<h1 class="main">JSX - and excellent tooling support</h1>
+```
+Support for `JSX` is excellent, so much so you might think it is part of the JavaScript language itself.
+
+## esbuild - super-fast bundler
+
+Claimed 10-100x performance boost for builds!
+
+`JSX` is supported without plugins in [esbuild](https://esbuild.github.io/) so it can be used full speed.
+
+Here is a quick example of esbuild with options to get started with jsx
+
+```
+ esbuild index.js --jsx-factory=h --jsx-fragment=null --loader:.js=jsx
+```
+
+## Babel 7 - powerful transformations
+
+[Babel](https://babeljs.io/) is widely used, much slower from `esbuild `but much more powerful using AST and transformations on it.
+Even if you do not use Babel directly, you are likely using it behind the scenes via `webpack `or some other build tool.
+
+The [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) plugin is used to convert examples in this tutorial so they can be executed in the browser as you type.
+
+```typescript
+({"code":"initial", "hidden":true, "runner":"render_jsx"})
+<div class="sth">
+  <b>example JS:</b>
+  1+1={1+1}
+</div>
+```
+
+Babel option `retainLines` is good in producing code that will give real line numbers in exception traces,
+but is less readable.
+
+Here is a more complex example with manual formating to more clearly show how `JSX` compares to JavaScript
+equivalent.
+
+```typescript
+({"code":"initial", "runner":"render_jsx"})
+<div class="sth">      | h("div", { "class": "sth" },
+  <b>example JS:</b>   |   h("b", null, "example JS:"),//b
+  1+1={1+1}            |   "1+1=", 1+1
+</div>                 | )//h1
+```
+Take a look at the code here and what babel produces in the second editor panel.
+The resulting code works the same, it is just manually better aligned here to be easier to compare.
+### Configuration
+
+For simple usage you can configure Babel with [babel-plugin-jsx-simple](https://github.com/hrgdavor/babel-plugin-jsx-simple) or [babel-plugin-jsx-pragmatic](https://github.com/jmm/babel-plugin-jsx-pragmatic).
+
+## Some libraries with JSX
+
+Unlike esbuild that has configurable `JSX` ouput, each library has own plugin for `JSX` transformation.
+
+Googling for `JSX` babel plugins I was able to found these libraries that use `JSX` (there is likely more).
+- [React](https://reactjs.org/) -- [babel-plugin-transform-react-jsx](https://babeljs.io/docs/en/babel-plugin-transform-react-jsx)
+- [Vue](https://vuejs.org/) -- [babel-plugin-jsx](https://github.com/vuejs/babel-plugin-jsx)
+- [emotionjs](https://emotion.sh/docs/introduction) -- [babel-plugin-jsx-pragmatic](https://github.com/emotion-js/emotion/tree/main/packages/babel-plugin-jsx-pragmatic) forked from [jmm](https://github.com/jmm/babel-plugin-jsx-pragmatic)
+- [htm](https://github.com/developit/htm) -- [babel-plugin-transform-jsx-to-htm](https://www.npmjs.com/package/babel-plugin-transform-jsx-to-htm)
+
+
+## Code editors
+
+It is harder to find a code editor without `JSX` support that those with it. Whichever editor you prefer right now will just work.
+
