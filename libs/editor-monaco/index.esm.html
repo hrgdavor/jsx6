@@ -1,22 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <script src="./dist/index.js"></script>
     <script>
-(function(workerMap, base){
-  self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => base + workerMap[label]}
-}({
-  "editorWorkerService": "/editor.worker.js",
-  "css": "/css.worker.js",
-  "html": "/html.worker.js",
-  "json": "/json.worker.js",
-  "typescript": "/ts.worker.js",
-  "javascript": "/ts.worker.js",
-  "less": "/css.worker.js",
-  "scss": "/css.worker.js",
-  "handlebars": "/html.worker.js",
-  "razor": "/html.worker.js"
-},'/dist'))
 </script>
 
     <meta charset="UTF-8" />
@@ -35,7 +20,24 @@
   </body>
   </html>
 
-<script>
+<script type="module">
+  import * as monaco from './dist/index.esm.js'
+  const base = './dist'
+  const workerMap = {
+  "editorWorkerService": "/editor.worker.js",
+  "css": "/css.worker.js",
+  "html": "/html.worker.js",
+  "json": "/json.worker.js",
+  "typescript": "/ts.worker.js",
+  "javascript": "/ts.worker.js",
+  "less": "/css.worker.js",
+  "scss": "/css.worker.js",
+  "handlebars": "/html.worker.js",
+  "razor": "/html.worker.js"
+  }
+
+  self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => base + workerMap[label]}
+
   var editor = monaco.editor.create(document.getElementById('container'), {
 	value: "// First line\nfunction hello() {\n\talert('Hello world!');\n}\n// Last line",
 	language: 'javascript',
@@ -47,9 +49,5 @@
   automaticLayout: true,
 	theme: 'vs-dark'
 });
-import('./dist/index.esm.js').then(monaco2=>{
-  console.log('monaco', monaco2)
-  self.monaco2 = monaco2
-})
 </script>
   
