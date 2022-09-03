@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://www.unpkg.com/@jsx6/editor-monaco@0.34.0/dist/index.css">
     <script src="https://www.unpkg.com/@jsx6/editor-monaco@0.34.0/dist/index.js"></script>
 <script>
-// this trick with data: was added to monaco documentation but then removed
+// this trick with 'data:' was added to monaco documentation but then removed
 
 // HTML5 does not allow cross-domain web workers, so we need to proxy the instantiation of
 // a web worker through a same-domain script
@@ -27,8 +27,9 @@ self.MONACO_URL_FUNC = function (worker) {
     <!-- pre-built Babel passed later to setBabelModule -->
     <script src="https://unpkg.com/@babel/standalone@7.18.12/babel.min.js"></script>
   
+
+    <script type="module" src="/demistify.jsx"></script>
   </head>
   <body class="fxs1">
   </body>
   </html>
-  <script type="module" src="/demistify.jsx"></script>
