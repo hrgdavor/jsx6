@@ -205,15 +205,21 @@ export class TutorialRunner extends Jsx6 {
           <div class="fxs fxfc owh">
             {/* right top */}
             <div class="fxs1 owh">
-              <MonacoEditor p="editor" class="fx1 owh" />
-              <MonacoEditor p="compiled" class="fx1 owh" />
+              <div class="l-b-box-c1">
+                <div>Code</div>
+                <MonacoEditor p="editor" class="owh" />
+              </div>
+              <div class="l-b-box-c1">
+                <div>Transformed</div>
+                <MonacoEditor p="compiled" class="owh" />
+              </div>
             </div>
 
             {/* right bottom */}
             <div class="fxs1 fxfc owh">
-              <div class="fxs1 fxfc owh">
+              <div class="l-b-box-c1 owh">
                 <div>Output</div>
-                <FlipFrame p="iframe" class="fxs1 owh" />
+                <FlipFrame p="iframe" class="fxs owh" />
               </div>
             </div>
             {/* END right bottom */}

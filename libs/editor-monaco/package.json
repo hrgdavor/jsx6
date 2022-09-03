@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/editor-monaco",
-  "version": "0.33.0",
+  "version": "0.34.0",
   "type": "module",
   "description": "Monaco editor pre-build for standalone usage",
   "main": "index.js",
@@ -48,8 +48,7 @@
   "homepage": "https://hrgdavor.github.io/jsx6/",
   "devDependencies": {
     "esbuild": "^0.14.39",
-    "vite": "~2.9.13",
-    "vite-plugin-monaco-editor": "~1.0.11",
+    "vite": "~3.0.9",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "prettier": "~2.7.1",
     "http-server": "~14.1.1"

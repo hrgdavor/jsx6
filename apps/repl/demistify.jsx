@@ -1,9 +1,9 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
 import { errTranslations, insert, setTranslations } from '@jsx6/jsx6'
-import { textSeparatorForeground } from 'monaco-editor/esm/vs/platform/theme/common/colorRegistry'
 
 import styles from './editor.css'
+import { setMonacoModule } from './src/MonacoEditor'
 import { TutorialRunner } from './src/TutorialRunner'
 import { transformcjs } from './src/babel/transform'
 import { runCode } from './src/runner/simpleRunner'
@@ -31,6 +31,29 @@ body{
   `}</style>,
   )
 }
+
+// we loaded pre-built monaco that exposes global variable: 'monaco'
+// give reference to monaco module
+// this way MonacoEditor component can be declared and used while
+// loading of monaco is not done as depenedency but handled externally
+setMonacoModule(monaco)
+
+// tell monaco environment where worker js files are
+const base = './monaco'
+const workerMap = {
+  editorWorkerService: '/editor.worker.js',
+  css: '/css.worker.js',
+  html: '/html.worker.js',
+  json: '/json.worker.js',
+  typescript: '/ts.worker.js',
+  javascript: '/ts.worker.js',
+  less: '/css.worker.js',
+  scss: '/css.worker.js',
+  handlebars: '/html.worker.js',
+  razor: '/html.worker.js',
+}
+
+self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => base + workerMap[label] }
 
 /** @type {TutorialRunner} */
 const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)

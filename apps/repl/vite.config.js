@@ -1,13 +1,20 @@
 import { defineConfig } from 'vite'
-import monacoEditorPlugin from 'vite-plugin-monaco-editor'
+import { viteStaticCopy } from 'vite-plugin-static-copy'
 
 import CustomHmr from './CustomHmr.js'
+
+const exclude = []
 
 export default defineConfig({
   base: '',
   plugins: [
-    monacoEditorPlugin.default({
-      //  languageWorkers: ['editorWorkerService', 'typescript'],
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'node_modules/@jsx6/editor-monaco/dist/*',
+          dest: 'monaco',
+        },
+      ],
     }),
     CustomHmr(),
   ],
@@ -29,15 +36,20 @@ export default defineConfig({
         main: './index.html',
         demistify: './demistify.jsx.html',
       },
+      external: exclude,
     },
+  },
+  optimizeDeps: {
+    exclude,
   },
   define: {
     'process.env': process.env,
   },
-  server: {
-    fs: {
-      // Allow serving files from node modules that are in rush common folder
-      allow: ['../..'],
-    },
-  },
+  // this was needed while using monaco as dependency
+  // server: {
+  //   fs: {
+  //     // Allow serving files from node modules that are in rush common folder
+  //     allow: ['../..'],
+  //   },
+  // },
 })
