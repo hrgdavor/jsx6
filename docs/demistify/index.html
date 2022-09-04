@@ -9,26 +9,17 @@
     <!-- Version that loads monaco and babel from CDN -->
 
     <!-- pre-built Monaco passed later to setMonacoModule -->
-    <link rel="stylesheet" href="https://www.unpkg.com/@jsx6/editor-monaco@0.34.0/dist/index.css">
-    <script src="https://www.unpkg.com/@jsx6/editor-monaco@0.34.0/dist/index.js"></script>
-<script>
-// this trick with data: was added to monaco documentation but then removed
-
-// HTML5 does not allow cross-domain web workers, so we need to proxy the instantiation of
-// a web worker through a same-domain script
-self.MONACO_BASE = 'https://www.unpkg.com/@jsx6/editor-monaco@0.34.0/dist'
-self.MONACO_URL_FUNC = function (worker) {
-  return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-      self.MonacoEnvironment = { baseUrl: '${self.MONACO_BASE}'};
-      importScripts('${self.MONACO_BASE}/${worker}.worker.js');`)}`
-  }
-</script>
+    <link rel="stylesheet" href="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.css">
+    <script src="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.js"></script>
+    <script>monaco.setPreBuiltWorkerBase('https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist', true)</script>
     
     <!-- pre-built Babel passed later to setBabelModule -->
     <script src="https://unpkg.com/@babel/standalone@7.18.12/babel.min.js"></script>
   
+
+    
     <script type="module" crossorigin src="./assets/insertHtml.9eb1f3c8.js"></script>
-    <script type="module" crossorigin src="./assets/demistify.121d7b0c.js"></script>
+    <script type="module" crossorigin src="./assets/demistify.314a8d14.js"></script>
     <link rel="stylesheet" href="./assets/demistify.8b1a4625.css">
 
   </head>
