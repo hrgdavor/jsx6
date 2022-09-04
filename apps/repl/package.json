@@ -51,7 +51,7 @@
     "vite": "~3.0.9",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "prettier": "~2.7.1",
-    "@jsx6/editor-monaco": "workspace:^0.34.0",
+    "@jsx6/editor-monaco": "workspace:^0.34.100",
     "@babel/standalone": "~7.18.12",
     "vite-plugin-static-copy": "~0.9.0"
   },
