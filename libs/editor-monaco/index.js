@@ -14,3 +14,33 @@ import 'monaco-editor/esm/vs/language/json/monaco.contribution'
 import 'monaco-editor/esm/vs/language/typescript/monaco.contribution'
 
 export * from 'monaco-editor/esm/vs/editor/editor.api'
+
+const workerMap = {
+  editorWorkerService: 'editor',
+  css: 'css',
+  html: 'html',
+  json: 'json',
+  typescript: 'ts',
+  javascript: 'ts',
+  less: 'css',
+  scss: 'css',
+  handlebars: 'html',
+  razor: 'html',
+}
+
+// tell monaco environment where worker js files are
+export const setPreBuiltWorkerBase = (workerBase, fromCdn) => {
+  const getWorkerUrlLocal = (moduleId, label) => `${workerBase}/${workerMap[label]}.worker.js`
+
+  // this trick with 'data:' was added to monaco documentation but then removed
+  //
+  // HTML5 does not allow cross-domain web workers, so we need to proxy the instantiation of
+  // a web worker through a same-domain script
+  const getWorkerUrlCdn = (moduleId, label) => {
+    return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+        self.MonacoEnvironment = { baseUrl: '${workerBase}'};
+        importScripts('${workerBase}/${workerMap[label]}.worker.js');`)}`
+  }
+
+  self.MonacoEnvironment = { getWorkerUrl: fromCdn ? getWorkerUrlCdn : getWorkerUrlLocal }
+}

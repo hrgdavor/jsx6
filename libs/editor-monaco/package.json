@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/editor-monaco",
-  "version": "0.34.0",
+  "version": "0.34.100",
   "type": "module",
   "description": "Monaco editor pre-build for standalone usage",
   "main": "index.js",

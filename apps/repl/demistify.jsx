@@ -37,26 +37,9 @@ setBabelModule(Babel)
 
 // we loaded pre-built monaco that exposes global variable: 'monaco'
 // give reference to monaco module
-// this way MonacoEditor component can be declared and used while
+// this way MonacoEditor component can be declared and used without importing whole monaco into the build
 // loading of monaco is not done as depenedency but handled externally
 setMonacoModule(monaco)
-
-// tell monaco environment where worker js files are
-const workerMap = {
-  editorWorkerService: 'editor',
-  css: 'css',
-  html: 'html',
-  json: 'json',
-  typescript: 'ts',
-  javascript: 'ts',
-  less: 'css',
-  scss: 'css',
-  handlebars: 'html',
-  razor: 'html',
-}
-
-// we rely on index page to provide function that will generate worker url
-self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => self.MONACO_URL_FUNC(workerMap[label]) }
 
 /** @type {TutorialRunner} */
 const tutorialRunner = (self.APP = <TutorialRunner class="fxs1" />)

@@ -9,10 +9,8 @@
     <!-- pre-built Monaco passed later to setMonacoModule -->
     <link rel="stylesheet" href="./monaco/index.css">
     <script src="./monaco/index.js"></script>
-    <script>
-      self.MONACO_BASE = './monaco'
-      self.MONACO_URL_FUNC = worker=>`${self.MONACO_BASE}/${worker}.worker.js`
-    </script>    
+    <script>monaco.setPreBuiltWorkerBase('./monaco')</script>
+    
     <!-- pre-built Babel passed later to setBabelModule -->
     <script src="./babel/babel.min.js"></script>
   
