@@ -1,14 +1,16 @@
-# Pre-built monaco editor with workers
+# Pre-built Monaco editor with workers
+
+![Version 0.34.100](https://img.shields.io/badge/version-0.34.100-blue)
 
 Purpose of this repo is to be able to use Monaco editor in my projects without advanced tools.
 Monaco is such big editor that I want to load it separately, and if I include it as a dependency
 I then need to use advanced tooling or complicate my builds. 
 
-I admire [Vite](https://vitejs.dev/) and it is my favourite tool at the moment because of ease of use. Having big libraries pre-built manually also makes Vite start faster. I love those advanced tools, as they do help a lot, but when possible I want to be able to do things without them. That way I am less dependent on the currently popular tools and learn more.
+I admire [Vite](https://vitejs.dev/) and it is my favourite tool at the moment because of ease of use. Having big libraries pre-built manually also makes Vite start faster. I love those advanced tools, as they do help a lot, but when possible I want to be able to do things without them. That way I am less dependent on the currently popular tools and can learn more.
 
-Monaco editor can be easily built using esbuild, but to get it working properly,  the workers also need to be built as separate JS files. Monaco then needs to know where the workers are, to be able to make web-workers.
+Monaco editor can be easily built using esbuild, but to get it working properly,  the workers also need to be built as separate JS files. Monaco then needs to know where the workers are, to be able to run the web-workers.
 
-To tell Monaco where worker JS is for each language we need to declare globally `self.MonacoEnvironment` so when Monaco editor wants to start the worker it can ask where specific worker JS file is. We communicate this information using a global variable (using too many global variables is bad, but there are legitimate use-cases, and this one is).
+To tell Monaco where worker's JS is for each language we need to declare globally `self.MonacoEnvironment` so when Monaco editor wants to start the worker it can ask where specific worker JS file is. We communicate this information using a global variable (using too many global variables is bad, but there are legitimate use-cases, and this one is).
 
 ```js
   self.MonacoEnvironment = { getWorkerUrl: (moduleId, label)=>{
