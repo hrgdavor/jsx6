@@ -34,11 +34,9 @@ const doReplace = (file, regexArr) => {
     fs.writeFile(file, bumped, function (error) {
       if (error) throw error
       if (bumped != data) {
-        console.log(
-          process.argv[2] ? `Bumped ${file} file to ${process.argv[2]}` : `Version number not found.`,
-        )
+        console.log(`${file} bumped to ${version}`)
       } else {
-        console.log('version not updated')
+        console.log(`${file} version not updated`)
       }
     })
   })
