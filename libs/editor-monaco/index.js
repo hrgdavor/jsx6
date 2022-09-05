@@ -37,9 +37,10 @@ export const setPreBuiltWorkerBase = (workerBase, fromCdn) => {
   // HTML5 does not allow cross-domain web workers, so we need to proxy the instantiation of
   // a web worker through a same-domain script
   const getWorkerUrlCdn = (moduleId, label) => {
-    return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-        self.MonacoEnvironment = { baseUrl: '${workerBase}'};
-        importScripts('${workerBase}/${workerMap[label]}.worker.js');`)}`
+    const proxyCode = `self.MonacoEnvironment = { baseUrl: '${workerBase}'};
+    importScripts('${workerBase}/${workerMap[label]}.worker.js');`
+
+    return `data:text/javascript;charset=utf-8,${encodeURIComponent(proxyCode)}`
   }
 
   self.MonacoEnvironment = { getWorkerUrl: fromCdn ? getWorkerUrlCdn : getWorkerUrlLocal }
