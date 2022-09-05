@@ -81,5 +81,7 @@ Monaco pre-built files from CDN [more details](monaco.cdn.md)
 <script>monaco.setPreBuiltWorkerBase('https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist', true)</script>
 ```
 
-
-
+# versions
+- [@jsx6/editor version] -> [monaco version]
+- 0.34.100 -> [monaco/0.34.0] - with some internal patches
+- 0.34.0 -> [monaco/0.34.0] - initial version
