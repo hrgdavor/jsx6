@@ -1,7 +1,5 @@
 # Pre-built monaco editor with workers
 
-Look at `index.html` and `index.esm.html` for usage example.
-
 Purpose of this repo is to be able to use Monaco editor in my projects without advanced tools.
 Monaco is such big editor that I want to load it separately, and if I include it as a dependency
 I then need to use advanced tooling or complicate my builds. 

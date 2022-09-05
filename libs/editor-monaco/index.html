@@ -1,28 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    
+    <link rel="stylesheet" href="./dist/index.css">
     <script src="./dist/index.js"></script>
-    <script>
-(function(workerMap, base){
-  self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => base + workerMap[label]}
-}({
-  "editorWorkerService": "/editor.worker.js",
-  "css": "/css.worker.js",
-  "html": "/html.worker.js",
-  "json": "/json.worker.js",
-  "typescript": "/ts.worker.js",
-  "javascript": "/ts.worker.js",
-  "less": "/css.worker.js",
-  "scss": "/css.worker.js",
-  "handlebars": "/html.worker.js",
-  "razor": "/html.worker.js"
-},'/dist'))
-</script>
+    <script>monaco.setPreBuiltWorkerBase('./dist')</script>
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pre-built monaco editor</title>
-    <link rel="stylesheet" href="./dist/index.css">
+    <title>Local pre-built monaco editor</title>
+
     <style>
       *{ box-sizing: border-box;}
       body, html{

@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <script>
-</script>
+
+    <link rel="stylesheet" href="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.css">
+    <script src="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.js"></script>
+    <script>monaco.setPreBuiltWorkerBase('https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist', true)</script>
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pre-built monaco editor</title>
-    <link rel="stylesheet" href="./dist/index.css">
+    <title>Pre-built monaco editor from CDN</title>
     <style>
       *{ box-sizing: border-box;}
       body, html{
@@ -20,26 +21,7 @@
   </body>
   </html>
 
-<script type="module">
-  import * as monaco from './dist/index.esm.js'
-
-  // tell monaco environment where worker js files are
-  const base = './dist'
-  const workerMap = {
-  "editorWorkerService": "/editor.worker.js",
-  "css": "/css.worker.js",
-  "html": "/html.worker.js",
-  "json": "/json.worker.js",
-  "typescript": "/ts.worker.js",
-  "javascript": "/ts.worker.js",
-  "less": "/css.worker.js",
-  "scss": "/css.worker.js",
-  "handlebars": "/html.worker.js",
-  "razor": "/html.worker.js"
-  }
-
-  self.MonacoEnvironment = { getWorkerUrl: (moduleId, label) => base + workerMap[label]}
-
+<script>
   var editor = monaco.editor.create(document.getElementById('container'), {
 	value: "// First line\nfunction hello() {\n\talert('Hello world!');\n}\n// Last line",
 	language: 'javascript',
