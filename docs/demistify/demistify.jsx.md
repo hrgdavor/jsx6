@@ -325,6 +325,8 @@ There are few considerations you will run into surely if you do try to use such 
 
 ## handling functions as tag names (functional components)
 
+
+
 ```typescript
 ({"code":"initial"})
 function h(tag, attr){
@@ -344,6 +346,8 @@ document.body.appendChild(<MyInput value="niceset"/>)
 document.body.appendChild(<MyInput type="color" value="#00aa00"/>)
 
 ```
+
+Check [freecodecamp](https://www.freecodecamp.org/news/javascript-object-destructuring-spread-operator-rest-parameter/) explanation for some nice in-depth general examples for spread operator.
 
 ## handling some advanced cases for attributes
 
@@ -439,6 +443,8 @@ The final version of `h` function for the purpose of this tutorial now looks lik
 ```typescript
 ({"code":"initial"})
 import { insert, addToBody } from './jsx2dom.js'
+
+// jsx2Dom main function that does most of the magic
 function h(tag, attr, ...children) {
   if (!tag) return children // support JSX fragment: <></>
 
