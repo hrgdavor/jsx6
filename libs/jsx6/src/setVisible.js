@@ -1,6 +1,6 @@
-import { Group } from './core'
-import { setAttrBoolean } from './setAttrBoolean'
-import { forEachProp } from './forEachProp'
+import { Group } from './core.js'
+import { setAttrBoolean } from './setAttrBoolean.js'
+import { forEachProp } from './forEachProp.js'
 
 export function setVisible(obj, sel) {
   if (!obj) return

@@ -1,4 +1,11 @@
 
+# UI
+ - add support for multiple files (main, imports, css)
+ - css parser to skip applying css if invalid
+ - apply css without refresh
+ - allow for multiple blocks to combine into final script (code=initial|append)
+   this way explanations can be done part by part (closer how live notebooks work)
+
 # publishing
 
  - generate static html from the md file

@@ -1,5 +1,5 @@
-import { isFunc } from './core'
-import { mapProp } from './mapProp'
+import { isFunc } from './core.js'
+import { mapProp } from './mapProp.js'
 
 export function getValue(obj) {
   if (obj === null || obj === undefined) return obj

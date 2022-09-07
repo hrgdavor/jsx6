@@ -1,5 +1,5 @@
-import { destroy } from './destroy'
-import { toDomNode } from './toDomNode'
+import { destroy } from './destroy.js'
+import { toDomNode } from './toDomNode.js'
 
 export function remove(child, alsoDestroy) {
   try {

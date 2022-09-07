@@ -1,4 +1,4 @@
-import { toDomNode } from './toDomNode'
+import { toDomNode } from './toDomNode.js'
 
 const listenMap = new WeakMap()
 

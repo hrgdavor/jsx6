@@ -1,4 +1,4 @@
-import { toDomNode } from './toDomNode'
+import { toDomNode } from './toDomNode.js'
 
 export function replace(newChild, oldChild, alsoDestroy) {
   const _oldChild = toDomNode(oldChild)

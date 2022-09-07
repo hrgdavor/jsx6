@@ -7,6 +7,14 @@
  */
 export function h(tag, attr, ...children) {
   if (!tag) return children // support JSX fragment: <></>
+
+  if (tag instanceof Function) {
+    attr = attr || {} // so the functions need not worry if attr is null
+    // declaring default value in receiving function does not help, so we clean the value to avoid runtime errors
+    // leaving attr == null might have some benefit in knowing there are no attributes, but the downside is greater
+    return tag.prototype ? new tag(attr, children) : tag(attr, children)
+  }
+
   const node = document.createElement(tag)
   if (attr) {
     for (let aName in attr) {

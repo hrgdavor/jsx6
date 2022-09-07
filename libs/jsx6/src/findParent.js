@@ -1,4 +1,4 @@
-import { toDomNode } from './toDomNode'
+import { toDomNode } from './toDomNode.js'
 
 export function findParent(el, filter, stopFilter) {
   let p = toDomNode(el)

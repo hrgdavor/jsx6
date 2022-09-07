@@ -1,4 +1,4 @@
-import { runFunc, throwErr, isObj, requireFunc, isFunc } from './core'
+import { runFunc, throwErr, isObj, requireFunc, isFunc } from './core.js'
 
 const ERR_DIRTY_RECURSION = 4 //  JSX6E4 - not allowed to trigger dirty values during dirty update dispatch to avoid infinite updates
 const ERR_DIRTY_RUNNER_FUNC = 5 //  JSX6E5 - dirty runner must be a function
@@ -148,6 +148,7 @@ export function makeState(_state = {}, markDirtyNow) {
     },
     get: function (target, prop) {
       if (prop === 'toJSON') return () => _state
+      if (prop === Symbol.iterator) return all[Symbol.iterator].bind(all)
 
       if (!bindings[prop]) {
         perPropUpdaters[prop] = []
@@ -163,21 +164,20 @@ export function makeState(_state = {}, markDirtyNow) {
         }
         const filterFunc = filter =>
           asBinding(() => filter(_state[prop]), bindingsProxy, prop, perPropUpdaters[prop])
-        func.get = func.set = func
-        func.toString = () => throwErr(ERR_MUST_CALL_BINDING, prop)
+        func.get = func.set = func.toString = func
+        // func.toString = () => throwErr(ERR_MUST_CALL_BINDING, prop)
         bindings[prop] = asBinding(func, bindingsProxy, prop, perPropUpdaters[prop])
       }
       return bindings[prop]
     },
   })
+  const all = [bindingsProxy, state, _state]
 
   function bindingFunc(f) {
     if (!arguments.length) {
       return $
     } else if (isFunc(f)) {
-      const out = (...params) => {
-        return f(...params)
-      }
+      const out = () => f(_state)
       out.addUpdater = updater => updaters.push(requireFunc(updater, ERR_DIRTY_RUNNER_FUNC))
       return out
     } else if (isObj(f)) {

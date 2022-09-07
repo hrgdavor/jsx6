@@ -1,5 +1,5 @@
-import { addDirty } from './dirty'
-import { requireFunc, t } from './core'
+import { addDirty } from './dirty.js'
+import { requireFunc, t } from './core.js'
 
 const ERR_TRANS_UUPD_FUNC = 3 //    JSX6E3 - Translation updater must be a function
 

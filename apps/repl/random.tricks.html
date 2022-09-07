@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Random tricks</title>
+    
+    <!-- pre-built Monaco passed later to setMonacoModule -->
+    <link rel="stylesheet" href="./monaco/index.css">
+    <script src="./monaco/index.js"></script>
+    <script>monaco.setPreBuiltWorkerBase('./monaco')</script>
+    
+    <!-- pre-built Babel passed later to setBabelModule -->
+    <script src="./babel/babel.min.js"></script>
+  
+    <script type="module" src="/random.tricks.jsx"></script>
+  </head>
+  <body class="fxs1">
+  </body>
+  </html>

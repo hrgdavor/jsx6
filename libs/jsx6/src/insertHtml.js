@@ -23,6 +23,7 @@ or also in production if so desired. The choice is yours :)
 const ERR_NULL_TAG = 1 //           JSX6E1 - Tag is null
 const ERR_UNSUPPORTED_TAG = 2 //    JSX6E2 - Tag type is not supported
 const ERR_LISTENER_MUST_BE_FUNC = 9 //    JSX6E9 - Event listener must be a function
+const ERR_CONTEXT_REQUIRED = 10 // JSX6E10 Context to assign references required
 
 if (typeof document !== 'undefined') {
   _createText = t => document.createTextNode(t)
@@ -62,19 +63,10 @@ function make(asTpl, _self, tag, attr = {}, ...children) {
     }
   } else {
     if (isFunc(tag)) {
-      // create component early so if component validates parameters and throws error
-      // it can be easily traced to the JSX section where it was defined
-      if (tag.isComponentClass) {
-        // eslint-disable-next-line
-        const out = new tag(attr, children, _self)
-        return out
-      } else {
-        // use the tag function to provide the template for the newly created component
-        // create a new Jsx6 component
-        const out = new Jsx6(attr, children, _self)
-        out.tpl = tag
-        return out
-      }
+      attr = attr || {} // so the functions need not worry if attr is null
+      // declaring default value in receiving function does not help, so we clean the value to avoid runtime errors
+      // leaving attr == null might have some benefit in knowing there are no attributes, but the downside is greater
+      return tag.prototype ? new tag(attr, children, _self) : tag(attr, children, _self)
     } else {
       // not sure what else to enable if tag is type of object
       // this may be expanded in the future to allow more capabilities
@@ -289,6 +281,7 @@ export function insertAttr(attr, out, self, component) {
 }
 
 function setPropGroup(self, part, [$group, $key]) {
+  if (self === NO_CONTEXT) throw throwErr(ERR_CONTEXT_REQUIRED)
   if ($key) {
     if (!self[$group]) self[$group] = new Group()
     self[(part.$group = $group)][(part.$key = $key)] = part

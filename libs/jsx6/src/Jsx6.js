@@ -1,7 +1,7 @@
-import { makeState } from './dirty'
-import { insert } from './insert'
-import { insertHtml, insertAttr, h } from './insertHtml'
-import { isObj } from './core'
+import { makeState } from './dirty.js'
+import { insert } from './insert.js'
+import { insertHtml, insertAttr, h } from './insertHtml.js'
+import { isObj } from './core.js'
 
 /**
  * @typedef {Object} Jsx6Extras
@@ -111,7 +111,7 @@ export class Jsx6 {
    * @param $ - state binding proxy
    * @param self - reference to this
    */
-  tpl(/*h, state, $, self*/) {}
+  tpl(h, state, $state, self) {}
 
   insertChildren() {
     insertHtml(this.contentArea, null, this.children, this)

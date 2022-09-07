@@ -10,6 +10,7 @@ import { insertImports } from './markdown/insertImports'
 import { extractProvided, markdown } from './markdown/markdown'
 import { splitChapters } from './markdown/splitChapters'
 import stylesPS from './perfect-scrollbar.css'
+// TODO use from jsx6/editor-monaco
 import { syncScroll } from './util/syncScroll'
 
 const langMap = { js: 'typescript', jsx: 'typescript' }
@@ -129,6 +130,7 @@ export class TutorialRunner extends Jsx6 {
   tpl(h, $state, state) {
     state.menuHidden = true
     const nextChapterClick = () => this.showChapter(0, 1)
+
     // this declaration is intentionaly here to have access to scope and scoped `h` function
     // nice side-effect of such declaration is that CTRL+R works in vscode to find it
     this.tplChapterButton = chapter => (

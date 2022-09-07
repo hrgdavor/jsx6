@@ -1,4 +1,4 @@
-import { isFunc } from './core'
+import { isFunc } from './core.js'
 
 export function copyBinding(params, prop, options = {}, defRequired, defKeep) {
   const { required = defRequired, callback, def, keep = defKeep } = options

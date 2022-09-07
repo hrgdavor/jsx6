@@ -1,5 +1,5 @@
-import { Jsx6 } from './Jsx6'
-import { setVisible } from './setVisible'
+import { Jsx6 } from './Jsx6.js'
+import { setVisible } from './setVisible.js'
 
 export class Loop extends Jsx6 {
   items = []

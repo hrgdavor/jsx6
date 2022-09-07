@@ -5,7 +5,7 @@
  * @param {booelan} bool decides if class is added or removed
  */
 
-import { toDomNode } from './toDomNode'
+import { toDomNode } from './toDomNode.js'
 
 export function classIf(node, cname, bool) {
   node = toDomNode(node)

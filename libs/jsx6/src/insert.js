@@ -1,5 +1,5 @@
-import { throwErr, ERR_REQUIRE_PARENT } from './core'
-import { toDomNode } from './toDomNode'
+import { throwErr, ERR_REQUIRE_PARENT } from './core.js'
+import { toDomNode } from './toDomNode.js'
 
 export function insert(parent, newChild, before) {
   if (newChild instanceof Array) {

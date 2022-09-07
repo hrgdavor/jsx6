@@ -1,6 +1,6 @@
-import { mapProp } from './mapProp'
-import { Group } from './core'
-import { setAttrBoolean } from './setAttrBoolean'
+import { mapProp } from './mapProp.js'
+import { Group } from './core.js'
+import { setAttrBoolean } from './setAttrBoolean.js'
 
 export function setEnabled(obj, sel) {
   if (!obj) return

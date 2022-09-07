@@ -175,6 +175,41 @@ addToBody(<>
 
 ```
 
+## JSX reusable blocks using functions and spread operator
+
+
+```typescript
+({"code":"initial"})
+import { h, addToBody, insert } from './jsx2dom.js'
+// custom style for the box widget
+const style = `.MyBox{display: inline-block; margin: 20px;
+width:150px; height: 150px;border:solid 1px;}
+.MyBox .title{background:#ccc;padding: 4px 10px;}
+.MyBox .content{padding: 10px;}
+.MyBox-red {border-color:red}`
+insert(document.head,<style>{style}</style>)
+
+// Simple reusable function that adds a box with title around our elements
+const MyBox = ({title='', ...attr}, children)=>{
+  // title is declared separeately so it is excluded from attr 
+  // (that is how spread operator works)
+
+  // if we delcare class before spreading attr
+  // caller will be able to override class
+  return <div class="MyBox" {...attr}>
+    <div class="title">{title}</div>
+    <div class="content">{children}</div>
+  </div>
+}
+
+addToBody(<MyBox title="Box Title 1">Content 1<br/>blab bla</MyBox>)
+
+addToBody(<MyBox class="MyBox MyBox-red" title="Box Title 2">
+	Content 2<br/>
+    bla bla
+</MyBox>)
+
+```
 
 # JavaScript code inside JSX
 

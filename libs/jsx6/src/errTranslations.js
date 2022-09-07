@@ -9,4 +9,6 @@ export default {
   JSX6E7: 'Function required',
   JSX6E8: 'Parent required',
   JSX6E9: 'Event listener must be a function ',
+  JSX6E10:
+    'Context to assign references required, if you want to assign parts of the template to named props, please provide a scope by using domWithScope utility',
 }
