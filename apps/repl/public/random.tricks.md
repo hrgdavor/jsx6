@@ -17,3 +17,29 @@ console.log(myExclude(obj)) // {c:3}
 console.log(myExclude({a:1, name:'test'})) // {name:'test'}
 
 ```
+
+# Default value in functions null vs undefined
+
+```typescript
+({"code":"initial"})
+function testFunc(p1=1, p2=2, ...rest){
+  return {p1, p2, rest}
+}
+
+console.log(testFunc()) // {p1: 1, p2: 2, rest:[]}
+console.log(testFunc(1,2,3,4,5)) // {p1: 1, p2: 2, rest:[3, 4, 5]}
+console.log(testFunc(1,2,undefined)) // {p1: 1, p2: 2, rest:[undefined]}
+
+// null versus undefined
+// undefined is used automatically when parameters are omitted
+// but ...rest is never null, it is an empty array if there are no items to pick
+console.log(testFunc(100)) // {p1: 100, p2: 2, rest:[]}
+// undefined done manually or done by the compiler will trigger default value
+console.log(testFunc(100, undefined)) // {p1: 100, p2: 2, rest:[]}
+// but null will be used as value and default value will not be triggered
+// which might be unexpected if you often use: `p2 = p2 || 2` which would default to `2` for many values due to how javascript evaluates logical true/false for `if`
+console.log(testFunc(100, null)) // {p1: 100, p2: null, rest:[]}
+// since it is the `undefined` that triggers default value, unlike some other languages that accept defautl values we can trigger default for the first value and provide value for the second one
+console.log(testFunc(undefined,200)) // {p1: 1, p2: 200, rest:[]}
+
+```

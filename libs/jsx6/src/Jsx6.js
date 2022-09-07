@@ -1,6 +1,6 @@
 import { makeState } from './dirty.js'
 import { insert } from './insert.js'
-import { insertHtml, insertAttr, h } from './insertHtml.js'
+import { insertAttr, h } from './insertHtml.js'
 import { isObj } from './core.js'
 
 /**
@@ -47,7 +47,7 @@ export class Jsx6 {
 
   __init(parent, before) {
     if (this.__initialized) return
-    this.createEl()
+    this.createEl(this.$h)
     this.initTemplate()
     this.insertChildren()
     insert(parent, this.el, before)
@@ -60,12 +60,12 @@ export class Jsx6 {
     this.parent = parent
   }
 
-  createEl() {
+  createEl(h) {
     this.initState()
     if (!this.tagName) {
       this.el = [document.createTextNode('')]
     } else {
-      this.el = insertHtml(null, null, { tag: this.tagName }, this)
+      this.el = h(this.tagName)
       if (this.cName) this.classList.add(this.cName)
     }
     this.insertAttr(this.attr)
@@ -76,7 +76,8 @@ export class Jsx6 {
   }
 
   insertAttr(attr) {
-    insertAttr(attr, this.el, this.parent, this)
+    // can not add attributes to text node
+    if (this.tagName) insertAttr(attr, this.el, this.parent, this)
   }
 
   initState() {
@@ -100,7 +101,7 @@ export class Jsx6 {
         before = this.el[0]
         parent = before.parentNode
       }
-      insertHtml(parent, before, def, this)
+      insert(parent, def, before)
       return def
     }
   }
@@ -114,7 +115,7 @@ export class Jsx6 {
   tpl(h, state, $state, self) {}
 
   insertChildren() {
-    insertHtml(this.contentArea, null, this.children, this)
+    insert(this.contentArea, this.children)
   }
 
   init() {}

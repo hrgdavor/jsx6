@@ -9,9 +9,13 @@ export function h(tag, attr, ...children) {
   if (!tag) return children // support JSX fragment: <></>
 
   if (tag instanceof Function) {
+    // declaring default value for attr in receiving function does not help because jsx tranformer would give us null here
+    // const MyFuncComponent = ({title='',...attr}={}, children)=>....
+    // so we will clean the value here  to avoid runtime errors and users need not worry
+    // const MyFuncComponent = ({title='',...attr}, children)=>......
+    // leaving attr == null might have some benefit in easier knowing when there were no attributes
+    // but the downsides are far greater in usability for most cases
     attr = attr || {} // so the functions need not worry if attr is null
-    // declaring default value in receiving function does not help, so we clean the value to avoid runtime errors
-    // leaving attr == null might have some benefit in knowing there are no attributes, but the downsides are far greater
     return tag.prototype ? new tag(attr, children) : tag(attr, children)
   }
 

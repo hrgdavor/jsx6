@@ -1,20 +1,15 @@
-import { Jsx6 } from './Jsx6'
-import { insert } from './insert'
-import { isStr, isFunc, isObj, throwErr, Group, isNode } from './core'
-import { setAttribute } from './setAttribute'
+import { Jsx6 } from './Jsx6.js'
+import { insert } from './insert.js'
+import { isStr, isFunc, isObj, throwErr, Group, isNode } from './core.js'
+import { setAttribute } from './setAttribute.js'
+
+// TODO remove referencing jsx6 component. that way those that only use functions and not compoenents need not bundle it
 
 const NO_CONTEXT = {}
 
 let _createText
 let _createElement
 let _createElementSvg
-
-/**
- * @typedef TagDef
- * @property tag {String|Function}
- * @property attr {Object}
- * @property children {Array<String|Function|TagDef>}
- */
 
 /* Error codes are intentionally not kept in the source, but unique numerical code is chosen for each
 error is thrown using translation, so translations of errors can be included if desired in dev only
@@ -38,27 +33,31 @@ export function setHtmlFunctions(createTextNode, createElement, createElementSvg
   _createElementSvg = createElementSvg
 }
 
-/** JSX factory to enable useful use-cases for JSX.
- - if tag is null - return children (this is for fragment support)
- - if tag is a string - just generates TagDef to be inserted
- - if tag is a function with isComponentClass=true  - it is called as constructor
- - if tag is a function with isComponentClass=false - it is treated as a template and
- is injected into an anonymous Jsx6 component
-*/
-function make(_self, tag, attr = {}, ...children) {
+/** Short but pretty usable support function for JSX.
+ *
+ * @param {String|Function} tag
+ * @param {Object} attr
+ * @param  {...any} children
+ * @returns {Element}
+ */
+function make(tag, attr, ...children) {
   if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
 
   if (isStr(tag)) {
     const out = _createElement(tag)
-    insertAttr(attr, out, _self)
-    if (children && children.length) insertHtml(out, null, children, _self)
+    insertAttr(attr, out, this)
+    insert(out, children)
     return out
   } else {
     if (isFunc(tag)) {
-      attr = attr || {} // so the functions need not worry if attr is null
-      // declaring default value in receiving function does not help, so we clean the value to avoid runtime errors
-      // leaving attr == null might have some benefit in knowing there are no attributes, but the downsides are far greater
-      return tag.prototype ? new tag(attr, children, _self) : tag(attr, children, _self)
+      // declaring default value for attr in receiving function does not help because jsx tranformer would give us null here
+      // const MyFuncComponent = ({title='',...attr}={}, children)=>....
+      // so we will clean the value here  to avoid runtime errors and users need not worry
+      // const MyFuncComponent = ({title='',...attr}, children)=>......
+      // leaving attr == null might have some benefit in easier knowing when there were no attributes
+      // but the downsides are far greater in usability for most cases
+      attr = attr || {}
+      return tag.prototype ? new tag(attr, children, this) : tag(attr, children, this)
     } else {
       // not sure what else to enable if tag is type of object
       // this may be expanded in the future to allow more capabilities
@@ -67,16 +66,19 @@ function make(_self, tag, attr = {}, ...children) {
   }
 }
 
-function _h2(tag, attr = {}, ...children) {
-  return make(this, tag, attr, ...children)
-}
-
+/** Short but pretty usable support function for JSX.
+ *
+ * @param {String|Function} tag
+ * @param {Object} attr
+ * @param  {...any} children
+ * @returns {Element}
+ */
 // we bind the exported variant to a constant so it can check if property assignment is used without a context
-export const h = _h2.bind(NO_CONTEXT)
+export const h = make.bind(NO_CONTEXT)
 // hack to make calling bind on already bound function possible, and actually binding to the new scope
 // without this a function that is already created by .bind would keep the initial scope
 h.bind = s => {
-  const out = _h2.bind(s)
+  const out = make.bind(s)
   out.bind = h.bind
   return out
 }
@@ -125,7 +127,7 @@ export function insertSvg(
   return insertHtml(parent, before, def, _self, component, _createElementSvg)
 }
 
-function textValue(v) {
+export function textValue(v) {
   if (v === null || v === undefined) return ''
   if (!isStr(v)) return '' + v
   return v
@@ -161,7 +163,7 @@ export function insertHtml(
     const toObserve = def.then || def.next
     if (toObserve) {
       // support for promise(.then) or observable(.next) values
-      out = _createText('aaaa')
+      out = _createText('')
       toObserve.call(def, r => (out.textContent = r))
       if (parent) insert(parent, out, before)
     } else {
@@ -283,7 +285,7 @@ function setPropGroup(self, part, [$group, $key]) {
 }
 
 /** To simplify, we just clear the element and add new nodes (no vnode diff is performed) */
-export function applyHtml(parent, def, self = this) {
+export function applyHtml(parent, def, _self = this) {
   if (isStr(parent)) parent = document.getElementById(parent)
 
   function destroy(el) {
@@ -296,5 +298,5 @@ export function applyHtml(parent, def, self = this) {
   }
   destroy(parent)
   parent.innerHTML = ''
-  insertHtml(parent, null, def, self)
+  insert(parent, def, null, _self)
 }

@@ -54,11 +54,13 @@ console.log(objekt + 1) // 101
 
 function NotAComponent(attr) {
   const state = makeState({ count: 1, offset: 3 })
-  return (
+  const out = (
     <b {...attr} name={name} onclick={evt => console.log('click', evt, state.count++, this)}>
       NotAComponent{state.count} / {state(s => state.count + state.offset)}
     </b>
   )
+  console.log('out', out)
+  return out
 }
 
 const NotAComponent2 = ({ text = 'NotAComponent2', TagName = 'b', ...attr }) => (

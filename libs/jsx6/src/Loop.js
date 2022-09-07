@@ -51,7 +51,7 @@ export class Loop extends Jsx6 {
     if (this.tplFunc) {
       comp = new Jsx6({ tagName: '' }, [], this.parent)
       comp.tpl = this.tplFunc
-      comp.createEl()
+      comp.createEl(comp.$h)
       const elements = comp.initTemplate()
       comp.init(comp.state)
       comp.__initialized = true
