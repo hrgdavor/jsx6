@@ -58,7 +58,7 @@
   "dependencies": {
     "@jsx6/jsx6": "workspace:^1.4.3",
     "babel-plugin-syntax-jsx": "~6.18.0",
-    "babel-plugin-jsx-simple": "~1.4.0",
+    "babel-plugin-jsx-simple": "~1.6.0",
     "markdown-it": "~13.0.1",
     "mulmd": "~0.7.0",
     "perfect-scrollbar": "~1.5.5"

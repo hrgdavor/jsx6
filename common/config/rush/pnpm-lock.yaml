@@ -11,7 +11,7 @@ importers:
       '@jsx6/editor-monaco': workspace:^0.34.100
       '@jsx6/jsx6': workspace:^1.4.3
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
-      babel-plugin-jsx-simple: ~1.4.0
+      babel-plugin-jsx-simple: ~1.6.0
       babel-plugin-syntax-jsx: ~6.18.0
       esbuild: ^0.14.39
       markdown-it: ~13.0.1
@@ -22,7 +22,7 @@ importers:
       vite-plugin-static-copy: ~0.9.0
     dependencies:
       '@jsx6/jsx6': link:../../libs/jsx6
-      babel-plugin-jsx-simple: 1.4.0
+      babel-plugin-jsx-simple: 1.6.0
       babel-plugin-syntax-jsx: 6.18.0
       markdown-it: 13.0.1
       mulmd: 0.7.0
@@ -542,8 +542,8 @@ packages:
       - supports-color
     dev: true
 
-  /babel-plugin-jsx-simple/1.4.0:
-    resolution: {integrity: sha512-loLiiWYNxip6dw4llKr9gI86hYZzYh9GzBO+N9bUyP14WKeguC9Sf7lXAF0oWwCz98F7efOf/x5HXPBlCZqhSA==}
+  /babel-plugin-jsx-simple/1.6.0:
+    resolution: {integrity: sha512-x6dGuTIlAfxJ4THkr0tz+Xts81vufug6Dm+icmzHVmSU6xjV1CkjdqmAYrfbOxi4gw9yOFSI594bzTMx+UB0rw==}
     dev: false
 
   /babel-plugin-syntax-jsx/6.18.0:
