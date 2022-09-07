@@ -443,6 +443,8 @@ The final version of `h` function for the purpose of this tutorial now looks lik
 ```typescript
 ({"code":"initial"})
 import { insert, addToBody } from './jsx2dom.js'
+
+// jsx2Dom main function that does most of the magic
 function h(tag, attr, ...children) {
   if (!tag) return children // support JSX fragment: <></>
 
