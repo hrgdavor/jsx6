@@ -63,19 +63,19 @@ export const addToBody = child => insert(document.body, child)
 
 /** Common use case when we are adding content to some part of a page.
  *
- * @param {Node|String} parent reference to dom node or css selector
- * @param {String|Node|Array<Node>} child
+ * @param {Node|String} node reference to dom node or String with css selector
+ * @param {String|Node|Array<Node>} newNode
  */
-export function replace(parent, child) {
-  if (typeof parent === 'string') parent = document.querySelector(parent)
-  const parentNode = parent.parentNode
+export function replace(node, newNode) {
+  if (typeof node === 'string') node = document.querySelector(node)
+  const parentNode = node.parentNode
 
-  if (child instanceof Array) {
+  if (newNode instanceof Array) {
     // first insert them in front of the node we are replacing
-    insert(parent.parentNode, child, parent)
+    insert(node.parentNode, newNode, node)
     // then just remove it
-    parentNode.removeChild(parent)
+    parentNode.removeChild(node)
   } else {
-    parentNode.replaceChild(child, parent)
+    parentNode.replaceChild(newNode, node)
   }
 }
