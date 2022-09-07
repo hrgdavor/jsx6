@@ -324,6 +324,27 @@ It is just matter of configuring your build tool to generate `h(tag,attr, ...)` 
 
 There are few considerations you will run into surely if you do try to use such function for something concrete.
 
+## handling functions as tag names (functional components)
+
+```typescript
+({"code":"initial"})
+function h(tag, attr){
+  if (tag instanceof Function) {
+    attr = attr || {} // so the functions need not worry if attr is null
+    return tag.prototype ? new tag(attr) : tag(attr)
+  }	
+  const node = document.createElement(tag)
+  if(attr){
+    for(let aName in attr) node.setAttribute(aName, attr[aName])
+  }
+  return node
+}
+const MyInput = ({type='text',...rest})=><input type={type} {...rest}/>
+document.body.appendChild(<MyInput value="nice"/>)
+document.body.appendChild(<MyInput value="niceset"/>)
+document.body.appendChild(<MyInput type="color" value="#00aa00"/>)
+
+```
 
 ## handling some advanced cases for attributes
 
@@ -412,12 +433,20 @@ addToBody(h(null, null, h("br", null), h("br", null)))
 addToBody([h("br", null), h("br", null)])
 ```
 
+## jsx2dom function completed
+
 The final version of `h` function for the purpose of this tutorial now looks like this:
+
 ```typescript
 ({"code":"initial"})
 import { insert, addToBody } from './jsx2dom.js'
 function h(tag, attr, ...children) {
   if (!tag) return children // support JSX fragment: <></>
+
+  if (tag instanceof Function) {
+    attr = attr || {} // so the functions need not worry if attr is null
+    return tag.prototype ? new tag(attr, children) : tag(attr, children)
+  }
   const node = document.createElement(tag)
   if (attr) {
     for (let aName in attr) {

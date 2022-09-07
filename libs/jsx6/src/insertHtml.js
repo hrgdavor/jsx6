@@ -45,27 +45,19 @@ export function setHtmlFunctions(createTextNode, createElement, createElementSvg
  - if tag is a function with isComponentClass=false - it is treated as a template and
  is injected into an anonymous Jsx6 component
 */
-export function tpl(tag, attr = {}, ...children) {
-  return make(true, this, tag, attr, children)
-}
-
-function make(asTpl, _self, tag, attr = {}, ...children) {
+function make(_self, tag, attr = {}, ...children) {
   if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
 
   if (isStr(tag)) {
-    if (asTpl) {
-      return { tag, attr, children }
-    } else {
-      const out = _createElement(tag)
-      insertAttr(attr, out, _self)
-      if (children && children.length) insertHtml(out, null, children, _self)
-      return out
-    }
+    const out = _createElement(tag)
+    insertAttr(attr, out, _self)
+    if (children && children.length) insertHtml(out, null, children, _self)
+    return out
   } else {
     if (isFunc(tag)) {
       attr = attr || {} // so the functions need not worry if attr is null
       // declaring default value in receiving function does not help, so we clean the value to avoid runtime errors
-      // leaving attr == null might have some benefit in knowing there are no attributes, but the downside is greater
+      // leaving attr == null might have some benefit in knowing there are no attributes, but the downsides are far greater
       return tag.prototype ? new tag(attr, children, _self) : tag(attr, children, _self)
     } else {
       // not sure what else to enable if tag is type of object
@@ -76,7 +68,7 @@ function make(asTpl, _self, tag, attr = {}, ...children) {
 }
 
 function _h2(tag, attr = {}, ...children) {
-  return make(false, this, tag, attr, ...children)
+  return make(this, tag, attr, ...children)
 }
 
 // we bind the exported variant to a constant so it can check if property assignment is used without a context
