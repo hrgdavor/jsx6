@@ -239,8 +239,7 @@ set width of the green bar.
 
 ## Advanced usage: spread operator (...)
 
-[Spread](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax) syntax can be 
-convenient in many cases. And for the `JSX` it is very useful to pass multiple attributes to a tag.
+[Spread](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_syntax) syntax can be convenient in many cases. And for the `JSX` it is very useful to pass multiple attributes to a tag. Check [freecodecamp](https://www.freecodecamp.org/news/javascript-object-destructuring-spread-operator-rest-parameter/) explanation for some nice in-depth general examples.
 
 
 ```typescript
