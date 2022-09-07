@@ -4,7 +4,7 @@ import { isStr, isFunc, isObj, throwErr, Group, isNode } from './core.js'
 import { setAttribute } from './setAttribute.js'
 
 // TODO remove referencing jsx6 component. that way those that only use functions and not compoenents need not bundle it
-
+// todo remove insertHtml and revisit svg generation, and see if sth else needs be kept from insertHtml
 const NO_CONTEXT = {}
 
 let _createText

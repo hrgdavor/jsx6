@@ -1,18 +1,10 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
-import {
-  Jsx6,
-  addToBody,
-  domWithScope,
-  errTranslations,
-  makeState,
-  makeUpdater,
-  setTranslations,
-} from '@jsx6/jsx6'
+import { Jsx6, addToBody, domWithScope, makeState, provideErrTranslations } from '@jsx6/jsx6'
 
 import './main.css'
 
-setTranslations(errTranslations)
+provideErrTranslations()
 
 function useState(value) {
   function get() {

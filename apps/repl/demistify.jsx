@@ -1,6 +1,6 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
-import { errTranslations, insert, setTranslations } from '@jsx6/jsx6'
+import { insert, provideErrTranslations } from '@jsx6/jsx6'
 
 import styles from './editor.css'
 import { setMonacoModule } from './src/MonacoEditor'
@@ -10,7 +10,7 @@ import { runCode } from './src/runner/simpleRunner'
 import { fetchText } from './src/util/fetchText'
 
 /** can be removed if wanting to cut a little bit on the output size, but get coded error messages */
-setTranslations(errTranslations)
+provideErrTranslations()
 self._mark = 'MAIN'
 const injectStyle = iframe => {
   insert(

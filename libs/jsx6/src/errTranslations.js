@@ -1,4 +1,6 @@
-export default {
+import { setTranslations } from './core'
+
+export const errTranslations = {
   JSX6E1: 'Tag is null',
   JSX6E2: 'Tag type is not supported',
   JSX6E3: 'Translation updater must be a function',
@@ -12,3 +14,5 @@ export default {
   JSX6E10:
     'Context to assign references required, if you want to assign parts of the template to named props, please provide a scope by using domWithScope utility',
 }
+
+export const provideErrTranslations = () => setTranslations(errTranslations)
