@@ -41,3 +41,24 @@ h("h1", { "class": "main" },
 - allow to wait switching iframes until code is executed (possible less flicker)
 - also option to display that it is loading
 - maybe also error display
+
+
+# unused
+```js
+/** To simplify, we just clear the element and add new nodes (no vnode diff is performed) */
+export function applyHtml(parent, def, _self = this) {
+  if (isStr(parent)) parent = document.getElementById(parent)
+
+  function destroy(el) {
+    let ch = el.firstElementChild
+    while (ch) {
+      destroy(ch)
+      ch = ch.nextElementSibling
+    }
+    el?.component?.destroy()
+  }
+  destroy(parent)
+  parent.innerHTML = ''
+  insert(parent, def, null, _self)
+}
+```

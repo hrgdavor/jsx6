@@ -43,3 +43,16 @@ console.log(testFunc(100, null)) // {p1: 100, p2: null, rest:[]}
 console.log(testFunc(undefined,200)) // {p1: 1, p2: 200, rest:[]}
 
 ```
+# monaco with hidden lines
+
+```typescript
+const editor = monaco.editor.create(document.getElementById('container'), {
+	value: "// blabla \n function hello(name) {\n\talert('Hello world!'+name);\n}",
+    folding:false,
+    minimap: {enabled:false},
+    lineNumbers: false,
+	language: 'javascript'
+});
+const range = new monaco.Range(1, 4, 1, 0);
+editor.setHiddenAreas([range]);
+```

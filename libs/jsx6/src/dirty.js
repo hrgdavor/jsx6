@@ -1,8 +1,5 @@
 import { runFunc, throwErr, isObj, requireFunc, isFunc } from './core.js'
-
-const ERR_DIRTY_RECURSION = 4 //  JSX6E4 - not allowed to trigger dirty values during dirty update dispatch to avoid infinite updates
-const ERR_DIRTY_RUNNER_FUNC = 5 //  JSX6E5 - dirty runner must be a function
-const ERR_MUST_CALL_BINDING = 6 //  JSX6E6 - If you are seeing this, you forgot to call a binding as a function, or tried to call binding.toString() /.
+import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC } from './errorCodes.js'
 
 const dirty = new Set()
 let hasDirty = false
@@ -165,7 +162,6 @@ export function makeState(_state = {}, markDirtyNow) {
         const filterFunc = filter =>
           asBinding(() => filter(_state[prop]), bindingsProxy, prop, perPropUpdaters[prop])
         func.get = func.set = func.toString = func
-        // func.toString = () => throwErr(ERR_MUST_CALL_BINDING, prop)
         bindings[prop] = asBinding(func, bindingsProxy, prop, perPropUpdaters[prop])
       }
       return bindings[prop]

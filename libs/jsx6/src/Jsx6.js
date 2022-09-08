@@ -1,6 +1,6 @@
 import { makeState } from './dirty.js'
-import { insert } from './insert.js'
-import { insertAttr, h } from './insertHtml.js'
+import { insert } from './jsx2dom.js'
+import { insertAttr, h } from './jsx2dom.js'
 import { isObj } from './core.js'
 
 /**

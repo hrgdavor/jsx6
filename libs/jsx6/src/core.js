@@ -1,7 +1,3 @@
-export const ERR_REQUIRE_FUNC = 7 //    JSX6E7 - Function required
-export const ERR_REQUIRE_PARENT = 8 //    JSX6E8 - parent required
-// MAX export const ERR_REQUIRE_PARENT = 8 //    JSX6E8 - parent required
-
 const TRANS = {}
 
 export class Group {}

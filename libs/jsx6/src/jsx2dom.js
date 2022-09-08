@@ -1,37 +1,15 @@
-import { Jsx6 } from './Jsx6.js'
-import { insert } from './insert.js'
 import { isStr, isFunc, isObj, throwErr, Group, isNode } from './core.js'
 import { setAttribute } from './setAttribute.js'
 
-// TODO remove referencing jsx6 component. that way those that only use functions and not compoenents need not bundle it
-// todo remove insertHtml and revisit svg generation, and see if sth else needs be kept from insertHtml
+import {
+  ERR_CONTEXT_REQUIRED,
+  ERR_LISTENER_MUST_BE_FUNC,
+  ERR_NULL_TAG,
+  ERR_UNSUPPORTED_TAG,
+} from './errorCodes.js'
+import { toDomNode } from './toDomNode.js'
+
 const NO_CONTEXT = {}
-
-let _createText
-let _createElement
-let _createElementSvg
-
-/* Error codes are intentionally not kept in the source, but unique numerical code is chosen for each
-error is thrown using translation, so translations of errors can be included if desired in dev only
-or also in production if so desired. The choice is yours :)
-*/
-const ERR_NULL_TAG = 1 //           JSX6E1 - Tag is null
-const ERR_UNSUPPORTED_TAG = 2 //    JSX6E2 - Tag type is not supported
-const ERR_LISTENER_MUST_BE_FUNC = 9 //    JSX6E9 - Event listener must be a function
-const ERR_CONTEXT_REQUIRED = 10 // JSX6E10 Context to assign references required
-
-if (typeof document !== 'undefined') {
-  _createText = t => document.createTextNode(t)
-  _createElementSvg = t =>
-    t ? document.createElementNS('http://www.w3.org/2000/svg', t) : throwErr(ERR_NULL_TAG)
-  _createElement = (t, o) => (t ? document.createElement(t, o) : throwErr(ERR_NULL_TAG))
-}
-
-export function setHtmlFunctions(createTextNode, createElement, createElementSvg) {
-  _createText = createTextNode
-  _createElement = createElement
-  _createElementSvg = createElementSvg
-}
 
 /** Short but pretty usable support function for JSX.
  *
@@ -44,9 +22,9 @@ function make(tag, attr, ...children) {
   if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
 
   if (isStr(tag)) {
-    const out = _createElement(tag)
+    const out = factories.Element(tag)
     insertAttr(attr, out, this)
-    insert(out, children)
+    children.forEach(c => insert(out, c))
     return out
   } else {
     if (isFunc(tag)) {
@@ -58,6 +36,20 @@ function make(tag, attr, ...children) {
       // but the downsides are far greater in usability for most cases
       attr = attr || {}
       return tag.prototype ? new tag(attr, children, this) : tag(attr, children, this)
+    } else if (isNode(tag)) {
+      // if the value is already a HTML element, we just return it, no need for processing
+      return tag
+    } else if (isObj(tag)) {
+      const toObserve = def.then || def.next
+      if (toObserve) {
+        // support for promise(.then) or observable(.next) values
+        const out = factories.Text('')
+        // TODO make node replacer that handles switching types of conent not just text
+        toObserve.call(def, r => (out.textContent = r))
+        return out
+      } else {
+        throwErr(ERR_UNSUPPORTED_TAG, tag)
+      }
     } else {
       // not sure what else to enable if tag is type of object
       // this may be expanded in the future to allow more capabilities
@@ -106,85 +98,20 @@ export function domToProps(f) {
   return scope
 }
 
-export const svg = callback => callback(toSvg)
-
-function toSvg(tag, attr = {}, ...children) {
-  if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
-  const out = _createElementSvg(tag)
-  insertAttr(attr, out)
-  insertHtml(out, null, children, this, null, _createElementSvg)
-  return out
-}
-
-export function insertSvg(
-  parent,
-  before,
-  def,
-  _self = this,
-  component = null,
-  createElement = _createElement,
-) {
-  return insertHtml(parent, before, def, _self, component, _createElementSvg)
+export const svg = callback => {
+  const creator = factories.Element
+  try {
+    factories.Element = factories.Svg
+    return callback(h)
+  } finally {
+    factories.Element = creator
+  }
 }
 
 export function textValue(v) {
   if (v === null || v === undefined) return ''
   if (!isStr(v)) return '' + v
   return v
-}
-
-export function insertHtml(
-  parent,
-  before,
-  def,
-  _self = this,
-  component = null,
-  createElement = _createElement,
-) {
-  // component parameter is not forwarded to recursive calls on purpose as it is used only for inital element
-  if (!def) return
-  /** @type {Jsx6|Node} */
-  let out
-  if (isFunc(def)) {
-    out = _createText(textValue(def()))
-    if (parent) insert(parent, out, before)
-    makeUpdater(out, before, null, def, _self)
-  } else if (def instanceof Array) {
-    out = def.map(c => insertHtml(parent, before, c, _self, null, createElement))
-  } else if (def instanceof Jsx6) {
-    def.setParent(_self)
-    def.__init(parent, before)
-    return def
-  } else if (isNode(def)) {
-    if (parent) insert(parent, def, before)
-  } else if (isObj(def)) {
-    if (isSvg(def.tag) || isSvg(parent?.tagName)) createElement = _createElementSvg
-
-    const toObserve = def.then || def.next
-    if (toObserve) {
-      // support for promise(.then) or observable(.next) values
-      out = _createText('')
-      toObserve.call(def, r => (out.textContent = r))
-      if (parent) insert(parent, out, before)
-    } else {
-      if (!def.tag) throwErr(ERR_NULL_TAG, def)
-      out = createElement(def.tag)
-      insertAttr(def.attr, out, _self, component)
-      if (parent) insert(parent, out, before)
-
-      if (def.children && def.children.length) {
-        insertHtml(out, null, def.children, _self, null, createElement)
-      }
-    }
-  } else {
-    out = _createText('' + def)
-    if (parent) insert(parent, out, before)
-  }
-  return out
-}
-
-export function isSvg(tag) {
-  return tag && tag.toUpperCase() === 'SVG'
 }
 
 /*
@@ -196,8 +123,12 @@ need to refresh the value
  - add the updater as listener for changes (state change, etc)
  - default is change handler of the parent component
 */
-export function makeUpdater(parent, before, attr, func, updaters) {
-  if (updaters instanceof Jsx6) {
+export const makeUpdater = (parent, before, attr, func, updaters) =>
+  factories.Updater(parent, before, attr, func, updaters)
+
+// TODO remove old concept of udpater for components
+function Updater(parent, before, attr, func, updaters) {
+  if (isFunc(updaters?.state)) {
     updaters = updaters.state()
   }
 
@@ -206,9 +137,9 @@ export function makeUpdater(parent, before, attr, func, updaters) {
     updater = func.makeUpdater(parent, before, attr, func, updaters)
   } else {
     if (attr) {
-      updater = makeAttrUpdater(parent, attr, func, updaters)
+      updater = factories.AttrUpdater(parent, attr, func, updaters)
     } else {
-      updater = makeNodeUpdater(parent, func)
+      updater = factories.NodeUpdater(parent, func)
     }
 
     if (func.addUpdater) {
@@ -219,17 +150,20 @@ export function makeUpdater(parent, before, attr, func, updaters) {
   }
 }
 
-export function makeNodeUpdater(node, func) {
-  const ret = function () {
+export const makeNodeUpdater = (node, func) => factories.NodeUpdater(node, func)
+const NodeUpdater = (node, func) => {
+  const out = () => {
     const newValue = textValue(func())
     if (node.textContent !== newValue) node.textContent = newValue
   }
-  ret.node = node
-  return ret
+  out.node = node
+  return out
 }
 
-export function makeAttrUpdater(node, attr, func) {
-  const out = function () {
+export const makeAttrUpdater = (node, attr, func) => factories.AttrUpdater(node, attr, func)
+
+const AttrUpdater = (node, attr, func) => {
+  const out = () => {
     setAttribute(node, attr, func())
   }
   out.node = node
@@ -263,7 +197,7 @@ export function insertAttr(attr, out, self, component) {
         component.loopKey = value
       }
     } else if (isFunc(value)) {
-      makeUpdater(out, null, a, value, self)
+      factories.Updater(out, null, a, value, self)
     } else {
       if (a === 'p') {
         setPropGroup(self, component || out, isStr(value) ? value.split('.') : value)
@@ -284,19 +218,53 @@ function setPropGroup(self, part, [$group, $key]) {
   }
 }
 
-/** To simplify, we just clear the element and add new nodes (no vnode diff is performed) */
-export function applyHtml(parent, def, _self = this) {
-  if (isStr(parent)) parent = document.getElementById(parent)
-
-  function destroy(el) {
-    let ch = el.firstElementChild
-    while (ch) {
-      destroy(ch)
-      ch = ch.nextElementSibling
-    }
-    el?.component?.destroy()
+export function insert(parent, newChild, before, _self) {
+  if (newChild instanceof Array) {
+    return newChild.map(c => insert(parent, c, before, _self))
   }
-  destroy(parent)
-  parent.innerHTML = ''
-  insert(parent, def, null, _self)
+  if (!parent) throwErr(ERR_REQUIRE_PARENT, { parent, newChild, before })
+  const _parent = parent.insertBefore ? parent : toDomNode(parent)
+
+  if (!_parent.insertBefore) console.error('missing insertBefore', _parent, parent)
+  if (newChild.__init) {
+    newChild.__init(parent)
+  }
+  try {
+    let _newChild = toDomNode(newChild)
+    if (_newChild instanceof Array) _newChild = _newChild[0]
+
+    if (!(_newChild instanceof Node)) {
+      if (isFunc(_newChild)) {
+        const func = _newChild
+        _newChild = factories.Text(textValue(func()))
+        factories.Updater(_newChild, before, null, func, _self)
+      } else {
+        if (typeof _newChild !== 'string') _newChild += ''
+        _newChild = newChild = factories.Text(_newChild)
+      }
+    }
+
+    _parent.insertBefore(_newChild, toDomNode(before))
+  } catch (error) {
+    console.error('parent', parent, 'newChild', newChild, 'before', before)
+    throw error
+  }
+  return newChild
+}
+
+export const addToBody = n => insert(document.body, n)
+
+let factories = {
+  AttrUpdater,
+  NodeUpdater,
+  Updater,
+  Text: t => document.createTextNode(t),
+  Svg: t => (t ? document.createElementNS('http://www.w3.org/2000/svg', t) : throwErr(ERR_NULL_TAG)),
+  Html: (t, o) => (t ? document.createElement(t, o) : throwErr(ERR_NULL_TAG)),
+  Element: (t, o) => factories.Html(t, o),
+}
+const factoriesDefaults = factories
+
+export function changeFactories(func) {
+  factories = { ...factoriesDefaults, ...(func(factories) || {}) }
 }

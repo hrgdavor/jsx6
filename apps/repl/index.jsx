@@ -3,6 +3,7 @@
 import { Jsx6, addToBody, domWithScope, makeState, provideErrTranslations } from '@jsx6/jsx6'
 
 import './main.css'
+import IconNote from './src/icons/icon-note'
 
 provideErrTranslations()
 
@@ -69,6 +70,7 @@ const scope = {}
 addToBody(
   domWithScope(scope, h => (
     <b>
+      <IconNote />
       Hello world.
       <AComponent />
       <div p="jozo" />
