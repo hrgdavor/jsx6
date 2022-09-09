@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/repl",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "type": "module",
   "description": "JSX6 REPL engine",
   "main": "index.js",
@@ -56,7 +56,7 @@
     "vite-plugin-static-copy": "~0.9.0"
   },
   "dependencies": {
-    "@jsx6/jsx6": "workspace:^1.4.3",
+    "@jsx6/jsx6": "workspace:^1.4.4",
     "babel-plugin-syntax-jsx": "~6.18.0",
     "babel-plugin-jsx-simple": "~1.6.0",
     "markdown-it": "~13.0.1",
