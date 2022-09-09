@@ -41,7 +41,7 @@
   display: none;
 }
 
-.tutorial-text > h3, .tutorial-text > h3, .tutorial-text > p > a, .tutorial-text > ul a, .tutorial-text > li a,
+.tutorial-text > h3, .tutorial-text > h3, .tutorial-text > p a, .tutorial-text > ul a, .tutorial-text > li a,
 .tutorial-section .btn1{
   color: var(--tutorial-text-fgh);
 }
