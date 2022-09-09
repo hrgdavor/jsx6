@@ -56,3 +56,17 @@ const editor = monaco.editor.create(document.getElementById('container'), {
 const range = new monaco.Range(1, 4, 1, 0);
 editor.setHiddenAreas([range]);
 ```
+
+sample code that demonstrates the binding trick in jsx2dom
+```
+var x = {n:'x'}, y = {n:'y'}, z = {n:'z'}
+function n(){ return this.n}
+var nx = n.bind(x)
+
+// comment out next line and console.log will output: 'x x x' instead of 'x y z'
+nx.bind = s=>{ let out = n.bind(s); out.bind = nx.bind; return out; }
+
+var ny = nx.bind(y)
+var nz = ny.bind(z)
+console.log(nx(),ny(),nz())
+```

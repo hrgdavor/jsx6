@@ -76,20 +76,19 @@ h.bind = s => {
   return out
 }
 
-/*
-// sample code that demonstrates the binding trick above
-var x = {n:'x'}, y = {n:'y'}, z = {n:'z'}
-function n(){ return this.n}
-var nx = n.bind(x)
+// TODO use context instead of `this`, like for SVG, may be a better solution
 
-// comment out next line and console.log will output: 'x x x' instead of 'x y z'
-nx.bind = s=>{ let out = n.bind(s); out.bind = nx.bind; return out; }
-
-var ny = nx.bind(y)
-var nz = ny.bind(z)
-console.log(nx(),ny(),nz())
-*/
-
+/** Enable creating html elements with option to assign parts to properties on the provided scope object.
+ * Adding attribute `p` to an element `<div p="searchBox"` will cause generator to
+ * assign the created element to `scope.searchBox`
+ *
+ * Callback must expose the first parameter exactly like this: `domWithScope(scope,h=><b>Bla</b>)`
+ * so that generated JS form JSX will use that scoped function
+ *
+ * @param {Object} scope object that will receive references to parts of the content
+ * @param {Function} f callback inside which te html needs to be created
+ * @returns
+ */
 export function domWithScope(scope, f) {
   return f(h.bind(scope))
 }
@@ -99,6 +98,12 @@ export function domToProps(f) {
   return scope
 }
 
+/** Temporarily force creating svg elements instead of html elements
+ * (creating a SVG tag with html namespace will fail to produce svg on screen)
+ *
+ * @param {Function} callback inside which the SVG JSX needsto be executed
+ * @returns
+ */
 export const svg = callback => {
   const creator = factories.Element
   try {
@@ -109,7 +114,13 @@ export const svg = callback => {
   }
 }
 
-export function textValue(v) {
+/** Function to standardize how textValue is generated
+ *
+ * @param {any} v
+ * @returns
+ */
+export const textValue = v => factories.TextValue(v)
+const TextValue = v => {
   if (v === null || v === undefined) return ''
   if (!isStr(v)) return '' + v
   return v
@@ -259,6 +270,7 @@ let factories = {
   AttrUpdater,
   NodeUpdater,
   Updater,
+  TextValue,
   Text: t => document.createTextNode(t),
   Svg: t => (t ? document.createElementNS('http://www.w3.org/2000/svg', t) : throwErr(ERR_NULL_TAG)),
   Html: (t, o) => (t ? document.createElement(t, o) : throwErr(ERR_NULL_TAG)),
