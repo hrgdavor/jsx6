@@ -2,7 +2,7 @@
   "plugins": ["@trivago/prettier-plugin-sort-imports"],
   "semi": false,
   "arrowParens": "avoid",
-  "printWidth": 110,
+  "printWidth": 120,
 
   "endOfLine": "auto",
 

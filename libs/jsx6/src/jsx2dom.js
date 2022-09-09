@@ -35,7 +35,10 @@ function make(tag, attr, ...children) {
       // leaving attr == null might have some benefit in easier knowing when there were no attributes
       // but the downsides are far greater in usability for most cases
       attr = attr || {}
-      return tag.prototype ? new tag(attr, children, this) : tag(attr, children, this)
+      const { p } = attr
+      const out = tag.prototype ? new tag(attr, children, this) : tag(attr, children, this)
+      if (p) setPropGroup(this, out, p)
+      return out
     } else if (isNode(tag)) {
       // if the value is already a HTML element, we just return it, no need for processing
       return tag
@@ -212,7 +215,7 @@ export function insertAttr(attr, out, self, component) {
       factories.Updater(out, null, a, value, self)
     } else {
       if (a === 'p') {
-        setPropGroup(self, component || out, isStr(value) ? value.split('.') : value)
+        setPropGroup(self, component || out, value)
       }
       if (out.setAttribute)
         setAttribute(out, a, a === 'p' && value instanceof Array ? value.join('.') : value)
@@ -220,7 +223,9 @@ export function insertAttr(attr, out, self, component) {
   }
 }
 
-function setPropGroup(self, part, [$group, $key]) {
+function setPropGroup(self, part, path) {
+  if (isStr(path)) path = path.split('.')
+  const [$group, $key] = path
   if (self === NO_CONTEXT) throw throwErr(ERR_CONTEXT_REQUIRED)
   if ($key) {
     if (!self[$group]) self[$group] = new Group()
@@ -238,7 +243,7 @@ export function insert(parent, newChild, before, _self) {
   const _parent = parent.insertBefore ? parent : toDomNode(parent)
 
   if (!_parent.insertBefore) console.error('missing insertBefore', _parent, parent)
-  if (newChild.__init) {
+  if (newChild?.__init) {
     newChild.__init(parent)
   }
   try {

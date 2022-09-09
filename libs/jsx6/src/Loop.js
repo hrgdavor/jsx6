@@ -6,13 +6,13 @@ export class Loop extends Jsx6 {
   allItems = []
   count = 0
 
-  constructor(attr, children, parent) {
+  constructor(attr, children) {
     let itemAttr = attr
     attr = { tagName: attr.loopTag || '', p: attr.p }
     delete itemAttr.p
     delete itemAttr.loopTag
 
-    super(attr, children, parent)
+    super(attr, children)
 
     this.itemAttr = itemAttr
 

@@ -1,6 +1,6 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
-import { Jsx6, addToBody, domWithScope, makeState, provideErrTranslations } from '@jsx6/jsx6'
+import { Jsx6, Loop, addToBody, domWithScope, makeState, provideErrTranslations } from '@jsx6/jsx6'
 
 import './main.css'
 import IconNote from './src/icons/icon-note'
@@ -56,13 +56,11 @@ function NotAComponent(attr) {
   return out
 }
 
-const NotAComponent2 = ({ text = 'NotAComponent2', TagName = 'b', ...attr }) => (
-  <TagName {...attr}>{text}</TagName>
-)
+const NotAComponent2 = ({ text = 'NotAComponent2', TagName = 'b', ...attr }) => <TagName {...attr}>{text}</TagName>
 
 class AComponent extends Jsx6 {
-  tpl(h, state, $state, self) {
-    return <b>AComponent</b>
+  tpl(h, state, _state, self) {
+    return <b>AComponent:{state.name}</b>
   }
 }
 
@@ -72,7 +70,7 @@ addToBody(
     <b>
       <IconNote />
       Hello world.
-      <AComponent />
+      <Loop p="loop" item={AComponent} />
       <div p="jozo" />
       <NotAComponent style="border:solid 1px; display:block" />
       <NotAComponent2 style="border:solid 1px red; display: block" text="Bla" TagName="i" />
@@ -80,5 +78,7 @@ addToBody(
     </b>
   )),
 )
+console.log('scope', scope)
+scope.loop.setValue([{ name: 'jozo' }, { name: 'mirko' }])
 
 console.log(scope)
