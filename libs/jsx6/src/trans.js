@@ -17,6 +17,6 @@ function pushTranslationUpdater(func) {
 export function T(code) {
   const out = () => t(code)
 
-  out.addUpdater = pushTranslationUpdater
+  out.subscribe = pushTranslationUpdater
   return out
 }

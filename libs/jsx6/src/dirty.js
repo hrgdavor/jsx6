@@ -1,6 +1,6 @@
 import { runFunc, throwErr, isObj, requireFunc, isFunc } from './core.js'
 import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC } from './errorCodes.js'
-
+// TODO test and make work integration with Observable and RX
 const dirty = new Set()
 let hasDirty = false
 let isRunning = false
@@ -10,41 +10,44 @@ if (typeof document !== 'undefined') {
   anim = window.requestAnimationFrame
 }
 
+/** Set runner other than the default requestAnimationFrame
+ *
+ * @param {Function} animFunc
+ */
 export function setAnimFunction(animFunc) {
   anim = animFunc
 }
 
+/** Schedule to run batch on the next animation frame (default runner is requestAnimationFrame)
+ *
+ * @param {Function} callback
+ */
 export function callAnim(callback) {
   anim(callback)
 }
 
-export function eq(...args) {
-  if (args.length > 1) {
-    return value(args[0]) === value(args[1])
-  }
-  return other => value(args[0]) === value(other)
-}
-
-export function value(v) {
-  return v && isFunc(v) ? v() : v
-}
-export function addDirty(func) {
+/** Add callback to the next batch, or run now if `isRunning==true` (the batch is running alreaday)
+ *
+ * @param {Function} callback to add
+ * @returns {void}
+ */
+export function addDirty(callback) {
   // TDOD check if it is better to just run the udpater immediately
   // if infinite recusrions, will cause stackoverflow, and that is ok, can be easily traced and fixed
   // if (isRunning) throwErr(ERR_DIRTY_RECURSION)
-  if (func instanceof Array) {
-    func.forEach(addDirty)
+  if (callback instanceof Array) {
+    callback.forEach(addDirty)
     return
   }
-  requireFunc(func, ERR_DIRTY_RUNNER_FUNC)
+  requireFunc(callback, ERR_DIRTY_RUNNER_FUNC)
 
   // TDOD check if it is better to just run the udpater immediately
   if (isRunning) {
     // unlike throwing error, running immediately during update (it is animation frame already)
     // will likely be more performant, and easier to catch errors with stackoverflow
-    func()
+    callback()
   } else {
-    dirty.add(func)
+    dirty.add(callback)
     if (!hasDirty) {
       // once first dirty is marked, request animation frame, but only once
       hasDirty = true
@@ -53,6 +56,9 @@ export function addDirty(func) {
   }
 }
 
+/** Run all of the callback that need to execute the change notification (have dirty values)
+ *
+ */
 export function runDirty() {
   isRunning = true
   try {
@@ -64,46 +70,19 @@ export function runDirty() {
   }
 }
 
+/** Run a batch of updaters(listeners/subscribers) and apps specific arguments
+ *
+ * @param {Arra<Function>} updaters
+ * @param {Array<any>} args arguments to pass to the callbacks
+ */
 function runUpdaters(updaters, args) {
   updaters.forEach(u => u(...args))
-}
-
-export function makeBinding(initialValue, propName, obj, alsoSetBindProp) {
-  const updaters = []
-  let value = initialValue
-
-  function bindingFunc(v) {
-    if (isFunc(v)) {
-      return asBinding(() => v(value), obj, propName, updaters)
-    }
-    if (arguments.length) updateValue(value)
-    return value
-  }
-
-  const binding = asBinding(bindingFunc, obj, propName, updaters)
-  const updateValue = v => {
-    if (v !== value) {
-      value = v
-      binding.dirty()
-    }
-  }
-
-  if (obj) {
-    Object.defineProperty(obj, propName, {
-      get: () => value,
-      set: updateValue,
-    })
-  }
-
-  if (obj && alsoSetBindProp) obj['$' + propName] = bindingFunc
-
-  return binding
 }
 
 function asBinding(func, state, prop, updaters) {
   func.isBinding = true
   func.update = f => (state[prop] = f(state[prop]()))
-  func.addUpdater = u => updaters.push(v => u(func(v)))
+  func.subscribe = u => updaters.push(v => u(func(v)))
   func.sync = f => {
     f(state[prop]())
     updaters.push(() => f(state[prop]()))
@@ -186,7 +165,7 @@ export function makeState(_state = {}, markDirtyNow) {
       return $
     } else if (isFunc(f)) {
       const out = () => f(_state)
-      out.addUpdater = updater => updaters.push(requireFunc(updater, ERR_DIRTY_RUNNER_FUNC))
+      out.subscribe = updater => updaters.push(requireFunc(updater, ERR_DIRTY_RUNNER_FUNC))
       return out
     } else if (isObj(f)) {
       $.update(f)
@@ -214,7 +193,7 @@ export function makeState(_state = {}, markDirtyNow) {
     get: $,
   })
   $.toJSON = () => _state
-  $.push = $.addUpdater = updater => updaters.push(updater)
+  $.push = $.subscribe = updater => updaters.push(updater)
   $.dirty = _addDirty
   $.getValue = () => ({ ..._state })
   $.list = updaters

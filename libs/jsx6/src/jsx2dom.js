@@ -40,11 +40,12 @@ function make(tag, attr, ...children) {
       // if the value is already a HTML element, we just return it, no need for processing
       return tag
     } else if (isObj(tag)) {
-      const toObserve = def.then || def.next
+      const toObserve = def.then || def.subscribe
       if (toObserve) {
         // support for promise(.then) or observable(.next) values
         const out = factories.Text('')
         // TODO make node replacer that handles switching types of conent not just text
+        // TODO make sure node is replaced if new update comes before return and is not a simpel text update on this textNode
         toObserve.call(def, r => (out.textContent = r))
         return out
       } else {
@@ -126,7 +127,7 @@ need to refresh the value
 export const makeUpdater = (parent, before, attr, func, updaters) =>
   factories.Updater(parent, before, attr, func, updaters)
 
-// TODO remove old concept of udpater for components
+// TODO remove old concept of udpater array for components
 function Updater(parent, before, attr, func, updaters) {
   if (isFunc(updaters?.state)) {
     updaters = updaters.state()
@@ -142,8 +143,8 @@ function Updater(parent, before, attr, func, updaters) {
       updater = factories.NodeUpdater(parent, func)
     }
 
-    if (func.addUpdater) {
-      func.addUpdater(updater)
+    if (func.subscribe) {
+      func.subscribe(updater)
     } else {
       updaters.push(updater)
     }

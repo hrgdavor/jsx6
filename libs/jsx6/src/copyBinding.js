@@ -8,14 +8,14 @@ export function copyBinding(params, prop, options = {}, defRequired, defKeep) {
   // fake binding for static value
   const fake = value => {
     const out = () => value
-    out.addUpdater = () => {}
+    out.subscribe = () => {}
     return out
   }
 
   if (propBind) {
     if (!isFunc(propBind)) propBind = fake(propBind)
 
-    if (callback) propBind.addUpdater(callback)
+    if (callback) propBind.subscribe(callback)
   } else {
     if (required) {
       throw new Error('"' + prop + '"' + ' binding not provided')

@@ -55,3 +55,37 @@ mixin example and test
     console.log(d2 instanceof Dog, 'd2 instanceof Dog')
     console.log(d2 instanceof YellowDog, 'd2 instanceof YellowDog')
 ```
+
+```js
+export function makeBinding(initialValue, propName, obj, alsoSetBindProp) {
+  const updaters = []
+  let value = initialValue
+
+  function bindingFunc(v) {
+    if (isFunc(v)) {
+      return asBinding(() => v(value), obj, propName, updaters)
+    }
+    if (arguments.length) updateValue(value)
+    return value
+  }
+
+  const binding = asBinding(bindingFunc, obj, propName, updaters)
+  const updateValue = v => {
+    if (v !== value) {
+      value = v
+      binding.dirty()
+    }
+  }
+
+  if (obj) {
+    Object.defineProperty(obj, propName, {
+      get: () => value,
+      set: updateValue,
+    })
+  }
+
+  if (obj && alsoSetBindProp) obj['$' + propName] = bindingFunc
+
+  return binding
+}
+```
