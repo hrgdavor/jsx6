@@ -4,7 +4,7 @@ import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC } from './errorCodes.js'
 const dirty = new Set()
 let hasDirty = false
 let isRunning = false
-let anim
+let anim = func => func()
 
 if (typeof document !== 'undefined') {
   anim = window.requestAnimationFrame
@@ -29,27 +29,39 @@ export function value(v) {
   return v && isFunc(v) ? v() : v
 }
 export function addDirty(func) {
-  if (isRunning) throwErr(ERR_DIRTY_RECURSION)
+  // TDOD check if it is better to just run the udpater immediately
+  // if infinite recusrions, will cause stackoverflow, and that is ok, can be easily traced and fixed
+  // if (isRunning) throwErr(ERR_DIRTY_RECURSION)
   if (func instanceof Array) {
     func.forEach(addDirty)
     return
   }
   requireFunc(func, ERR_DIRTY_RUNNER_FUNC)
 
-  dirty.add(func)
-  if (!hasDirty) {
-    // once first dirty is marked, request animation frame, but only once
-    hasDirty = true
-    callAnim(runDirty)
+  // TDOD check if it is better to just run the udpater immediately
+  if (isRunning) {
+    // unlike throwing error, running immediately during update (it is animation frame already)
+    // will likely be more performant, and easier to catch errors with stackoverflow
+    func()
+  } else {
+    dirty.add(func)
+    if (!hasDirty) {
+      // once first dirty is marked, request animation frame, but only once
+      hasDirty = true
+      callAnim(runDirty)
+    }
   }
 }
 
 export function runDirty() {
   isRunning = true
-  dirty.forEach(f => runFunc(f))
-  dirty.clear()
-  hasDirty = false
-  isRunning = false
+  try {
+    dirty.forEach(f => runFunc(f))
+    dirty.clear()
+    hasDirty = false
+  } finally {
+    isRunning = false
+  }
 }
 
 function runUpdaters(updaters, args) {
