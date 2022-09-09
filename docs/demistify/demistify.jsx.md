@@ -299,6 +299,8 @@ addToBody(<div class="title">{t`missing_translation`}:</div>)
 
 # jsx2dom
 
+*This utility is only handling generating HTML content but does not handle changes in variables that are responsible for parts of the content. Further steps are needed to support changing data. This is covered in a separate tutorial for Jsx6 library that expands on this `jsx2dom` utility by adding support for promises observables and dynamic state.*
+
 It does not take a lot of code to use `JSX` without large libraries. Going through the steps of implementing a utility function for `JSX` is in my opinion a good way to understand `JSX` even better.
 
 It takes a little bit more than this, but not much more. So let us start by declaring the function that will handle the markup that is created when we write `JSX`. 
@@ -476,8 +478,10 @@ addToBody(<>
 
 ```
 
+*This utility is only handling generating HTML content but does not handle changes in variables that are responsible for parts of the content. Further steps are needed to support changing data. This is covered in tutorial for Jsx6 library that expands on this `jsx2dom` utility by adding support for promises observables and dynamic state.*
 
 # JSX tooling 
+
 ```typescript
 ({"code":"initial", "runner":"render_jsx", "hidden":true})
 <h1 class="main">JSX - and excellent tooling support</h1>
