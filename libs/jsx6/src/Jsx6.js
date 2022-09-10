@@ -24,7 +24,6 @@ export class Jsx6 {
   parent
   tagName = 'DIV'
   cName = ''
-  state = {}
 
   constructor(attr, children, parent) {
     attr ||= {}
@@ -45,6 +44,42 @@ export class Jsx6 {
     }
   }
 
+  get state() {
+    if (!this.__state) {
+      this.__state = makeState({})
+    }
+    return this.__state
+  }
+
+  set state(state) {
+    if (!this.__state) {
+      this.__state = makeState(state)
+    } else {
+      this.__state(state)
+    }
+  }
+
+  getValue() {
+    return this.value().getValue()
+  }
+  get value() {
+    if (!this.__value) {
+      this.__value = makeState({})
+    }
+    return this.__value
+  }
+
+  setValue(value) {
+    this.value = value
+  }
+  set value(value) {
+    if (!this.__value) {
+      this.__value = makeState(value)
+    } else {
+      this.__value(value)
+    }
+  }
+
   __init(parent, before) {
     if (this.__initialized) return
     this.createEl(this.$h)
@@ -61,7 +96,6 @@ export class Jsx6 {
   }
 
   createEl(h) {
-    this.initState()
     if (!this.tagName) {
       this.el = [document.createTextNode('')]
     } else {
@@ -80,12 +114,6 @@ export class Jsx6 {
     if (this.tagName) insertAttr(attr, this.el, this.parent, this)
   }
 
-  initState() {
-    if (this.state) {
-      this.state = makeState(this.state)
-    }
-  }
-
   created() {}
   destroy() {
     delete this.el.component
@@ -93,7 +121,8 @@ export class Jsx6 {
   destroyed() {}
 
   initTemplate() {
-    let def = this.tpl(this.$h, this.state, this.state()(), this)
+    const state = this.state
+    let def = this.tpl(this.$h, state, state()(), this)
     if (def) {
       let parent = this.el
       let before = null
@@ -119,27 +148,6 @@ export class Jsx6 {
   }
 
   init() {}
-
-  get value() {
-    return this.getValue()
-  }
-  getValue() {
-    return this.jsx6SingleValue ? this.state.value() : this.state().getValue()
-  }
-
-  set value(value) {
-    this.setValue(value)
-  }
-  setValue(value) {
-    if (value === null || value === undefined) value = {}
-    if (value && isObj(value)) {
-      this.jsx6SingleValue = false
-      this.state().replace(value)
-    } else {
-      this.jsx6SingleValue = true
-      this.state().replace({ value })
-    }
-  }
 
   addEventListener(name, callback) {
     this.el.addEventListener(name, callback)

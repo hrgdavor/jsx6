@@ -59,16 +59,18 @@ function NotAComponent(attr) {
 const NotAComponent2 = ({ text = 'NotAComponent2', TagName = 'b', ...attr }) => <TagName {...attr}>{text}</TagName>
 
 class AComponent extends Jsx6 {
-  tpl(h, state, _state, self) {
-    return <b>AComponent:{state.name}</b>
+  tpl(h, $state, _state, self) {
+    const value = this.value
+    return <b>AComponent:{value.name}</b>
   }
 }
 
-const scope = {}
+const scope = (window.APP = {})
 addToBody(
   domWithScope(scope, h => (
     <b>
       <IconNote />
+      <AComponent p="comp1" />
       Hello world.
       <Loop p="loop" item={AComponent} />
       <div p="jozo" />

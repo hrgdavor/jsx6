@@ -24,6 +24,7 @@ export const BOOL = v => !!v
 export const isFunc = f => typeof f === 'function'
 export const isStr = s => typeof s === 'string'
 export const isObj = o => typeof o === 'object'
+export const isObjNN = o => o !== null && typeof o === 'object'
 export const isArray = a => a instanceof Array
 export const isNode = a => a.nodeType !== undefined // using 'instanceof Node' is not reliable if checking an element from a different frame
 

@@ -1,5 +1,5 @@
-import { runFunc, throwErr, isObj, requireFunc, isFunc } from './core.js'
-import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC } from './errorCodes.js'
+import { runFunc, throwErr, isObj, requireFunc, isFunc, isObjNN } from './core.js'
+import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC, ERR_STATE_UPDATE_OBJECT_REQ } from './errorCodes.js'
 // TODO test and make work integration with Observable and RX
 const dirty = new Set()
 let hasDirty = false
@@ -95,7 +95,9 @@ function asBinding(func, state, prop, updaters) {
   return func
 }
 
-export function makeState(_state = {}, markDirtyNow) {
+export function makeState(rawState, markDirtyNow) {
+  let isObjectState = isObjNN(rawState)
+
   const updaters = []
   const perPropUpdaters = {}
   const perPropUpdaterRunner = {}
@@ -124,23 +126,29 @@ export function makeState(_state = {}, markDirtyNow) {
       return true
     },
     get: function (target, prop) {
-      return _state[prop]
+      return rawState[prop]
     },
   }
 
-  const state = new Proxy(_state, handler)
+  const state = new Proxy(isObjectState ? rawState : {}, handler)
   const bindingsProxy = new Proxy(bindingFunc, {
     set: function (target, prop, value, receiver) {
       if (updateProp(prop, value)) _addDirty()
       return true
     },
     get: function (target, prop) {
-      if (prop === 'toJSON') return () => _state
+      if (prop === 'toJSON') return () => rawState
       if (prop === Symbol.iterator) return all[Symbol.iterator].bind(all)
 
       if (!bindings[prop]) {
         perPropUpdaters[prop] = []
-        perPropUpdaterRunner[prop] = () => perPropUpdaters[prop].forEach(f => runFunc(f, [_state[prop]]))
+        perPropUpdaterRunner[prop] = () => {
+          // it can happen that we have leftover listeners for a property when rawState was an object
+          // so if currently rawState is not an object, we send out undefined
+          // TODO explore f there is benefit in allowing litening to parts of primitive values (probably not)
+          const newValue = isObjectState ? rawState[prop] : undefined
+          perPropUpdaters[prop].forEach(f => runFunc(f, [newValue]))
+        }
         const func = function (value) {
           if (arguments.length !== 0) {
             if (isFunc(value)) {
@@ -148,38 +156,34 @@ export function makeState(_state = {}, markDirtyNow) {
             }
             if (updateProp(prop, value)) _addDirty()
           }
-          return _state[prop]
+          return rawState[prop]
         }
         const filterFunc = filter =>
-          asBinding(() => filter(_state[prop]), bindingsProxy, prop, perPropUpdaters[prop])
+          asBinding(() => filter(rawState[prop]), bindingsProxy, prop, perPropUpdaters[prop])
         func.get = func.set = func.toString = func
         bindings[prop] = asBinding(func, bindingsProxy, prop, perPropUpdaters[prop])
       }
       return bindings[prop]
     },
   })
-  const all = [bindingsProxy, state, _state]
+  const all = [bindingsProxy, state, rawState]
 
   function bindingFunc(f) {
     if (!arguments.length) {
       return $
     } else if (isFunc(f)) {
-      const out = () => f(_state)
+      const out = () => f(rawState)
       out.subscribe = updater => updaters.push(requireFunc(updater, ERR_DIRTY_RUNNER_FUNC))
       return out
-    } else if (isObj(f)) {
-      $.update(f)
     } else {
-      // todo chekc if there is even a use-case
-      // _addDirty()
-      return f
+      $.set(f)
     }
   }
 
   function updateProp(p, value, force) {
-    if (force || _state[p] !== value) {
-      lastData.set(p, _state[p])
-      _state[p] = value
+    if (force || rawState[p] !== value) {
+      lastData.set(p, rawState[p])
+      rawState[p] = value
       if (perPropUpdaters[p]) addDirty(perPropUpdaterRunner[p])
       return true
     }
@@ -192,30 +196,54 @@ export function makeState(_state = {}, markDirtyNow) {
   Object.defineProperty($, 'value', {
     get: $,
   })
-  $.toJSON = () => _state
+  $.toJSON = () => rawState
   $.push = $.subscribe = updater => updaters.push(updater)
   $.dirty = _addDirty
-  $.getValue = () => ({ ..._state })
+  $.getValue = () => (isObjectState ? { ...rawState } : rawState)
   $.list = updaters
-  $.update = (newData, force) => {
+
+  $.add = (newData, force) => {
     if (!newData) return
+    if (typeof newData !== 'object') throwErr(ERR_STATE_UPDATE_OBJECT_REQ)
+
     let changed = false
     for (const p in newData) {
       changed |= updateProp(p, newData[p], force)
     }
     if (changed) _addDirty()
   }
-  $.replace = (newData, force) => {
-    if (!newData) return
+
+  $.set = (_rawState, force) => {
     let changed = false
-    for (const p in newData) {
-      changed |= updateProp(p, newData[p], force)
-    }
-    for (const p in _state) {
-      if (!(p in newData)) {
-        changed |= updateProp(p, undefined, force)
+    let _isObjectState = isObjNN(_rawState)
+
+    if (isObjectState != _isObjectState) {
+      // switched type of internal raw data (object vs primitive)
+      changed = true
+      isObjectState = _isObjectState
+      if (!isObjectState) {
+        // TODO when switching from object to primitive, need to notify all keyed properties listeners of change
+        for (const p in rawState) {
+          if (perPropUpdaters[p]) addDirty(perPropUpdaterRunner[p])
+        }
+      }
+    } else if (isObjectState) {
+      for (const p in _rawState) {
+        changed |= updateProp(p, _rawState[p], force)
+      }
+      for (const p in rawState) {
+        if (!(p in _rawState)) {
+          changed |= updateProp(p, undefined, force)
+        }
+      }
+    } else {
+      // for primitives we only need to check
+      if (_rawState !== rawState) {
+        changed = true
+        rawState = _rawState
       }
     }
+
     if (changed) _addDirty()
   }
 

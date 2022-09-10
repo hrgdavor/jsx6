@@ -12,3 +12,4 @@ export const ERR_REQUIRE_FUNC = 7 //       JSX6E7 - Function required
 export const ERR_REQUIRE_PARENT = 8 //     JSX6E8 - parent required
 export const ERR_LISTENER_MUST_BE_FUNC = 9 //    JSX6E9 - Event listener must be a function
 export const ERR_CONTEXT_REQUIRED = 10 //  JSX6E10 Context to assign references required
+export const ERR_STATE_UPDATE_OBJECT_REQ = 11 //  JSX6E11 Update on state object can not be a primitive value
