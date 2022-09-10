@@ -69,7 +69,7 @@ export class Loop extends Jsx6 {
       comp = new this.item({ ...this.itemAttr }, [], this.parent)
       this.insertBefore(comp)
     }
-
+    comp.el.loopComp = this
     comp.setValue(newData)
     return comp
   }

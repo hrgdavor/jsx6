@@ -61,7 +61,11 @@ const NotAComponent2 = ({ text = 'NotAComponent2', TagName = 'b', ...attr }) => 
 class AComponent extends Jsx6 {
   tpl(h, $state, _state, self) {
     const value = this.value
-    return <b>AComponent:{value.name}</b>
+    return (
+      <div>
+        AComponent:<b onclick={e => this.el.loopComp?.removeItem(this)}>{value.name}</b>
+      </div>
+    )
   }
 }
 
@@ -75,9 +79,9 @@ addToBody(
       <Loop p="loop" item={AComponent} />
       <Loop
         p="loop2"
-        tpl={$s => (
+        tpl={$v => (
           <div>
-            TPL:<b onclick={e => scope.loop2.removeItem($s)}>{$s.name}</b>
+            TPL:<b onclick={e => scope.loop2.removeItem($v)}>{$v.name}</b>
           </div>
         )}
       />
