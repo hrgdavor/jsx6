@@ -10,10 +10,12 @@ export function t(code) {
   return TRANS[code] || code
 }
 
-export const errorMessage = c => t('JSX6E' + c)
+export const errorMessage = c => t(errCode(c))
 
 export const throwErr = (c, info) => {
-  const msg = errorMessage(c)
+  const code = errCode(c)
+  let msg = t(code)
+  if (msg != code) msg = code + ' ' + msg
   console.error(msg, info)
   throw new Error(msg)
 }
@@ -42,3 +44,4 @@ export const runFunc = (f, args = []) => {
     console.error(e, f, args)
   }
 }
+const errCode = c => 'JSX6E' + c

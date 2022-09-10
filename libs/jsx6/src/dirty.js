@@ -92,6 +92,7 @@ function asBinding(func, state, prop, updaters) {
   }
   func.state = state
   func.propName = prop
+  func.toString = func.toJSON = () => state[prop]()
   return func
 }
 
@@ -160,7 +161,7 @@ export function makeState(rawState, markDirtyNow) {
         }
         const filterFunc = filter =>
           asBinding(() => filter(rawState[prop]), bindingsProxy, prop, perPropUpdaters[prop])
-        func.get = func.set = func.toString = func
+        func.get = func.set = func.toString = func.toJSON = func
         bindings[prop] = asBinding(func, bindingsProxy, prop, perPropUpdaters[prop])
       }
       return bindings[prop]

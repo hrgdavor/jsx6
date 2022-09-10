@@ -1,3 +1,6 @@
+import { throwErr } from './core.js'
+import { makeState } from './dirty.js'
+import { ERR_ITEM_NOT_FOUND } from './errorCodes.js'
 import { Jsx6 } from './Jsx6.js'
 import { setVisible } from './setVisible.js'
 
@@ -33,6 +36,10 @@ export class Loop extends Jsx6 {
     this._fixItemList(true)
   }
 
+  getValue() {
+    return this.items.map(i => i.getValue())
+  }
+
   setItem(newData, i) {
     var item = this.allItems[i]
 
@@ -49,28 +56,15 @@ export class Loop extends Jsx6 {
     let comp
 
     if (this.tplFunc) {
-      comp = new Jsx6({ tagName: '' }, [], this.parent)
-      comp.tpl = this.tplFunc
-      comp.createEl(comp.$h)
-      const elements = comp.initTemplate()
-      comp.init(comp.state)
-      comp.__initialized = true
-      if (elements instanceof Array) {
-        this.items.push(comp)
-        comp.el.push(...elements)
-        comp.hasAttribute = function (attr) {
-          return this.el[1].hasAttribute(attr)
-        }
-        comp.setAttribute = function (attr, value) {
-          this.el.forEach(el => {
-            if (el.setAttribute) el.setAttribute(attr, value)
-          })
-        }
-        elements.forEach(e => this.insertBefore(e))
-      } else {
-        comp.el = elements
-        this.insertBefore(comp)
+      const state = makeState(newData)
+      comp = {
+        state,
+        el: this.tplFunc(state),
+        setValue: v => state().set(v),
+        getValue: () => state().getValue(),
       }
+      state().el = comp.el
+      this.insertBefore(comp)
     } else if (this.item) {
       comp = new this.item({ ...this.itemAttr }, [], this.parent)
       this.insertBefore(comp)
@@ -91,7 +85,6 @@ export class Loop extends Jsx6 {
     }
   }
 
-  /** returns only active items (do not access .times property directly as it contains also disabled ones) */
   getItems() {
     return this.items
   }
@@ -101,9 +94,13 @@ export class Loop extends Jsx6 {
   }
 
   getItemIndex(item) {
+    if (typeof item === 'number') return item
     if (!item) return -1
-    if (item instanceof Jsx6) item = item.el
-    return item.loopIndex
+    if (typeof item === 'function') {
+      console.log('function', item, item().el)
+      item = item()
+    }
+    return item.el ? item.el.loopIndex : item.loopIndex
   }
 
   push(data) {
@@ -141,6 +138,7 @@ export class Loop extends Jsx6 {
 
   removeItem(item) {
     var index = this.getItemIndex(item)
+    if (index === -1 || index === undefined) throwErr(ERR_ITEM_NOT_FOUND, item)
     this.splice(index, 1)
   }
 
@@ -149,6 +147,7 @@ export class Loop extends Jsx6 {
   }
 
   splice(index, deleteCount) {
+    console.log('splice', index, deleteCount)
     var toAdd = Array.prototype.splice.call(arguments, 2)
 
     // items not used and hidden for reuse later

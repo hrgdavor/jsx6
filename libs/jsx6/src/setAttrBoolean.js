@@ -1,4 +1,4 @@
-import { isObj } from './core.js'
+import { isNode, isObj } from './core.js'
 import { Jsx6 } from './Jsx6.js'
 
 export function setAttrBoolean(obj, attr, value) {
@@ -9,7 +9,7 @@ export function setAttrBoolean(obj, attr, value) {
       } else {
         if (obj.hasAttribute(attr)) obj.removeAttribute(attr)
       }
-    } else if (obj instanceof Jsx6) {
+    } else if (isNode(obj.el)) {
       setAttrBoolean(obj.el, attr, value)
     } else if (isObj(obj)) {
       for (const p in obj) {

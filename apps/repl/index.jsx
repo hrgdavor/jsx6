@@ -68,19 +68,30 @@ class AComponent extends Jsx6 {
 const scope = (window.APP = {})
 addToBody(
   domWithScope(scope, h => (
-    <b>
+    <>
       <IconNote />
       <AComponent p="comp1" />
       Hello world.
       <Loop p="loop" item={AComponent} />
+      <Loop
+        p="loop2"
+        tpl={$s => (
+          <div>
+            TPL:<b onclick={e => scope.loop2.removeItem($s)}>{$s.name}</b>
+          </div>
+        )}
+      />
       <div p="jozo" />
       <NotAComponent style="border:solid 1px; display:block" />
       <NotAComponent2 style="border:solid 1px red; display: block" text="Bla" TagName="i" />
       <div style="width: 400px; height:400px; border: solid 1px" class="fxs"></div>
-    </b>
+    </>
   )),
 )
 console.log('scope', scope)
 scope.loop.setValue([{ name: 'jozo' }, { name: 'mirko' }])
+scope.loop2.setValue([{ name: 'jozo2' }, { name: 'mirko2' }])
 
 console.log(scope)
+console.log('scope.loop.getValue', scope.loop.getValue())
+console.log('scope.loop2.getValue', scope.loop2.getValue())

@@ -1,3 +1,5 @@
+import { isNode } from './core'
+
 export function toDomNode(n) {
-  return n && n.isJsx6 ? n.el : n
+  return !n || isNode(n) ? n : n.el || n
 }

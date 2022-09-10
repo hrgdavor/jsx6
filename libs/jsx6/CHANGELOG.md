@@ -1,14 +1,16 @@
 # Change Log - @jsx6/jsx6
 
-This log was last generated on Sat, 10 Sep 2022 14:19:52 GMT and should not be manually modified.
+This log was last generated on Sat, 10 Sep 2022 20:39:18 GMT and should not be manually modified.
+
+## 1.4.7
+Sat, 10 Sep 2022 20:39:18 GMT
+
+_Version update only_
 
 ## 1.4.6
 Sat, 10 Sep 2022 14:19:52 GMT
 
-Update in handling state and value in components. 
-State and value are now generated on demand, it needs further investigating
-how to handle values that are "primitive" (not objects with data)
-
+_Version update only_
 
 ## 1.4.5
 Fri, 09 Sep 2022 23:11:29 GMT

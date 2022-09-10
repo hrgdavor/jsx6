@@ -144,7 +144,7 @@ export class Jsx6 {
   tpl(h, state, $state, self) {}
 
   insertChildren() {
-    insert(this.contentArea, this.children)
+    if (this.children) insert(this.contentArea, this.children)
   }
 
   init() {}
