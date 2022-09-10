@@ -127,19 +127,15 @@ export class TutorialRunner extends Jsx6 {
     }, 1)
   }
 
-  tpl(h, $state, state) {
+  tpl() {
+    const { state } = this
     state.menuHidden = true
     const nextChapterClick = () => this.showChapter(0, 1)
 
     // this declaration is intentionaly here to have access to scope and scoped `h` function
     // nice side-effect of such declaration is that CTRL+R works in vscode to find it
     this.tplChapterButton = chapter => (
-      <button
-        class="btn"
-        level={chapter.level}
-        path={chapter.path}
-        onclick={() => this.showChapterPath(chapter.path)}
-      >
+      <button class="btn" level={chapter.level} path={chapter.path} onclick={() => this.showChapterPath(chapter.path)}>
         {chapter.title}
       </button>
     )
@@ -157,20 +153,15 @@ export class TutorialRunner extends Jsx6 {
 
     const tplTutorialHeader = (
       <div class="tutorial-menu fxs posr">
-        <button class="btn-icon-large" disabled={$state.disablePrev} onclick={() => this.showChapter(0, -1)}>
+        <button class="btn-icon-large" disabled={state.disablePrev} onclick={() => this.showChapter(0, -1)}>
           &lt;
         </button>
         <button p="chapterName" class="fxcv1 padh05 btn" onclick={showMenuClick}>
-          <b style="margin-right: 0.5em">{$state.parentTitle}</b>
-          {$state.chapterTitle}
+          <b style="margin-right: 0.5em">{state.parentTitle}</b>
+          {state.chapterTitle}
         </button>
 
-        <button
-          p="nextButton"
-          class="btn-icon-large"
-          disabled={$state.disableNext}
-          onclick={nextChapterClick}
-        >
+        <button p="nextButton" class="btn-icon-large" disabled={state.disableNext} onclick={nextChapterClick}>
           &gt;
         </button>
       </div>
@@ -180,7 +171,7 @@ export class TutorialRunner extends Jsx6 {
       <div class="fx1 owh posr tutorial-section" p="mdArea">
         <div class="tutorial-text pad" p="md"></div>
         <div class="fx fxje pad tutorial-buttons-bottom">
-          <button class="btn btn1" disabled={$state.disableNext} onclick={nextChapterClick}>
+          <button class="btn btn1" disabled={state.disableNext} onclick={nextChapterClick}>
             Next -&gt;
           </button>
         </div>

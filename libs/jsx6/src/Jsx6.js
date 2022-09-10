@@ -122,7 +122,7 @@ export class Jsx6 {
 
   initTemplate() {
     const state = this.state
-    let def = domWithScope(this, () => this.tpl(h, state, state()(), this))
+    let def = domWithScope(this, () => this.tpl(h))
     if (def) {
       let parent = this.el
       let before = null
