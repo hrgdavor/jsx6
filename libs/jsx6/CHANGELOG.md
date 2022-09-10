@@ -5,7 +5,10 @@ This log was last generated on Sat, 10 Sep 2022 14:19:52 GMT and should not be m
 ## 1.4.6
 Sat, 10 Sep 2022 14:19:52 GMT
 
-_Version update only_
+Update in handling state and value in components. 
+State and value are now generated on demand, it needs further investigating
+how to handle values that are "primitive" (not objects with data)
+
 
 ## 1.4.5
 Fri, 09 Sep 2022 23:11:29 GMT
