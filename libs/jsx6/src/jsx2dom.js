@@ -9,7 +9,9 @@ import {
 } from './errorCodes.js'
 import { toDomNode } from './toDomNode.js'
 
-const NO_CONTEXT = {}
+let SCOPE
+
+export const getScope = () => SCOPE
 
 /** Short but pretty usable support function for JSX.
  *
@@ -18,12 +20,12 @@ const NO_CONTEXT = {}
  * @param  {...any} children
  * @returns {Element}
  */
-function make(tag, attr, ...children) {
+export function h(tag, attr, ...children) {
   if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
 
   if (isStr(tag)) {
     const out = factories.Element(tag)
-    insertAttr(attr, out, this)
+    insertAttr(attr, out, SCOPE)
     children.forEach(c => insert(out, c))
     return out
   } else {
@@ -36,8 +38,8 @@ function make(tag, attr, ...children) {
       // but the downsides are far greater in usability for most cases
       attr = attr || {}
       const { p } = attr
-      const out = tag.prototype ? new tag(attr, children, this) : tag(attr, children, this)
-      if (p) setPropGroup(this, out, p)
+      const out = tag.prototype ? new tag(attr, children, SCOPE) : tag(attr, children, SCOPE)
+      if (p) setPropGroup(SCOPE, out, p)
       return out
     } else if (isNode(tag)) {
       // if the value is already a HTML element, we just return it, no need for processing
@@ -62,25 +64,6 @@ function make(tag, attr, ...children) {
   }
 }
 
-/** Short but pretty usable support function for JSX.
- *
- * @param {String|Function} tag
- * @param {Object} attr
- * @param  {...any} children
- * @returns {Element}
- */
-// we bind the exported variant to a constant so it can check if property assignment is used without a context
-export const h = make.bind(NO_CONTEXT)
-// hack to make calling bind on already bound function possible, and actually binding to the new scope
-// without this a function that is already created by .bind would keep the initial scope
-h.bind = s => {
-  const out = make.bind(s)
-  out.bind = h.bind
-  return out
-}
-
-// TODO use context instead of `this`, like for SVG, may be a better solution
-
 /** Enable creating html elements with option to assign parts to properties on the provided scope object.
  * Adding attribute `p` to an element `<div p="searchBox"` will cause generator to
  * assign the created element to `scope.searchBox`
@@ -93,7 +76,13 @@ h.bind = s => {
  * @returns
  */
 export function domWithScope(scope, f) {
-  return f(h.bind(scope))
+  const old = SCOPE
+  try {
+    SCOPE = scope
+    return f(h)
+  } finally {
+    SCOPE = old
+  }
 }
 export function domToProps(f) {
   const scope = {}
@@ -226,7 +215,7 @@ export function insertAttr(attr, out, self, component) {
 function setPropGroup(self, part, path) {
   if (isStr(path)) path = path.split('.')
   const [$group, $key] = path
-  if (self === NO_CONTEXT) throw throwErr(ERR_CONTEXT_REQUIRED)
+  if (self === undefined) throw throwErr(ERR_CONTEXT_REQUIRED)
   if ($key) {
     if (!self[$group]) self[$group] = new Group()
     self[(part.$group = $group)][(part.$key = $key)] = part

@@ -1,5 +1,5 @@
 import { makeState } from './dirty.js'
-import { insert } from './jsx2dom.js'
+import { domWithScope, insert } from './jsx2dom.js'
 import { insertAttr, h } from './jsx2dom.js'
 import { isObj } from './core.js'
 
@@ -122,7 +122,7 @@ export class Jsx6 {
 
   initTemplate() {
     const state = this.state
-    let def = this.tpl(this.$h, state, state()(), this)
+    let def = domWithScope(this, () => this.tpl(h, state, state()(), this))
     if (def) {
       let parent = this.el
       let before = null
