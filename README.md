@@ -4,7 +4,7 @@ JSX6
 
 Before you start you need these global modules
 - `npm install -g pnpm` - https://pnpm.io/ - npm alternative
-- `npm install -g rush` - https://rushjs.io/ - monorepo management
+- `npm install -g @microsoft/rush` - https://rushjs.io/ - monorepo management
 - `npm install -g vite` - https://vitejs.dev/ - project runner and bundler
 - `npm install -g esbuild` - https://esbuild.github.io/ - superfast bundler compiler
 
