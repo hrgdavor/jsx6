@@ -1,4 +1,4 @@
-import { setTranslations } from './core'
+import { addTranslations } from './core'
 
 export const errTranslations = {
   JSX6E1: 'Tag is null',
@@ -17,4 +17,4 @@ export const errTranslations = {
   JSX6E12: 'Item not found',
 }
 
-export const provideErrTranslations = () => setTranslations(errTranslations)
+export const provideErrTranslations = () => addTranslations(errTranslations)

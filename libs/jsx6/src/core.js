@@ -2,7 +2,7 @@ const TRANS = {}
 
 export class Group {}
 
-export function setTranslations(trans) {
+export function addTranslations(trans) {
   Object.assign(TRANS, trans)
 }
 
@@ -28,8 +28,23 @@ export const isStr = s => typeof s === 'string'
 export const isObj = o => typeof o === 'object'
 export const isObjNN = o => o !== null && typeof o === 'object'
 export const isArray = a => a instanceof Array
-export const isNode = a => a.nodeType !== undefined // using 'instanceof Node' is not reliable if checking an element from a different frame
 
+/** Check if a value is a DOM Node. You may be tempted to use 'instanceof Node'
+ *  but that is not reliable if checking an element from a different frame/iframe
+ *
+ * @param {any} obj
+ * @returns {Boolean} true/false if passed value is a Node or not
+ */
+export const isNode = obj => obj?.nodeType !== undefined //
+
+/** Check if value is a Function, return the function so function call can be chained
+ * or throw an error if value is not a function
+ *
+ * @param {any} func
+ * @param {Number} err error code
+ * @returns {Function} provided function
+ * @throws Error if value is not a function
+ */
 export const requireFunc = (func, err = ERR_REQUIRE_FUNC) => {
   if (!func || !isFunc(func)) {
     throwErr(err, { func })
@@ -37,6 +52,11 @@ export const requireFunc = (func, err = ERR_REQUIRE_FUNC) => {
   return func
 }
 
+/** Call a function and catch any errors. Errors are printed using console.error.
+ *
+ * @param {Function} f the function to call
+ * @param {Array} args arguments for the function
+ */
 export const runFunc = (f, args = []) => {
   try {
     f(...args)
@@ -44,4 +64,10 @@ export const runFunc = (f, args = []) => {
     console.error(e, f, args)
   }
 }
+
+/** Generate error code for JSX6 errors.
+ *
+ * @param {Number} c numeric code of the error
+ * @returns {String} code: 'JSX6E' + c
+ */
 const errCode = c => 'JSX6E' + c
