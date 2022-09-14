@@ -64,7 +64,7 @@ export class TutorialRunner extends Jsx6 {
   }
 
   showChapter(index, move = 0) {
-    const { state, chapters, providedMap, runnerMap } = this
+    const { $s, chapters, providedMap, runnerMap } = this
 
     let mdIndex = this.chapterIndex + move
     if (!move) mdIndex = index
@@ -116,10 +116,10 @@ export class TutorialRunner extends Jsx6 {
       this.md.innerHTML = ''
     }
 
-    state.chapterTitle = mdParsed?.level == 1 ? '' : mdParsed?.title
-    state.parentTitle = mdParsed?.level == 1 ? mdParsed?.title : suffix(mdParsed?.parentTitle, ' / ')
-    state.disablePrev = mdIndex <= 0
-    state.disableNext = !(mdIndex >= 0 && mdIndex < chapters.length - 1)
+    $s.chapterTitle = mdParsed?.level == 1 ? '' : mdParsed?.title
+    $s.parentTitle = mdParsed?.level == 1 ? mdParsed?.title : suffix(mdParsed?.parentTitle, ' / ')
+    $s.disablePrev = mdIndex <= 0
+    $s.disableNext = !(mdIndex >= 0 && mdIndex < chapters.length - 1)
     setTimeout(() => {
       this.chapterName.focus()
       this.mdArea.scrollTop = 0
@@ -128,8 +128,8 @@ export class TutorialRunner extends Jsx6 {
   }
 
   tpl() {
-    const { state } = this
-    state.menuHidden = true
+    const { $s } = this
+    $s.menuHidden = true
     const nextChapterClick = () => this.showChapter(0, 1)
 
     // this declaration is intentionaly here to have access to scope and scoped `h` function
@@ -153,15 +153,15 @@ export class TutorialRunner extends Jsx6 {
 
     const tplTutorialHeader = (
       <div class="tutorial-menu fxs posr">
-        <button class="btn-icon-large" disabled={state.disablePrev} onclick={() => this.showChapter(0, -1)}>
+        <button class="btn-icon-large" disabled={$s.disablePrev} onclick={() => this.showChapter(0, -1)}>
           &lt;
         </button>
         <button p="chapterName" class="fxcv1 padh05 btn" onclick={showMenuClick}>
-          <b style="margin-right: 0.5em">{state.parentTitle}</b>
-          {state.chapterTitle}
+          <b style="margin-right: 0.5em">{$s.parentTitle}</b>
+          {$s.chapterTitle}
         </button>
 
-        <button p="nextButton" class="btn-icon-large" disabled={state.disableNext} onclick={nextChapterClick}>
+        <button p="nextButton" class="btn-icon-large" disabled={$s.disableNext} onclick={nextChapterClick}>
           &gt;
         </button>
       </div>
@@ -171,7 +171,7 @@ export class TutorialRunner extends Jsx6 {
       <div class="fx1 owh posr tutorial-section" p="mdArea">
         <div class="tutorial-text pad" p="md"></div>
         <div class="fx fxje pad tutorial-buttons-bottom">
-          <button class="btn btn1" disabled={state.disableNext} onclick={nextChapterClick}>
+          <button class="btn btn1" disabled={$s.disableNext} onclick={nextChapterClick}>
             Next -&gt;
           </button>
         </div>

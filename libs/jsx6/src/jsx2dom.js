@@ -38,9 +38,26 @@ export function h(tag, attr, ...children) {
       // but the downsides are far greater in usability for most cases
       attr = attr || {}
       const { p } = attr
-      const out = tag.prototype ? new tag(attr, children, SCOPE) : tag(attr, children, SCOPE)
-      if (p) setPropGroup(SCOPE, out, p)
-      return out
+
+      // SCOPE is used to set properties where tags have `p` attribute
+      // we must remove it while inside a child component execution to avoid accidental
+      // overwrite of parent's properties by tags with `p` attribute inside child component
+      // that does not define own scope
+      const parent = SCOPE
+      try {
+        let out
+        if (tag.prototype) {
+          SCOPE = undefined
+          out = new tag(attr, children, parent)
+        } else {
+          SCOPE = {}
+          out = tag(attr, children, SCOPE, parent)
+        }
+        if (p) setPropGroup(parent, out, p)
+        return out
+      } finally {
+        SCOPE = parent
+      }
     } else if (isNode(tag)) {
       // if the value is already a HTML element, we just return it, no need for processing
       return tag

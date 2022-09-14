@@ -1,6 +1,7 @@
 import { throwErr } from './core.js'
 import { makeState } from './dirty.js'
 import { ERR_ITEM_NOT_FOUND } from './errorCodes.js'
+import { domWithScope } from './jsx2dom.js'
 import { Jsx6 } from './Jsx6.js'
 import { setVisible } from './setVisible.js'
 
@@ -55,18 +56,20 @@ export class Loop extends Jsx6 {
   makeItem(newData, i) {
     let comp
 
-    if (this.tplFunc) {
-      const state = makeState(newData)
-      comp = {
-        state,
-        el: this.tplFunc(state),
-        setValue: v => state().set(v),
-        getValue: () => state().getValue(),
-      }
-      state().el = comp.el
+    const item = this.item
+    const attr = { ...this.itemAttr }
+    if (item.prototype) {
+      comp = new this.item(attr, [], this.parent)
       this.insertBefore(comp)
-    } else if (this.item) {
-      comp = new this.item({ ...this.itemAttr }, [], this.parent)
+    } else {
+      attr.value = attr.$v = makeState(newData)
+      const valueProxy = attr.$v()
+      comp = {
+        setValue: v => valueProxy.set(v),
+        getValue: () => valueProxy.getValue(),
+      }
+      comp.el = domWithScope(comp, () => item(attr, [], comp, this.parent))
+      valueProxy.el = comp.el
       this.insertBefore(comp)
     }
     comp.el.loopComp = this

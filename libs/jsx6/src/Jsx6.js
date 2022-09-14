@@ -4,15 +4,6 @@ import { insertAttr, h } from './jsx2dom.js'
 import { isObj } from './core.js'
 
 /**
- * @typedef {Object} Jsx6Extras
- * @class
- * @mixin
- * @property {string} XXL - xxl prop
- *
- */
-
-/**
- * @mixes Jsx6Extras
  * @class
  */
 export class Jsx6 {
@@ -27,8 +18,9 @@ export class Jsx6 {
 
   constructor(attr, children, parent) {
     attr ||= {}
+    children ||= []
+
     // TODO make readonly using Object.defineProperty ... after making utility function for it
-    this.$h = h.bind(this)
     // if(attr.if){
     //   const ifValue = attr.if
     //   delete attr.if
@@ -42,51 +34,54 @@ export class Jsx6 {
       this.tagName = attr.tagName
       delete attr.tagName
     }
+    domWithScope(this, () => this.createEl())
   }
 
-  get state() {
-    if (!this.__state) {
-      this.__state = makeState({})
+  /*  Lazy initialize state proxy object*/
+  get $s() {
+    if (!this._$s) {
+      this._$s = makeState({})
     }
-    return this.__state
+    return this._$s
   }
 
-  set state(state) {
-    if (!this.__state) {
-      this.__state = makeState(state)
+  set $s(state) {
+    if (!this._$s) {
+      this._$s = makeState(state)
     } else {
-      this.__state(state)
+      this._$s(state)
     }
   }
 
   getValue() {
-    return this.value().getValue()
-  }
-  get value() {
-    if (!this.__value) {
-      this.__value = makeState({})
-    }
-    return this.__value
+    return this.$v().getValue()
   }
 
-  setValue(value) {
-    this.value = value
+  /*  Lazy initialize value proxy object*/
+  get $v() {
+    if (!this.__$v) {
+      this.__$v = makeState({})
+    }
+    return this.__$v
   }
-  set value(value) {
-    if (!this.__value) {
-      this.__value = makeState(value)
+
+  setValue($v) {
+    this.$v = $v
+  }
+  set $v($v) {
+    if (!this.__$v) {
+      this.__$v = makeState($v)
     } else {
-      this.__value(value)
+      this.__$v($v)
     }
   }
 
   __init(parent, before) {
     if (this.__initialized) return
-    this.createEl(this.$h)
     this.initTemplate()
     this.insertChildren()
     insert(parent, this.el, before)
-    this.init(this.state)
+    this.init(this.$s)
     this.__initialized = true
   }
 
@@ -95,7 +90,7 @@ export class Jsx6 {
     this.parent = parent
   }
 
-  createEl(h) {
+  createEl() {
     if (!this.tagName) {
       this.el = [document.createTextNode('')]
     } else {
@@ -121,7 +116,7 @@ export class Jsx6 {
   destroyed() {}
 
   initTemplate() {
-    const state = this.state
+    const state = this.$s
     let def = domWithScope(this, () => this.tpl(h))
     if (def) {
       let parent = this.el
