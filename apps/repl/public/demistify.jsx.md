@@ -281,10 +281,21 @@ The translation function is actually trivial to implement, and you can change wh
 ({"code":"initial"})
 import { h, addToBody } from './jsx2dom.js'
 
-const TRANS = {'package_info':'Package Information'}
+const TRANS = {package_info:'Package Information', err1:'OK',err2:'Warning'}
 
-const t = (code)=>{
-  if(code instanceof Array) code = code[0] // when used with template literals
+const t = (code, ...rest)=>{
+  // when used with template literals we need to re-generate the full string
+  if(code instanceof Array){
+    if(rest.length){
+      const tmp = [code[0]]
+      for(let i=1; i<code.length;i++){
+        tmp.push(rest[i-1])
+        tmp.push(code[i])
+      }
+      code = tmp
+    }
+    code = code.join('') 
+  } 
   return TRANS[code] || code
 }
 
@@ -292,6 +303,9 @@ addToBody(<div class="title">{t`package_info`}:</div>)
 addToBody(<div class="title">{t('package_info')}:</div>)
 
 addToBody(<div class="title">{t`missing_translation`}:</div>)
+const errLevel = 1
+addToBody(<div class="title">statuses: {t`err${errLevel}`} / {t`err${errLevel+1}`}</div>)
+
 
 ```
 

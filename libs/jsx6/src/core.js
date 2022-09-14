@@ -7,6 +7,19 @@ export function addTranslations(trans) {
 }
 
 export function t(code) {
+  // when used with template literals we need to re-generate the full string
+  if (code instanceof Array) {
+    if (rest.length) {
+      const tmp = [code[0]]
+      for (let i = 1; i < code.length; i++) {
+        tmp.push(rest[i - 1])
+        tmp.push(code[i])
+      }
+      code = tmp
+    }
+    code = code.join('')
+  }
+
   return TRANS[code] || code
 }
 
