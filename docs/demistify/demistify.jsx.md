@@ -281,10 +281,21 @@ The translation function is actually trivial to implement, and you can change wh
 ({"code":"initial"})
 import { h, addToBody } from './jsx2dom.js'
 
-const TRANS = {'package_info':'Package Information'}
+const TRANS = {package_info:'Package Information', err1:'OK',err2:'Warning'}
 
-const t = (code)=>{
-  if(code instanceof Array) code = code[0] // when used with template literals
+const t = (code, ...rest)=>{
+  // when used with template literals we need to re-generate the full string
+  if(code instanceof Array){
+    if(rest.length){
+      const tmp = [code[0]]
+      for(let i=1; i<code.length;i++){
+        tmp.push(rest[i-1])
+        tmp.push(code[i])
+      }
+      code = tmp
+    }
+    code = code.join('') 
+  } 
   return TRANS[code] || code
 }
 
@@ -292,6 +303,9 @@ addToBody(<div class="title">{t`package_info`}:</div>)
 addToBody(<div class="title">{t('package_info')}:</div>)
 
 addToBody(<div class="title">{t`missing_translation`}:</div>)
+const errLevel = 1
+addToBody(<div class="title">statuses: {t`err${errLevel}`} / {t`err${errLevel+1}`}</div>)
+
 
 ```
 
@@ -299,7 +313,7 @@ addToBody(<div class="title">{t`missing_translation`}:</div>)
 
 # jsx2dom
 
-*This utility is only handling generating HTML content but does not handle changes in variables that are responsible for parts of the content. Further steps are needed to support changing data. This is covered in a separate tutorial for Jsx6 library that expands on this `jsx2dom` utility by adding support for promises observables and dynamic state.*
+*This utility is only handling generating HTML content but does not handle changes in variables that are responsible for parts of the content. Further steps are needed to support changing data. This is covered in a separate tutorial for [Jsx6 library](https://github.com/hrgdavor/jsx6) that expands on this `jsx2dom` utility by adding support for promises observables and dynamic state.*
 
 It does not take a lot of code to use `JSX` without large libraries. Going through the steps of implementing a utility function for `JSX` is in my opinion a good way to understand `JSX` even better.
 
@@ -478,7 +492,7 @@ addToBody(<>
 
 ```
 
-*This utility is only handling generating HTML content but does not handle changes in variables that are responsible for parts of the content. Further steps are needed to support changing data. This is covered in tutorial for Jsx6 library that expands on this `jsx2dom` utility by adding support for promises observables and dynamic state.*
+*This utility is only handling generating HTML content but does not handle changes in variables that are responsible for parts of the content. Further steps are needed to support changing data. This is covered in tutorial for [Jsx6 library](https://github.com/hrgdavor/jsx6) that expands on this `jsx2dom` utility by adding support for promises observables and dynamic state.*
 
 # JSX tooling 
 
