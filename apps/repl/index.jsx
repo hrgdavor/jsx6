@@ -1,6 +1,6 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
-import { Jsx6, Loop, addToBody, domWithScope, makeState, provideErrTranslations } from '@jsx6/jsx6'
+import { Jsx6, Loop, T, addToBody, domWithScope, makeState, provideErrTranslations } from '@jsx6/jsx6'
 
 import './main.css'
 import IconNote from './src/icons/icon-note'
@@ -75,8 +75,8 @@ addToBody(
     <>
       <IconNote />
       <AComponent p="comp1" />
-      Hello world.
-      <Loop p="loop" item={AComponent} />
+      Hello world.{T`test`}
+      <Loop p="loop" title={T`test`} item={AComponent} />
       <Loop
         p="loop2"
         item={({ $v }) => (
