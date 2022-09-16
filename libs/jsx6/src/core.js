@@ -1,3 +1,5 @@
+import { ERR_REQUIRE_FUNC } from './errorCodes'
+
 const TRANS = {}
 
 export class Group {}

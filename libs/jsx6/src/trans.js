@@ -1,5 +1,6 @@
 import { addDirty } from './dirty.js'
 import { requireFunc, t } from './core.js'
+import { ERR_TRANS_UUPD_FUNC } from './errorCodes.js'
 
 const translationUpdaters = []
 
