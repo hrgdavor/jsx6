@@ -6,7 +6,7 @@ export function addTranslations(trans) {
   Object.assign(TRANS, trans)
 }
 
-export function t(code) {
+export function t(code, ...rest) {
   // when used with template literals we need to re-generate the full string
   if (code instanceof Array) {
     if (rest.length) {
@@ -35,6 +35,7 @@ export const throwErr = (c, info) => {
 
 export const NOT = v => !v
 export const BOOL = v => !!v
+export const EQ = to => v => to === v
 
 export const isFunc = f => typeof f === 'function'
 export const isStr = s => typeof s === 'string'
