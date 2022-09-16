@@ -1,0 +1,10 @@
+{
+  "changes": [
+    {
+      "packageName": "@jsx6/jsx6",
+      "comment": "fix translate, add EQ function factory",
+      "type": "none"
+    }
+  ],
+  "packageName": "@jsx6/jsx6"
+}
