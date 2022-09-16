@@ -1,6 +1,13 @@
 # Change Log - @jsx6/jsx6
 
-This log was last generated on Wed, 14 Sep 2022 16:01:17 GMT and should not be manually modified.
+This log was last generated on Fri, 16 Sep 2022 06:03:06 GMT and should not be manually modified.
+
+## 1.5.3
+Fri, 16 Sep 2022 06:03:06 GMT
+
+### Updates
+
+- fix translate, add EQ function factory
 
 ## 1.5.2
 Wed, 14 Sep 2022 16:01:17 GMT
