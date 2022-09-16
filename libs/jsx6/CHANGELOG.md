@@ -1,6 +1,13 @@
 # Change Log - @jsx6/jsx6
 
-This log was last generated on Fri, 16 Sep 2022 06:03:06 GMT and should not be manually modified.
+This log was last generated on Fri, 16 Sep 2022 06:38:56 GMT and should not be manually modified.
+
+## 1.5.4
+Fri, 16 Sep 2022 06:38:56 GMT
+
+### Updates
+
+- fix imports
 
 ## 1.5.3
 Fri, 16 Sep 2022 06:03:06 GMT
@@ -17,7 +24,9 @@ _Version update only_
 ## 1.5.1
 Wed, 14 Sep 2022 06:52:54 GMT
 
-improve translate function to work as expected with template literals
+### Updates
+
+- improve translate function to work as expected with template literals
 
 ## 1.5.0
 Sat, 10 Sep 2022 23:12:03 GMT
