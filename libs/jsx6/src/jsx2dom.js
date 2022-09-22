@@ -5,6 +5,7 @@ import {
   ERR_CONTEXT_REQUIRED,
   ERR_LISTENER_MUST_BE_FUNC,
   ERR_NULL_TAG,
+  ERR_STATE_UPDATE_OBJECT_REQ,
   ERR_UNSUPPORTED_TAG,
 } from './errorCodes.js'
 import { toDomNode } from './toDomNode.js'
@@ -62,22 +63,28 @@ export function h(tag, attr, ...children) {
       // if the value is already a HTML element, we just return it, no need for processing
       return tag
     } else if (isObj(tag)) {
-      const toObserve = def.then || def.subscribe
-      if (toObserve) {
-        // support for promise(.then) or observable(.next) values
-        const out = factories.Text('')
-        // TODO make node replacer that handles switching types of conent not just text
-        // TODO make sure node is replaced if new update comes before return and is not a simpel text update on this textNode
-        toObserve.call(def, r => (out.textContent = r))
-        return out
-      } else {
-        throwErr(ERR_UNSUPPORTED_TAG, tag)
-      }
+      return nodeFromObservable(tag) || throwErr(ERR_UNSUPPORTED_TAG, tag)
     } else {
       // not sure what else to enable if tag is type of object
       // this may be expanded in the future to allow more capabilities
       throwErr(ERR_UNSUPPORTED_TAG, tag)
     }
+  }
+}
+
+export function nodeFromObservable(obj) {
+  const out = factories.Text('')
+  // TODO make node replacer that handles switching types of conent not just text
+  // TODO make sure node is replaced if new update comes before return and is not a simpel text update on this textNode
+  if (tryObserve(obj, r => (out.textContent = factories.TextValue(r)))) return out
+}
+
+export function tryObserve(obj, callback, callIfNotObservable) {
+  // support for promise(.then) or observable(.subscribe) values
+  const toObserve = obj.then || obj.subscribe
+  if (toObserve) {
+    toObserve.call(obj, callback)
+    return true
   }
 }
 
@@ -144,29 +151,21 @@ need to refresh the value
  - add the updater as listener for changes (state change, etc)
  - default is change handler of the parent component
 */
-export const makeUpdater = (parent, before, attr, func, updaters) =>
-  factories.Updater(parent, before, attr, func, updaters)
+export const makeUpdater = (parent, before, attr, func) => factories.Updater(parent, before, attr, func)
 
-// TODO remove old concept of udpater array for components
-function Updater(parent, before, attr, func, updaters) {
-  if (isFunc(updaters?.state)) {
-    updaters = updaters.state()
-  }
-
+function Updater(parent, before, attr, obj) {
   let updater
-  if (func.makeUpdater) {
-    updater = func.makeUpdater(parent, before, attr, func, updaters)
+  if (obj.makeUpdater) {
+    updater = obj.makeUpdater(parent, before, attr, obj)
   } else {
     if (attr) {
-      updater = factories.AttrUpdater(parent, attr, func, updaters)
+      updater = factories.AttrUpdater(parent, attr, obj)
     } else {
-      updater = factories.NodeUpdater(parent, func)
+      updater = factories.NodeUpdater(parent, obj)
     }
 
-    if (func.subscribe) {
-      func.subscribe(updater)
-    } else {
-      updaters.push(updater)
+    if (!tryObserve(obj, updater)) {
+      throwErr(ERR_STATE_UPDATE_OBJECT_REQ, obj)
     }
   }
 }
@@ -174,7 +173,7 @@ function Updater(parent, before, attr, func, updaters) {
 export const makeNodeUpdater = (node, func) => factories.NodeUpdater(node, func)
 const NodeUpdater = (node, func) => {
   const out = () => {
-    const newValue = textValue(func())
+    const newValue = factories.TextValue(func())
     if (node.textContent !== newValue) node.textContent = newValue
   }
   out.node = node
@@ -218,7 +217,7 @@ export function insertAttr(attr, out, self, component) {
         component.loopKey = value
       }
     } else if (isFunc(value)) {
-      factories.Updater(out, null, a, value, self)
+      factories.Updater(out, null, a, value)
     } else {
       if (a === 'p') {
         setPropGroup(self, component || out, value)
@@ -257,10 +256,17 @@ export function insert(parent, newChild, before, _self) {
     if (_newChild instanceof Array) _newChild = _newChild[0]
 
     if (!(_newChild instanceof Node)) {
-      if (isFunc(_newChild)) {
-        const func = _newChild
-        _newChild = factories.Text(textValue(func()))
-        factories.Updater(_newChild, before, null, func, _self)
+      const maybe = nodeFromObservable(_newChild)
+      // TODO merge Updater factory code and nodeFromObservable
+      // TODO make more powerful variant that can switch text and dom in the same place
+      //      based on the returned value (enpty text node when undefined is value, and then replace with dom node if dom node is the next value)
+      //      it would allow interesting code that is more like `if()`
+      // if (isFunc(_newChild)) {
+      //   const func = _newChild
+      //   _newChild = factories.Text(textValue(func()))
+      //   factories.Updater(_newChild, before, null, func, _self)
+      if (maybe) {
+        _newChild = maybe
       } else {
         if (typeof _newChild !== 'string') _newChild += ''
         _newChild = newChild = factories.Text(_newChild)

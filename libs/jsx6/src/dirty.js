@@ -79,20 +79,32 @@ function runUpdaters(updaters, args) {
   updaters.forEach(u => u(...args))
 }
 
+function doSubscribe(updaters, updater) {
+  requireFunc(updater, ERR_DIRTY_RUNNER_FUNC)
+  updaters.push(updater)
+  updater()
+}
+
 function asBinding(func, state, prop, updaters) {
   func.isBinding = true
-  func.update = f => (state[prop] = f(state[prop]()))
-  func.subscribe = u => updaters.push(v => u(func(v)))
+
+  // TODO check if needed, what is this ?
+  //func.update = f => (state[prop] = f(state[prop]()))
+
+  func.subscribe = u =>
+    doSubscribe(updaters, v => {
+      // console.log('changed', prop, state, func())
+      u(func())
+    })
   func.sync = f => {
-    f(state[prop]())
-    updaters.push(() => f(state[prop]()))
+    doSubscribe(updaters, () => f(func()))
   }
   func.dirty = () => {
-    if (updaters.length) addDirty(() => runUpdaters(updaters, [state[prop]]))
+    if (updaters.length) addDirty(() => runUpdaters(updaters, [func()]))
   }
-  func.state = state
-  func.propName = prop
-  func.toString = func.toJSON = () => state[prop]()
+  //  func.state = state
+  //  func.propName = prop
+  func.toString = func.toJSON = () => func()
   return func
 }
 
@@ -161,7 +173,10 @@ export function makeState(rawState, markDirtyNow) {
         }
         const filterFunc = filter =>
           asBinding(() => filter(rawState[prop]), bindingsProxy, prop, perPropUpdaters[prop])
-        func.get = func.set = func.toString = func.toJSON = func
+        // next mimics Observable RxJS
+        // toString enables state.sth ++ to work even though it is a function
+        // toJSON enables us to not worry if binding is sent to RPC or whatever else that uses JSON.stringify
+        func.get = func.set = func.next = func.toString = func.toJSON = func
         bindings[prop] = asBinding(func, bindingsProxy, prop, perPropUpdaters[prop])
       }
       return bindings[prop]
@@ -173,8 +188,13 @@ export function makeState(rawState, markDirtyNow) {
     if (!arguments.length) {
       return $
     } else if (isFunc(f)) {
-      const out = () => f(rawState)
-      out.subscribe = updater => updaters.push(requireFunc(updater, ERR_DIRTY_RUNNER_FUNC))
+      // the function provided as parameter is a filter function that will create a new value
+      // whenever the state changes
+      const out = () => f(state)
+      // anyone subscribing must get the filtered value as part of subscription
+      out.subscribe = updater => doSubscribe(updaters, () => updater(f(state)))
+      // we effectively created a filtered binding that gives subscribers a filtered value out based on
+      // the original state
       return out
     } else {
       $.set(f)
@@ -198,7 +218,7 @@ export function makeState(rawState, markDirtyNow) {
     get: $,
   })
   $.toJSON = () => rawState
-  $.push = $.subscribe = updater => updaters.push(updater)
+  $.push = $.subscribe = updater => doSubscribe(updaters, updater)
   $.dirty = _addDirty
   $.getValue = () => (isObjectState ? { ...rawState } : rawState)
   $.list = updaters

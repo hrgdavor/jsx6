@@ -46,10 +46,10 @@ objekt.toString = function () {
 console.log(objekt + 1) // 101
 
 function NotAComponent(attr) {
-  const state = makeState({ count: 1, offset: 3 })
+  const [state] = makeState({ count: 1, offset: 3 })
   const out = (
     <b {...attr} name={name} onclick={evt => console.log('click', evt, state.count++, this)}>
-      NotAComponent{state.count} / {state(s => state.count + state.offset)}
+      NotAComponent{state.count} / <i>{state(s => s.count + s.offset)}</i>
     </b>
   )
   console.log('out', out)
@@ -69,13 +69,24 @@ class AComponent extends Jsx6 {
   }
 }
 
+let ThePromise = new Promise((resolve, reject) => {
+  setTimeout(() => resolve('promise_done'), 2000)
+})
+
 const scope = (window.APP = {})
+// addToBody(
+//   domWithScope(scope, h => (
+//     <>
+//       <NotAComponent style="border:solid 1px; display:block" />
+//     </>
+//   )),
+// )
 addToBody(
   domWithScope(scope, h => (
     <>
       <IconNote />
       <AComponent p="comp1" />
-      Hello world.{T`test`}
+      Hello world.{T`test`} ...{ThePromise}
       <Loop p="loop" title={T`test`} item={AComponent} />
       <Loop
         p="loop2"
@@ -93,9 +104,10 @@ addToBody(
   )),
 )
 console.log('scope', scope)
-scope.loop.setValue([{ name: 'jozo' }, { name: 'mirko' }])
-scope.loop2.setValue([{ name: 'jozo2' }, { name: 'mirko2' }])
+scope.loop?.setValue([{ name: 'jozo' }, { name: 'mirko' }])
+scope.loop2?.setValue([{ name: 'jozo2' }, { name: 'mirko2' }])
+// scope.loop2?.setValue([{ name: 'jozo' }])
 
 console.log(scope)
-console.log('scope.loop.getValue', scope.loop.getValue())
-console.log('scope.loop2.getValue', scope.loop2.getValue())
+console.log('scope.loop.getValue', scope.loop?.getValue())
+console.log('scope.loop2.getValue', scope.loop2?.getValue())
