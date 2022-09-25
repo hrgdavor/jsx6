@@ -1,5 +1,10 @@
 import { runFunc, throwErr, isObj, requireFunc, isFunc, isObjNN } from './core.js'
-import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC, ERR_STATE_UPDATE_OBJECT_REQ } from './errorCodes.js'
+import {
+  ERR_DIRTY_RECURSION,
+  ERR_DIRTY_RUNNER_FUNC,
+  ERR_NOT_OBSERVABLE,
+  ERR_STATE_UPDATE_OBJECT_REQ,
+} from './errorCodes.js'
 // TODO test and make work integration with Observable and RX
 const dirty = new Set()
 let hasDirty = false
@@ -270,6 +275,10 @@ export function makeState(rawState, returnAll) {
   specialProps.set(subscribeSymbol, subscribe)
 
   return returnAll ? [bindingsProxy, state] : bindingsProxy
+}
+
+export function observe(obj, callback) {
+  if (!tryObserve(obj, callback)) throwErr(ERR_NOT_OBSERVABLE, obj)
 }
 
 export function tryObserve(obj, callback) {

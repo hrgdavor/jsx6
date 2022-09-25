@@ -15,6 +15,7 @@ export const errTranslations = {
     'Context to assign references required, if you want to assign parts of the template to named props, please provide a scope by using domWithScope utility',
   JSX6E11: 'Update on state object can not be a primitive value',
   JSX6E12: 'Item not found',
+  JSX6E13: 'Object not observable',
 }
 
 export const provideErrTranslations = () => addTranslations(errTranslations)

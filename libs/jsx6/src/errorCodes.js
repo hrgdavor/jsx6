@@ -14,3 +14,4 @@ export const ERR_LISTENER_MUST_BE_FUNC = 9 //    JSX6E9 - Event listener must be
 export const ERR_CONTEXT_REQUIRED = 10 //  JSX6E10 Context to assign references required
 export const ERR_STATE_UPDATE_OBJECT_REQ = 11 //  JSX6E11 Update on state object can not be a primitive value
 export const ERR_ITEM_NOT_FOUND = 12 //  JSX6E12 Item not found
+export const ERR_NOT_OBSERVABLE = 13 //  JSX6E13 Object not observable
