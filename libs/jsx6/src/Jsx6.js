@@ -1,4 +1,4 @@
-import { makeState } from './dirty.js'
+import { makeState } from './makeState.js'
 import { domWithScope, insert } from './jsx2dom.js'
 import { insertAttr, h } from './jsx2dom.js'
 import { isObj } from './core.js'
@@ -54,7 +54,7 @@ export class Jsx6 {
   }
 
   getValue() {
-    return this.$v().getValue()
+    return this.$v()
   }
 
   /*  Lazy initialize value proxy object*/
@@ -65,14 +65,14 @@ export class Jsx6 {
     return this.__$v
   }
 
-  setValue($v) {
-    this.$v = $v
+  setValue(v) {
+    this.$v(v)
   }
-  set $v($v) {
+  set $v(v) {
     if (!this.__$v) {
-      this.__$v = makeState($v)
+      this.__$v = makeState(v)
     } else {
-      this.__$v($v)
+      this.__$v(v)
     }
   }
 

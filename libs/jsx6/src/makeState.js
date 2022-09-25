@@ -6,6 +6,9 @@ let hasDirty = false
 let isRunning = false
 let anim = func => func()
 
+export const addValueSymbol = Symbol('addValue')
+export const subscribeSymbol = Symbol('subscribe')
+
 if (typeof document !== 'undefined') {
   anim = window.requestAnimationFrame
 }
@@ -31,12 +34,12 @@ export function callAnim(callback) {
  * @param {Function} callback to add
  * @returns {void}
  */
-export function addDirty(callback) {
+export function runInBatch(callback) {
   // TDOD check if it is better to just run the udpater immediately
   // if infinite recusrions, will cause stackoverflow, and that is ok, can be easily traced and fixed
   // if (isRunning) throwErr(ERR_DIRTY_RECURSION)
   if (callback instanceof Array) {
-    callback.forEach(addDirty)
+    callback.forEach(runInBatch)
     return
   }
   requireFunc(callback, ERR_DIRTY_RUNNER_FUNC)
@@ -70,16 +73,12 @@ export function runDirty() {
   }
 }
 
-/** Run a batch of updaters(listeners/subscribers) and apps specific arguments
- *
- * @param {Arra<Function>} updaters
- * @param {Array<any>} args arguments to pass to the callbacks
- */
-function runUpdaters(updaters, args) {
-  updaters.forEach(u => u(...args))
+export function doSubscribeValue(updaters, updater, func) {
+  requireFunc(updater, ERR_DIRTY_RUNNER_FUNC)
+  doSubscribe(updaters, () => updater(func()))
 }
 
-function doSubscribe(updaters, updater) {
+export function doSubscribe(updaters, updater) {
   requireFunc(updater, ERR_DIRTY_RUNNER_FUNC)
   updaters.push(updater)
   updater()
@@ -91,30 +90,32 @@ function asBinding(func, state, prop, updaters) {
   // TODO check if needed, what is this ?
   //func.update = f => (state[prop] = f(state[prop]()))
 
-  func.subscribe = u =>
-    doSubscribe(updaters, v => {
-      // console.log('changed', prop, state, func())
-      u(func())
-    })
-  func.sync = f => {
-    doSubscribe(updaters, () => f(func()))
-  }
-  func.dirty = () => {
-    if (updaters.length) addDirty(() => runUpdaters(updaters, [func()]))
-  }
+  func[subscribeSymbol] = u => doSubscribeValue(updaters, u, func)
+
+  // TODO reimplement sync
+  // func.sync = f => {
+  //   doSubscribe(updaters, () => f(func()))
+  // }
+
+  // TODO reimplement dirty if needed, or remove
+  // func.dirty = () => {
+  //   if (updaters.length) runInBatch(updaters)
+  // }
   //  func.state = state
   //  func.propName = prop
-  func.toString = func.toJSON = () => func()
+  addCommonGet(func, func)
   return func
 }
 
-export function makeState(rawState, markDirtyNow) {
+const addCommonGet = (obj, func) => (obj.toString = obj.toJSON = func)
+
+export function makeState(rawState, returnAll) {
   let isObjectState = isObjNN(rawState)
 
   const updaters = []
-  const perPropUpdaters = {}
-  const perPropUpdaterRunner = {}
-  const bindings = {}
+  const perPropUpdaters = new Map()
+  const perPropUpdaterRunner = new Map()
+  const bindings = new Map()
   const lastData = new Map()
 
   function runUpdaters() {
@@ -130,7 +131,7 @@ export function makeState(rawState, markDirtyNow) {
   }
 
   function _addDirty() {
-    if (updaters.length) addDirty(runUpdaters)
+    if (updaters.length) runInBatch(runUpdaters)
   }
 
   const handler = {
@@ -144,24 +145,32 @@ export function makeState(rawState, markDirtyNow) {
   }
 
   const state = new Proxy(isObjectState ? rawState : {}, handler)
+
+  // we return value proxy for objects to avoid undetected changes
+  const returnRaw = () => (isObjectState ? state : rawState)
+
+  const specialProps = new Map()
+  specialProps.set('toJSON', returnRaw)
+  specialProps.set('get', returnRaw)
+  specialProps.set(Symbol.toPrimitive, returnRaw)
+
   const bindingsProxy = new Proxy(bindingFunc, {
     set: function (target, prop, value, receiver) {
       if (updateProp(prop, value)) _addDirty()
       return true
     },
     get: function (target, prop) {
-      if (prop === 'toJSON') return () => rawState
-      if (prop === Symbol.iterator) return all[Symbol.iterator].bind(all)
+      if (specialProps.has(prop)) return specialProps.get(prop)
 
-      if (!bindings[prop]) {
-        perPropUpdaters[prop] = []
-        perPropUpdaterRunner[prop] = () => {
+      if (!bindings.has(prop)) {
+        perPropUpdaters.set(prop, [])
+        perPropUpdaterRunner.set(prop, () => {
           // it can happen that we have leftover listeners for a property when rawState was an object
           // so if currently rawState is not an object, we send out undefined
           // TODO explore f there is benefit in allowing litening to parts of primitive values (probably not)
           const newValue = isObjectState ? rawState[prop] : undefined
-          perPropUpdaters[prop].forEach(f => runFunc(f, [newValue]))
-        }
+          perPropUpdaters.get(prop).forEach(f => runFunc(f, [newValue]))
+        })
         const func = function (value) {
           if (arguments.length !== 0) {
             if (isFunc(value)) {
@@ -172,32 +181,31 @@ export function makeState(rawState, markDirtyNow) {
           return rawState[prop]
         }
         const filterFunc = filter =>
-          asBinding(() => filter(rawState[prop]), bindingsProxy, prop, perPropUpdaters[prop])
+          asBinding(() => filter(rawState[prop]), bindingsProxy, prop, perPropUpdaters.get(prop))
         // next mimics Observable RxJS
         // toString enables state.sth ++ to work even though it is a function
         // toJSON enables us to not worry if binding is sent to RPC or whatever else that uses JSON.stringify
-        func.get = func.set = func.next = func.toString = func.toJSON = func
-        bindings[prop] = asBinding(func, bindingsProxy, prop, perPropUpdaters[prop])
+        addCommonGet(func, func)
+        bindings.set(prop, asBinding(func, bindingsProxy, prop, perPropUpdaters.get(prop)))
       }
-      return bindings[prop]
+      return bindings.get(prop)
     },
   })
-  const all = [bindingsProxy, state, rawState]
 
   function bindingFunc(f) {
     if (!arguments.length) {
-      return $
+      return returnRaw()
     } else if (isFunc(f)) {
       // the function provided as parameter is a filter function that will create a new value
       // whenever the state changes
       const out = () => f(state)
       // anyone subscribing must get the filtered value as part of subscription
-      out.subscribe = updater => doSubscribe(updaters, () => updater(f(state)))
+      out[subscribeSymbol] = updater => doSubscribe(updaters, () => updater(f(state)))
       // we effectively created a filtered binding that gives subscribers a filtered value out based on
       // the original state
       return out
     } else {
-      $.set(f)
+      set(f)
     }
   }
 
@@ -205,25 +213,15 @@ export function makeState(rawState, markDirtyNow) {
     if (force || rawState[p] !== value) {
       lastData.set(p, rawState[p])
       rawState[p] = value
-      if (perPropUpdaters[p]) addDirty(perPropUpdaterRunner[p])
+      if (perPropUpdaters.has(p)) runInBatch(perPropUpdaterRunner.get(p))
       return true
     }
     return false
   }
 
-  function $() {
-    return state
-  }
-  Object.defineProperty($, 'value', {
-    get: $,
-  })
-  $.toJSON = () => rawState
-  $.push = $.subscribe = updater => doSubscribe(updaters, updater)
-  $.dirty = _addDirty
-  $.getValue = () => (isObjectState ? { ...rawState } : rawState)
-  $.list = updaters
+  const subscribe = u => doSubscribeValue(updaters, u, returnRaw)
 
-  $.add = (newData, force) => {
+  const add = (newData, force) => {
     if (!newData) return
     if (typeof newData !== 'object') throwErr(ERR_STATE_UPDATE_OBJECT_REQ)
 
@@ -234,7 +232,7 @@ export function makeState(rawState, markDirtyNow) {
     if (changed) _addDirty()
   }
 
-  $.set = (_rawState, force) => {
+  const set = (_rawState, force) => {
     let changed = false
     let _isObjectState = isObjNN(_rawState)
 
@@ -245,7 +243,7 @@ export function makeState(rawState, markDirtyNow) {
       if (!isObjectState) {
         // TODO when switching from object to primitive, need to notify all keyed properties listeners of change
         for (const p in rawState) {
-          if (perPropUpdaters[p]) addDirty(perPropUpdaterRunner[p])
+          if (perPropUpdaters.has(p)) runInBatch(perPropUpdaterRunner.get(p))
         }
       }
     } else if (isObjectState) {
@@ -268,7 +266,22 @@ export function makeState(rawState, markDirtyNow) {
     if (changed) _addDirty()
   }
 
-  if (markDirtyNow) _addDirty()
+  specialProps.set(addValueSymbol, add)
+  specialProps.set(subscribeSymbol, subscribe)
 
-  return bindingsProxy
+  return returnAll ? [bindingsProxy, state] : bindingsProxy
+}
+
+export function tryObserve(obj, callback) {
+  const bindingSub = obj[subscribeSymbol]
+  if (bindingSub) {
+    bindingSub(callback)
+    return true
+  }
+  // support for promise(.then) or observable(.subscribe) values
+  const toObserve = obj.then || obj.subscribe
+  if (toObserve) {
+    toObserve.call(obj, callback)
+    return true
+  }
 }

@@ -2,6 +2,18 @@
   "name": "@jsx6/jsx6",
   "entries": [
     {
+      "version": "1.5.5",
+      "tag": "@jsx6/jsx6_v1.5.5",
+      "date": "Sun, 25 Sep 2022 20:45:52 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "cleanup subscribe, unify handling object state, primitives, and object properties"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.5.4",
       "tag": "@jsx6/jsx6_v1.5.4",
       "date": "Fri, 16 Sep 2022 06:38:56 GMT",

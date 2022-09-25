@@ -1,4 +1,4 @@
-import { ERR_REQUIRE_FUNC } from './errorCodes'
+import { ERR_REQUIRE_FUNC } from './errorCodes.js'
 
 const TRANS = {}
 

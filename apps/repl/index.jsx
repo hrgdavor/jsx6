@@ -1,58 +1,48 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
-import { Jsx6, Loop, T, addToBody, domWithScope, makeState, provideErrTranslations } from '@jsx6/jsx6'
+import {
+  Jsx6,
+  Loop,
+  T,
+  addToBody,
+  domWithScope,
+  makeState,
+  provideErrTranslations,
+  runInBatch,
+  tryObserve,
+} from '@jsx6/jsx6'
 
 import './main.css'
 import IconNote from './src/icons/icon-note'
 
 provideErrTranslations()
 
-function useState(value) {
-  function get() {
-    if (arguments.length) value = arguments[0]
-    return value
-  }
-  get.toString = get
-  return [
-    get,
-    function (v) {
-      value = v
-    },
-  ]
-}
+const num = makeState(0)
+console.log('num() = ', num())
+// tryObserve(num,v => console.log('num changed to ', v))
+// console.log('num + 1 = ', num + 1)
+// runInBatch(() => {
+//   console.log('num + 1 = ', num + 1, 'before updating num=', num())
+//   num().set(2)
+//   console.log('num + 1 = ', num + 1, 'after updating num=', num())
+// })
 
-const [$count, setCount] = useState(1)
-
-console.log('count', $count())
-setCount($count + 1)
-console.log('count', $count())
-$count($count + 1)
-console.log('count', $count())
-
-// const $state = makeState({ count: 1 })
-const [state, $state, _state] = makeState({ count: 1, offset: 3 })
-
-// console.log('state', $state, state)
-// console.log('state.count+1', $state.count++)
-// console.log('state.count+1', $state.count + 1)
-console.log(state.count(), state.offset())
-console.log(state.count + state.offset)
-
-const objekt = { name: 'Jura voli JS' }
-console.log(objekt + 1) // [object Object]1
-objekt.toString = function () {
-  return 100
-}
-console.log(objekt + 1) // 101
+const objState = makeState({ x: 1 })
+objState.set({ get: 'GETTTT' })
+console.log('objState() = ', objState())
+// console.log('objState.x + 1 = ', objState.x + 1)
+// console.log('objState.x() + 1 = ', objState.x() + 1)
+// console.log('objState() ', objState())
+// console.log('objState().x ', objState().x)
+// console.log('JSON.stringify(objState())', JSON.stringify(objState()))
 
 function NotAComponent(attr) {
-  const [state] = makeState({ count: 1, offset: 3 })
+  const [state] = makeState({ count: 1, offset: 3 }, true)
   const out = (
     <b {...attr} name={name} onclick={evt => console.log('click', evt, state.count++, this)}>
       NotAComponent{state.count} / <i>{state(s => s.count + s.offset)}</i>
     </b>
   )
-  console.log('out', out)
   return out
 }
 
@@ -77,7 +67,7 @@ const scope = (window.APP = {})
 // addToBody(
 //   domWithScope(scope, h => (
 //     <>
-//       <NotAComponent style="border:solid 1px; display:block" />
+//       <Loop p="loop" title={T`test`} item={AComponent} />
 //     </>
 //   )),
 // )
@@ -90,9 +80,10 @@ addToBody(
       <Loop p="loop" title={T`test`} item={AComponent} />
       <Loop
         p="loop2"
-        item={({ $v }) => (
+        item={({ $v }, c, _scope, loop) => (
           <div>
-            TPL:<b onclick={e => scope.loop2.removeItem($v)}>{$v.name}</b>
+            {console.log('loop', loop)}
+            TPL:<b onclick={e => scope.loop2.removeItem(_scope)}>{$v.name(name => name + '----')}</b>
           </div>
         )}
       />
@@ -105,6 +96,7 @@ addToBody(
 )
 console.log('scope', scope)
 scope.loop?.setValue([{ name: 'jozo' }, { name: 'mirko' }])
+// scope.loop?.setValue([{ name: 'jozo' }])
 scope.loop2?.setValue([{ name: 'jozo2' }, { name: 'mirko2' }])
 // scope.loop2?.setValue([{ name: 'jozo' }])
 

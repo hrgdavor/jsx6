@@ -1,4 +1,5 @@
 import { isFunc } from './core.js'
+import { tryObserve } from './makeState.js'
 
 export function copyBinding(params, prop, options = {}, defRequired, defKeep) {
   const { required = defRequired, callback, def, keep = defKeep } = options
@@ -8,14 +9,13 @@ export function copyBinding(params, prop, options = {}, defRequired, defKeep) {
   // fake binding for static value
   const fake = value => {
     const out = () => value
-    out.subscribe = () => {}
     return out
   }
 
   if (propBind) {
     if (!isFunc(propBind)) propBind = fake(propBind)
 
-    if (callback) propBind.subscribe(callback)
+    if (callback) tryObserve(propBind, callback)
   } else {
     if (required) {
       throw new Error('"' + prop + '"' + ' binding not provided')

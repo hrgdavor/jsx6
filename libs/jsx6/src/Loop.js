@@ -1,5 +1,5 @@
 import { throwErr } from './core.js'
-import { makeState } from './dirty.js'
+import { makeState, subscribeSymbol } from './makeState.js'
 import { ERR_ITEM_NOT_FOUND } from './errorCodes.js'
 import { domWithScope } from './jsx2dom.js'
 import { Jsx6 } from './Jsx6.js'
@@ -38,7 +38,14 @@ export class Loop extends Jsx6 {
   }
 
   getValue() {
-    return this.items.map(i => i.getValue())
+    return this.items.map((item, i) => {
+      try {
+        return item.getValue()
+      } catch (error) {
+        console.error('failed getValue', i, item.getValue, item)
+        throw error
+      }
+    })
   }
 
   setItem(newData, i) {
@@ -63,10 +70,10 @@ export class Loop extends Jsx6 {
       this.insertBefore(comp)
     } else {
       attr.value = attr.$v = makeState(newData)
-      const valueProxy = attr.$v()
+      const valueProxy = attr.$v
       comp = {
-        setValue: v => valueProxy.set(v),
-        getValue: () => valueProxy.getValue(),
+        setValue: valueProxy,
+        getValue: valueProxy,
       }
       comp.el = domWithScope(comp, () => item(attr, [], comp, this.parent))
       valueProxy.el = comp.el
@@ -100,7 +107,7 @@ export class Loop extends Jsx6 {
     if (typeof item === 'number') return item
     if (!item) return -1
     if (typeof item === 'function') {
-      console.log('function', item, item().el)
+      // TODO better way to recognize item
       item = item()
     }
     return item.el ? item.el.loopIndex : item.loopIndex

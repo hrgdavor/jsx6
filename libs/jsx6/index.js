@@ -1,6 +1,6 @@
 export * from './src/core.js'
 export * from './src/jsx2dom.js'
-export * from './src/dirty.js'
+export * from './src/makeState.js'
 export * from './src/trans.js'
 export * from './src/getValue.js'
 export * from './src/setValue.js'

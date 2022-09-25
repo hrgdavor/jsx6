@@ -1,6 +1,13 @@
 # Change Log - @jsx6/jsx6
 
-This log was last generated on Fri, 16 Sep 2022 06:38:56 GMT and should not be manually modified.
+This log was last generated on Sun, 25 Sep 2022 20:45:52 GMT and should not be manually modified.
+
+## 1.5.5
+Sun, 25 Sep 2022 20:45:52 GMT
+
+### Updates
+
+- cleanup subscribe, unify handling object state, primitives, and object properties
 
 ## 1.5.4
 Fri, 16 Sep 2022 06:38:56 GMT

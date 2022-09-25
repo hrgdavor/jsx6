@@ -9,6 +9,7 @@ import {
   ERR_UNSUPPORTED_TAG,
 } from './errorCodes.js'
 import { toDomNode } from './toDomNode.js'
+import { tryObserve } from './makeState.js'
 
 let SCOPE
 
@@ -76,16 +77,7 @@ export function nodeFromObservable(obj) {
   const out = factories.Text('')
   // TODO make node replacer that handles switching types of conent not just text
   // TODO make sure node is replaced if new update comes before return and is not a simpel text update on this textNode
-  if (tryObserve(obj, r => (out.textContent = factories.TextValue(r)))) return out
-}
-
-export function tryObserve(obj, callback, callIfNotObservable) {
-  // support for promise(.then) or observable(.subscribe) values
-  const toObserve = obj.then || obj.subscribe
-  if (toObserve) {
-    toObserve.call(obj, callback)
-    return true
-  }
+  if (obj && tryObserve(obj, r => (out.textContent = factories.TextValue(r)))) return out
 }
 
 /** Enable creating html elements with option to assign parts to properties on the provided scope object.

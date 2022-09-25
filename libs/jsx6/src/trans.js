@@ -1,11 +1,11 @@
-import { addDirty } from './dirty.js'
+import { runInBatch } from './makeState.js'
 import { requireFunc, t } from './core.js'
 import { ERR_TRANS_UUPD_FUNC } from './errorCodes.js'
 
 const translationUpdaters = []
 
 export function refreshTranslations() {
-  addDirty(translationDirtyRunner)
+  runInBatch(translationDirtyRunner)
 }
 
 const translationDirtyRunner = () => translationUpdaters.forEach(f => f())
