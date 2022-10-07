@@ -2,6 +2,18 @@
   "name": "@jsx6/jsx6",
   "entries": [
     {
+      "version": "1.5.9",
+      "tag": "@jsx6/jsx6_v1.5.9",
+      "date": "Fri, 07 Oct 2022 23:33:44 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "text node insert fix2"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.5.8",
       "tag": "@jsx6/jsx6_v1.5.8",
       "date": "Fri, 07 Oct 2022 23:13:21 GMT",
