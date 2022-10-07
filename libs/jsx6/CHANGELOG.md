@@ -1,6 +1,13 @@
 # Change Log - @jsx6/jsx6
 
-This log was last generated on Sun, 25 Sep 2022 21:31:43 GMT and should not be manually modified.
+This log was last generated on Fri, 07 Oct 2022 22:17:27 GMT and should not be manually modified.
+
+## 1.5.7
+Fri, 07 Oct 2022 22:17:27 GMT
+
+### Updates
+
+- add replaceContent function
 
 ## 1.5.6
 Sun, 25 Sep 2022 21:29:05 GMT
