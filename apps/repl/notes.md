@@ -42,6 +42,8 @@ h("h1", { "class": "main" },
 - also option to display that it is loading
 - maybe also error display
 
+# FinalizationRegistry 
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry
 
 # unused
 ```js

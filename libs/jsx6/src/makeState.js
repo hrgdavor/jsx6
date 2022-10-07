@@ -11,7 +11,7 @@ let hasDirty = false
 let isRunning = false
 let anim = func => func()
 
-export const addValueSymbol = Symbol('addValue')
+export const extendValueSymbol = Symbol('addValue')
 export const subscribeSymbol = Symbol('subscribe')
 
 if (typeof document !== 'undefined') {
@@ -226,7 +226,7 @@ export function makeState(rawState, returnAll) {
 
   const subscribe = u => doSubscribeValue(updaters, u, returnRaw)
 
-  const add = (newData, force) => {
+  const extend = (newData, force) => {
     if (!newData) return
     if (typeof newData !== 'object') throwErr(ERR_STATE_UPDATE_OBJECT_REQ)
 
@@ -271,10 +271,14 @@ export function makeState(rawState, returnAll) {
     if (changed) _addDirty()
   }
 
-  specialProps.set(addValueSymbol, add)
+  specialProps.set(extendValueSymbol, extend)
   specialProps.set(subscribeSymbol, subscribe)
 
   return returnAll ? [bindingsProxy, state] : bindingsProxy
+}
+
+export function extendValue(obj, value) {
+  obj[extendValueSymbol]?.(value)
 }
 
 export function observe(obj, callback) {

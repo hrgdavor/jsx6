@@ -110,10 +110,6 @@ export class Jsx6 {
   }
 
   created() {}
-  destroy() {
-    delete this.el.component
-  }
-  destroyed() {}
 
   initTemplate() {
     const state = this.$s
