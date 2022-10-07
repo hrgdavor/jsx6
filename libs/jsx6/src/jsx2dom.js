@@ -260,7 +260,6 @@ export function insert(parent, newChild, before, _self) {
       if (maybe) {
         _newChild = maybe
       } else {
-        if (typeof _newChild !== 'string') _newChild += ''
         _newChild = newChild = factories.Text(_newChild)
       }
     }
