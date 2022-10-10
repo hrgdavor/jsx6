@@ -7,7 +7,7 @@ export function mapObserver(obj, mapper) {
   // if (obj.isBindingFunc) return obj(mapper)
 
   const listener = v => {
-    value = mapper(v)
+    let value = mapper(v)
     if (updaters.length) {
       updaters.forEach(u => u(value))
     }
