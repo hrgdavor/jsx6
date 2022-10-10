@@ -47,6 +47,7 @@
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/README.md",
   "devDependencies": {
     "esbuild": "^0.14.39",
-    "ava": "~4.3.3"
+    "ava": "~4.3.3",
+    "jsdom": "~20.0.1"
   }
 }

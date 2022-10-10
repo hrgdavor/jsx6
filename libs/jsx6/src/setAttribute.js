@@ -1,4 +1,4 @@
-import { isNode } from './core'
+import { isNode } from './core.js'
 
 /**
  *  - [null,undefined,false] will remove the attribute

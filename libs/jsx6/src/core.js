@@ -36,6 +36,7 @@ export const throwErr = (c, info) => {
 }
 
 export const NOT = v => !v
+export const VALUE = v => v
 export const BOOL = v => !!v
 export const EQ = to => v => to === v
 

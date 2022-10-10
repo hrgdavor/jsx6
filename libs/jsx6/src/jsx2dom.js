@@ -9,7 +9,8 @@ import {
   ERR_UNSUPPORTED_TAG,
 } from './errorCodes.js'
 import { toDomNode } from './toDomNode.js'
-import { tryObserve } from './makeState.js'
+import { tryObserve } from './observe.js'
+import { remove } from './remove.js'
 
 let SCOPE
 
@@ -74,10 +75,47 @@ export function h(tag, attr, ...children) {
 }
 
 export function nodeFromObservable(obj) {
-  const out = factories.Text('')
-  // TODO make node replacer that handles switching types of conent not just text
-  // TODO make sure node is replaced if new update comes before return and is not a simpel text update on this textNode
-  if (obj && tryObserve(obj, r => (out.textContent = factories.TextValue(r)))) return out
+  const textNode = factories.Text('')
+  const out = [textNode]
+  let first = null
+  const updater = r => {
+    if (r instanceof Array && r.length === 1) r = r[0]
+
+    const node = toDomNode(r)
+    const parent = textNode.parentNode
+
+    if (parent) {
+      while (out.length > 1) {
+        const toRemove = out.shift()
+        console.log('remove', toRemove)
+        remove(toRemove)
+      }
+    } else if (out.length > 1) {
+      out.length = 1
+      out[0] = textNode
+    }
+
+    if (isNode(node)) {
+      updateTextNode(textNode, '')
+      if (parent) insert(parent, node, textNode)
+      out.length = 2
+      out[0] = node
+      out[1] = textNode
+    } else if (r instanceof Array) {
+      updateTextNode(textNode, '')
+      if (parent) insert(parent, r, textNode)
+      out.length = r.length
+      for (let i = 0; i < r.length; i++) out[i] = r[i]
+      out.push(textNode)
+    } else {
+      updateTextNode(textNode, factories.TextValue(r))
+    }
+  }
+  if (obj && tryObserve(obj, updater)) return out
+}
+
+function updateTextNode(node, text) {
+  if (node.textContent !== text) node.textContent = text
 }
 
 /** Enable creating html elements with option to assign parts to properties on the provided scope object.
@@ -245,26 +283,15 @@ export function insert(parent, newChild, before, _self) {
   }
   try {
     let _newChild = toDomNode(newChild)
-    if (_newChild instanceof Array) _newChild = _newChild[0]
 
-    if (!(_newChild instanceof Node)) {
-      const maybe = nodeFromObservable(_newChild)
-      // TODO merge Updater factory code and nodeFromObservable
-      // TODO make more powerful variant that can switch text and dom in the same place
-      //      based on the returned value (enpty text node when undefined is value, and then replace with dom node if dom node is the next value)
-      //      it would allow interesting code that is more like `if()`
-      // if (isFunc(_newChild)) {
-      //   const func = _newChild
-      //   _newChild = factories.Text(textValue(func()))
-      //   factories.Updater(_newChild, before, null, func, _self)
-      if (maybe) {
-        _newChild = maybe
-      } else {
-        _newChild = newChild = factories.Text(factories.TextValue(_newChild))
-      }
+    if (isNode(_newChild)) {
+      _parent.insertBefore(_newChild, toDomNode(before))
+    } else {
+      let maybe = nodeFromObservable(_newChild)
+      if (maybe?.length === 1) maybe = maybe[0]
+      _newChild = newChild = maybe || factories.Text(factories.TextValue(_newChild))
+      insert(_parent, _newChild, before)
     }
-
-    _parent.insertBefore(_newChild, toDomNode(before))
   } catch (error) {
     console.error('parent', parent, 'newChild', newChild, 'before', before)
     throw error

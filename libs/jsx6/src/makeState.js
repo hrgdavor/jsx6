@@ -5,6 +5,7 @@ import {
   ERR_NOT_OBSERVABLE,
   ERR_STATE_UPDATE_OBJECT_REQ,
 } from './errorCodes.js'
+import { subscribeSymbol } from './observe.js'
 // TODO test and make work integration with Observable and RX
 const dirty = new Set()
 let hasDirty = false
@@ -12,7 +13,6 @@ let isRunning = false
 let anim = func => func()
 
 export const extendValueSymbol = Symbol('addValue')
-export const subscribeSymbol = Symbol('subscribe')
 
 if (typeof document !== 'undefined') {
   anim = window.requestAnimationFrame
@@ -90,7 +90,7 @@ export function doSubscribe(updaters, updater) {
 }
 
 function asBinding(func, state, prop, updaters) {
-  func.isBinding = true
+  func.isBindingFunc = true
 
   // TODO check if needed, what is this ?
   //func.update = f => (state[prop] = f(state[prop]()))
@@ -279,22 +279,4 @@ export function makeState(rawState, returnAll) {
 
 export function extendValue(obj, value) {
   obj[extendValueSymbol]?.(value)
-}
-
-export function observe(obj, callback) {
-  if (!tryObserve(obj, callback)) throwErr(ERR_NOT_OBSERVABLE, obj)
-}
-
-export function tryObserve(obj, callback) {
-  const bindingSub = obj[subscribeSymbol]
-  if (bindingSub) {
-    bindingSub(callback)
-    return true
-  }
-  // support for promise(.then) or observable(.subscribe) values
-  const toObserve = obj.then || obj.subscribe
-  if (toObserve) {
-    toObserve.call(obj, callback)
-    return true
-  }
 }

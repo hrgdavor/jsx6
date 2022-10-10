@@ -1,5 +1,6 @@
 import test from 'ava'
-import { makeState, setAnimFunction, tryObserve } from './makeState.js'
+import { makeState, setAnimFunction } from './makeState.js'
+import { tryObserve } from './observe.js'
 
 // call immediately to update state values without async (simpler testing)
 setAnimFunction(f => f())

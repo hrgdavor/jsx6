@@ -1,5 +1,5 @@
 import { isFunc } from './core.js'
-import { tryObserve } from './makeState.js'
+import { tryObserve } from './observe.js'
 
 export function copyBinding(params, prop, options = {}, defRequired, defKeep) {
   const { required = defRequired, callback, def, keep = defKeep } = options

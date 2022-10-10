@@ -1,4 +1,5 @@
-import { doSubscribeValue, subscribeSymbol, tryObserve } from './makeState.js'
+import { doSubscribeValue } from './makeState.js'
+import { subscribeSymbol, tryObserve } from './observe.js'
 
 export function combineState(bindings, callback) {
   const updaters = []

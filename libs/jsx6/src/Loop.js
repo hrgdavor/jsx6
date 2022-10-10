@@ -1,5 +1,5 @@
 import { throwErr } from './core.js'
-import { makeState, subscribeSymbol } from './makeState.js'
+import { makeState } from './makeState.js'
 import { ERR_ITEM_NOT_FOUND } from './errorCodes.js'
 import { domWithScope } from './jsx2dom.js'
 import { Jsx6 } from './Jsx6.js'
