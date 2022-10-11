@@ -4,6 +4,11 @@ import { ERR_ITEM_NOT_FOUND } from './errorCodes.js'
 import { domWithScope, forInsert, h } from './jsx2dom.js'
 import { Jsx6 } from './Jsx6.js'
 
+const _remove = item => {
+  const el = item.el
+  el.parentNode?.removeChild(el)
+}
+
 export class Loop extends Jsx6 {
   items = []
   allItems = []
@@ -126,7 +131,7 @@ export class Loop extends Jsx6 {
     if (this.count == 0) return
     this.count--
     var item = this.items.pop()
-    item.setVisible(false)
+    _remove(item)
 
     this._fixItemList()
 
@@ -184,7 +189,7 @@ export class Loop extends Jsx6 {
         var tmp = removed[i]
         this.insertBefore(tmp.el, this.itemNextSibling || null)
         this.allItems.push(tmp)
-        setVisible(tmp, false)
+        _remove(tmp)
       }
     }
     this.count = Math.max(this.count - deleteCount, 0)
