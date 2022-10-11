@@ -67,10 +67,11 @@ const scope = (window.APP = {})
 // addToBody(
 //   domWithScope(scope, h => (
 //     <>
-//       <Loop p="loop" title={T`test`} item={AComponent} />
+//       <Loop p="loop" item={({ value }) => value.name} />
 //     </>
 //   )),
 // )
+
 addToBody(
   domWithScope(scope, h => (
     <>

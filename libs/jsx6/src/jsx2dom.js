@@ -87,7 +87,6 @@ export function nodeFromObservable(obj) {
     if (parent) {
       while (out.length > 1) {
         const toRemove = out.shift()
-        console.log('remove', toRemove)
         remove(toRemove)
       }
     } else if (out.length > 1) {
@@ -270,30 +269,48 @@ function setPropGroup(self, part, path) {
   }
 }
 
-export function insert(parent, newChild, before, _self) {
+const forInsertFuncObj = newChild => {
+  let maybe = nodeFromObservable(newChild)
+  if (maybe?.length === 1) maybe = maybe[0]
+  return maybe || factories.Text(factories.TextValue(newChild))
+}
+
+export function forInsert(newChild) {
   if (newChild instanceof Array) {
-    return newChild.map(c => insert(parent, c, before, _self))
+    return newChild.map(c => forInsert(c))
   }
+  if (isFunc(newChild)) {
+    newChild = forInsertFuncObj(newChild)
+  } else if (!isNode(newChild)) {
+    if (!newChild) debugger
+    if (isNode(newChild.el)) {
+      newChild = newChild.el
+    } else {
+      newChild = forInsertFuncObj(newChild)
+    }
+  }
+  return newChild
+}
+
+export function insert(parent, newChild, before, _self) {
+  if (newChild === undefined || newChild === null) return
   if (!parent) throwErr(ERR_REQUIRE_PARENT, { parent, newChild, before })
   const _parent = parent.insertBefore ? parent : toDomNode(parent)
 
   if (!_parent.insertBefore) console.error('missing insertBefore', _parent, parent)
-  if (newChild?.__init) {
-    newChild.__init(parent)
-  }
+  let _newChild
   try {
-    let _newChild = toDomNode(newChild)
-
-    if (isNode(_newChild)) {
-      _parent.insertBefore(_newChild, toDomNode(before))
+    if (newChild?.__init) {
+      newChild.__init(parent)
+    }
+    _newChild = forInsert(newChild)
+    if (_newChild instanceof Array) {
+      _newChild.forEach(c => _parent.insertBefore(c, toDomNode(before)))
     } else {
-      let maybe = nodeFromObservable(_newChild)
-      if (maybe?.length === 1) maybe = maybe[0]
-      _newChild = newChild = maybe || factories.Text(factories.TextValue(_newChild))
-      insert(_parent, _newChild, before)
+      _parent.insertBefore(_newChild, toDomNode(before))
     }
   } catch (error) {
-    console.error('parent', parent, 'newChild', newChild, 'before', before)
+    console.error('parent', parent, 'newChild', newChild, 'before', before, 'forInsert', _newChild)
     throw error
   }
   return newChild

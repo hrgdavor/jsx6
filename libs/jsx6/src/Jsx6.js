@@ -92,7 +92,7 @@ export class Jsx6 {
 
   createEl() {
     if (!this.tagName) {
-      this.el = [document.createTextNode('')]
+      this.el = document.createTextNode('')
     } else {
       this.el = h(this.tagName)
       if (this.cName) this.classList.add(this.cName)
@@ -163,9 +163,8 @@ export class Jsx6 {
     insert(this.el, c)
   }
   insertBefore(c, before) {
-    if (this.el instanceof Array) {
-      const el = this.el[0]
-      this.el.push(insert(el.parentNode, c, el))
+    if (this.el.nodeType == 3) {
+      insert(this.el.parentNode, c, before || this.el)
     } else {
       insert(this.contentArea || this.el, c, before)
     }

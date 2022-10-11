@@ -1,9 +1,8 @@
 import { throwErr } from './core.js'
 import { makeState } from './makeState.js'
 import { ERR_ITEM_NOT_FOUND } from './errorCodes.js'
-import { domWithScope } from './jsx2dom.js'
+import { domWithScope, forInsert, h } from './jsx2dom.js'
 import { Jsx6 } from './Jsx6.js'
-import { setVisible } from './setVisible.js'
 
 export class Loop extends Jsx6 {
   items = []
@@ -55,9 +54,6 @@ export class Loop extends Jsx6 {
     else item.setValue(newData)
 
     item.el.loopIndex = i
-    if (newData !== undefined) {
-      setVisible(item, true)
-    }
   }
 
   makeItem(newData, i) {
@@ -75,9 +71,8 @@ export class Loop extends Jsx6 {
         setValue: valueProxy,
         getValue: valueProxy,
       }
-      comp.el = domWithScope(comp, () => item(attr, [], comp, this.parent))
-      valueProxy.el = comp.el
-      this.insertBefore(comp)
+      comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp, this.parent)))
+      this.insertBefore(comp.el)
     }
     comp.el.loopComp = this
     comp.setValue(newData)
@@ -85,12 +80,18 @@ export class Loop extends Jsx6 {
   }
 
   _fixItemList(reindex) {
-    this.items = this.allItems.slice(0, this.count)
+    const count = this.count
+    this.items = this.allItems.slice(0, count)
     if (reindex) {
       var it = this.allItems
       for (var i = 0; i < it.length; i++) {
-        it[i].el.loopIndex = i
-        setVisible(it[i], i < this.count)
+        const el = it[i].el
+        el.loopIndex = i
+        if (i < count && !el.parentNode) {
+          this.insertBefore(el)
+        } else if (i >= count && el.parentNode) {
+          el.parentNode.removeChild(el)
+        }
       }
     }
   }
