@@ -1,13 +1,20 @@
 # Change Log - @jsx6/jsx6
 
-This log was last generated on Mon, 10 Oct 2022 12:53:00 GMT and should not be manually modified.
+This log was last generated on Tue, 11 Oct 2022 09:47:49 GMT and should not be manually modified.
+
+## 1.5.11
+Tue, 11 Oct 2022 09:47:49 GMT
+
+### Updates
+
+- fix loop handling and text nodes
 
 ## 1.5.10
 Mon, 10 Oct 2022 12:53:00 GMT
 
 ### Updates
 
- - refactor observe, add NodeUpdater that can switch different content
+- refactor observe, add NodeUpdater that can switch different content
 
 ## 1.5.9
 Fri, 07 Oct 2022 23:33:44 GMT

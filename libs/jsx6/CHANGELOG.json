@@ -2,6 +2,18 @@
   "name": "@jsx6/jsx6",
   "entries": [
     {
+      "version": "1.5.11",
+      "tag": "@jsx6/jsx6_v1.5.11",
+      "date": "Tue, 11 Oct 2022 09:47:49 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "fix loop handling and text nodes"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.5.10",
       "tag": "@jsx6/jsx6_v1.5.10",
       "date": "Mon, 10 Oct 2022 12:53:00 GMT",
