@@ -1,0 +1,54 @@
+{
+  "name": "@jsx6/dom-observer",
+  "version": "1.5.12",
+  "type": "module",
+  "sideEffects": false,
+  "description": "Performance for multiple ResizeObserver and IntersectionObserver",
+  "main": "index.js",
+  "unpkg": "cjs/index.js",
+  "module": "./index.js",
+  "exports": {
+    ".": {
+      "require": "./cjs/index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "esm",
+    "cjs"
+  ],
+  "scripts": {
+    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
+    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
+    "test": "ava",
+    "prepublishOnly": "npm run build && npm run build-cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrgdavor/jsx6.git"
+  },
+  "keywords": [
+    "DOM",
+    "IntersectionObserver",
+    "ResizeObserver",
+    "Performance",
+    "HTML"
+  ],
+  "author": "Davor hrg",
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/hrgdavor/jsx6/blob/master/LICENSE.md"
+    }
+  ],
+  "bugs": {
+    "url": "https://hrgdavor/jsx6/issues"
+  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/dom-observer/README.md",
+  "devDependencies": {
+    "esbuild": "^0.14.39",
+    "ava": "~4.3.3"
+  }
+}

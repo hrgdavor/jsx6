@@ -1,4 +1,5 @@
-import { Jsx6, fireEvent, observeResize } from '@jsx6/jsx6'
+import { observeResize } from '@jsx6/dom-observer'
+import { Jsx6, fireEvent } from '@jsx6/jsx6'
 
 import { Defered } from './async/Defered'
 

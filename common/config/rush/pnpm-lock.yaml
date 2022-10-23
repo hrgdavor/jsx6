@@ -8,8 +8,9 @@ importers:
   ../../apps/repl:
     specifiers:
       '@babel/standalone': ~7.18.12
+      '@jsx6/dom-observer': workspace:^1.5.12
       '@jsx6/editor-monaco': workspace:^0.34.100
-      '@jsx6/jsx6': workspace:^1.5.9
+      '@jsx6/jsx6': workspace:^1.5.12
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       babel-plugin-jsx-simple: ~1.6.0
       babel-plugin-syntax-jsx: ~6.18.0
@@ -21,6 +22,7 @@ importers:
       vite: ~3.0.9
       vite-plugin-static-copy: ~0.9.0
     dependencies:
+      '@jsx6/dom-observer': link:../../libs/dom-observer
       '@jsx6/jsx6': link:../../libs/jsx6
       babel-plugin-jsx-simple: 1.6.0
       babel-plugin-syntax-jsx: 6.18.0
@@ -35,6 +37,14 @@ importers:
       prettier: 2.7.1
       vite: 3.0.9
       vite-plugin-static-copy: 0.9.0_vite@3.0.9
+
+  ../../libs/dom-observer:
+    specifiers:
+      ava: ~4.3.3
+      esbuild: ^0.14.39
+    devDependencies:
+      ava: 4.3.3
+      esbuild: 0.14.47
 
   ../../libs/editor-monaco:
     specifiers:

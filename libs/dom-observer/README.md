@@ -1,0 +1,1 @@
+Performance for multiple ResizeObserver and IntersectionObserver

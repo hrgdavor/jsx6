@@ -1,4 +1,5 @@
-import { Jsx6, addToBody, classIf, insert, observeResize } from '@jsx6/jsx6'
+import { observeResize } from '@jsx6/dom-observer'
+import { Jsx6, addToBody, classIf, insert } from '@jsx6/jsx6'
 import { parse, stringify } from 'mulmd'
 import PerfectScrollbar from 'perfect-scrollbar'
 

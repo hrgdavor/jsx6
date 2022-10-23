@@ -482,6 +482,12 @@
       "versionPolicyName": "individual"
     },
     {
+      "packageName": "@jsx6/dom-observer",
+      "projectFolder": "libs/dom-observer",
+      "tags": ["DOM", "IntersectionObserver", "ResizeObserver", "Performance", "HTML"],
+      "versionPolicyName": "jsx6"
+    },
+    {
       "packageName": "@jsx6/repl",
       "projectFolder": "apps/repl",
       "tags": ["tools", "repl", "tutorial"],

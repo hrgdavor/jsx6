@@ -1,0 +1,17 @@
+.TestIntersect{
+  margin-top: 50px;
+  width: 200px;
+  height: 200px;
+  border: solid 1px;
+  display: flex;
+  justify-content: space-between;
+  flex-direction: column;
+}
+.TestIntersect b{
+  background-color: #eee;
+}
+.IntesectOuter{
+  padding-top: 200px;
+  width: 230px; 
+  height: 300px;
+}
