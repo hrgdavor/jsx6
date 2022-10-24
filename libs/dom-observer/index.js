@@ -103,11 +103,11 @@ export function observeIntersect(el, callback, { root, rootMargin, threshold, de
   return handler.observe(el, callback)
 }
 
-export function observeShowHide(el, callback, { root, rootMargin } = {}) {
-  return observeIntersect(el, callback, { root, rootMargin, threshold: visibleThreshold })
+export function observeShowHide(el, callback, { root, rootMargin, threshold = visibleThreshold } = {}) {
+  return observeIntersect(el, callback, { root, rootMargin, threshold })
 }
 
-export function observeInit(el, callback, { root, rootMargin } = {}) {
+export function observeInit(el, callback, { root, rootMargin, threshold = visibleThreshold } = {}) {
   let remove = observeIntersect(
     el,
     evt => {
@@ -116,6 +116,6 @@ export function observeInit(el, callback, { root, rootMargin } = {}) {
         callback(evt)
       }
     },
-    { root, rootMargin, threshold: visibleThreshold },
+    { root, rootMargin, threshold },
   )
 }
