@@ -2,13 +2,14 @@
 
 A JSX library without a special compiler that changes DOM precisely and reactively.
 
-Very much alike to the code in this [video](https://www.youtube.com/watch?v=O6xtMrDEhcE&ab_channel=ReactFinland). Uses functions and JavaScript Proxies to avoid the need for compiling.
+- Very much alike to the code in this [video](https://www.youtube.com/watch?v=O6xtMrDEhcE&ab_channel=ReactFinland). 
+- Uses functions and JavaScript Proxies to avoid the need for compiling.
+- Only needs support for JSX in bundlers.
 
-Only needs support for JSX in bundlers.
+- Can be built by pure(full-speed) [esbuid](https://esbuild.github.io/) without any plugins. 
 
-Can be built by pure(full-speed) [esbuid](https://esbuild.github.io/) without any plugins. 
+- Supports observables and promises out of the box (probably will also support signals)
 
-Supports observables and promises out of the box (probably will also support signals)
 
 ## NON goals
 
