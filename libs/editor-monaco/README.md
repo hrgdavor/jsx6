@@ -1,6 +1,13 @@
+### note
+This could easily become obsolete if I find similarly simple way to do this with official builds. For now, I need this build.
+I am starting to realise that unpkg removes this from cache realetively fast, because there are not many users/downloads. So When I open sites using this, first load can take tens of seconds.
+
 # Pre-built Monaco editor with workers
 
 ![Version 0.34.100](https://img.shields.io/badge/version-0.34.100-blue)
+
+
+
 
 Purpose of this repo is to be able to use Monaco editor in my projects without advanced tools.
 Monaco is such big editor that I want to load it separately, and if I include it as a dependency
