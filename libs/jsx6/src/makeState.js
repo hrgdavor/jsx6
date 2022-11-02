@@ -1,11 +1,7 @@
 import { runFunc, throwErr, isObj, requireFunc, isFunc, isObjNN } from './core.js'
-import {
-  ERR_DIRTY_RECURSION,
-  ERR_DIRTY_RUNNER_FUNC,
-  ERR_NOT_OBSERVABLE,
-  ERR_STATE_UPDATE_OBJECT_REQ,
-} from './errorCodes.js'
+import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC, ERR_STATE_UPDATE_OBJECT_REQ } from './errorCodes.js'
 import { subscribeSymbol } from './observe.js'
+
 // TODO test and make work integration with Observable and RX
 const dirty = new Set()
 let hasDirty = false
@@ -112,6 +108,15 @@ function asBinding(func, state, prop, updaters) {
   return func
 }
 
+/**
+ * Mimics Observable RxJS
+ * - toString enables state.sth ++ to work even though it is a function
+ * - toJSON enables us to not worry if binding is sent to RPC or whatever else that uses JSON.stringify
+ *
+ * @param {Object|Function} obj
+ * @param {Function} func - func that returns desired value for: toString and toJSON
+ * @returns
+ */
 const addCommonGet = (obj, func) => (obj.toString = obj.toJSON = func)
 
 export function makeState(rawState, returnAll) {
@@ -178,18 +183,10 @@ export function makeState(rawState, returnAll) {
         })
         const func = function (value) {
           if (arguments.length !== 0) {
-            if (isFunc(value)) {
-              return filterFunc(value)
-            }
             if (updateProp(prop, value)) _addDirty()
           }
           return rawState[prop]
         }
-        const filterFunc = filter =>
-          asBinding(() => filter(rawState[prop]), bindingsProxy, prop, perPropUpdaters.get(prop))
-        // next mimics Observable RxJS
-        // toString enables state.sth ++ to work even though it is a function
-        // toJSON enables us to not worry if binding is sent to RPC or whatever else that uses JSON.stringify
         addCommonGet(func, func)
         bindings.set(prop, asBinding(func, bindingsProxy, prop, perPropUpdaters.get(prop)))
       }
@@ -198,20 +195,7 @@ export function makeState(rawState, returnAll) {
   })
 
   function bindingFunc(f) {
-    if (!arguments.length) {
-      return returnRaw()
-    } else if (isFunc(f)) {
-      // the function provided as parameter is a filter function that will create a new value
-      // whenever the state changes
-      const out = () => f(state)
-      // anyone subscribing must get the filtered value as part of subscription
-      out[subscribeSymbol] = updater => doSubscribe(updaters, () => updater(f(state)))
-      // we effectively created a filtered binding that gives subscribers a filtered value out based on
-      // the original state
-      return out
-    } else {
-      set(f)
-    }
+    return arguments.length ? set(f) : returnRaw()
   }
 
   function updateProp(p, value, force) {

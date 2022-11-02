@@ -1,5 +1,6 @@
 import test from 'ava'
 import { makeState, setAnimFunction } from './makeState.js'
+import { $R } from './combineState.js'
 import { h } from './jsx2dom.js'
 import { lazySwitchValue, lazyShow, lazySwitch } from './lazySwitch.js'
 
@@ -17,7 +18,7 @@ test('lazyFlip', t => {
   const noData = 'no data' // does not have to be a generator function
   const content = v => h('B', null, 'number: ', $state.count, '/', seq++)
 
-  let div = h('DIV', null, $state(lazySwitch(indexer, noData, content)))
+  let div = h('DIV', null, $R(lazySwitch(indexer, noData, content), $state))
   t.is(div.innerHTML, 'no data')
 
   $state.count = 2
@@ -36,7 +37,7 @@ test('simpleFlip', t => {
   const indexer = state => (state.count === 1 ? 0 : 1)
   const content = h('B', null, 'number: ', $state.count, '/', seq++)
 
-  let div = h('DIV', null, $state(lazySwitch(indexer, 'no data', content)))
+  let div = h('DIV', null, $R(lazySwitch(indexer, 'no data', content), $state))
   t.is(div.innerHTML, 'no data')
 
   $state.count = 2
@@ -54,7 +55,7 @@ test('simpleFlip string keys', t => {
   let seq = 1
   const content = v => h('B', null, 'number: ', $state.part, '/', seq++)
 
-  let div = h('DIV', null, $state.part(lazySwitchValue({ a: 'no data', b: content })))
+  let div = h('DIV', null, $R(lazySwitchValue({ a: 'no data', b: content }), $state.part))
   t.is(div.innerHTML, 'no data')
 
   $state.part = 'b'
@@ -75,7 +76,14 @@ test('lazyShow', t => {
   let seq = 1
   const content = v => h('B', null, 'number: ', $state.count, '/', seq++)
 
-  let div = h('DIV', null, $state.count(lazyShow(c => c > 1, content)))
+  let div = h(
+    'DIV',
+    null,
+    $R(
+      lazyShow(c => c > 1, content),
+      $state.count,
+    ),
+  )
   t.is(div.innerHTML, '')
 
   $state.count = 2

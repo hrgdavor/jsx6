@@ -1,5 +1,6 @@
 import test from 'ava'
 import { makeState, setAnimFunction } from './makeState.js'
+import { $R } from './combineState.js'
 import { h } from './jsx2dom.js'
 
 import { JSDOM } from 'jsdom'
@@ -28,7 +29,7 @@ test('updatable', t => {
     }
   }
 
-  let div = h('DIV', null, $state(generator))
+  let div = h('DIV', null, $R(generator, $state))
   t.is(div.innerHTML, 'one')
 
   $state.count = 2
