@@ -18,7 +18,7 @@ test('lazyFlip', t => {
   const noData = 'no data' // does not have to be a generator function
   const content = v => h('B', null, 'number: ', $state.count, '/', seq++)
 
-  let div = h('DIV', null, $R(lazySwitch(indexer, noData, content), $state))
+  let div = h('DIV', null, lazySwitch(indexer, $state, noData, content))
   t.is(div.innerHTML, 'no data')
 
   $state.count = 2
@@ -37,7 +37,7 @@ test('simpleFlip', t => {
   const indexer = state => (state.count === 1 ? 0 : 1)
   const content = h('B', null, 'number: ', $state.count, '/', seq++)
 
-  let div = h('DIV', null, $R(lazySwitch(indexer, 'no data', content), $state))
+  let div = h('DIV', null, lazySwitch(indexer, $state, 'no data', content))
   t.is(div.innerHTML, 'no data')
 
   $state.count = 2
@@ -55,7 +55,7 @@ test('simpleFlip string keys', t => {
   let seq = 1
   const content = v => h('B', null, 'number: ', $state.part, '/', seq++)
 
-  let div = h('DIV', null, $R(lazySwitchValue({ a: 'no data', b: content }), $state.part))
+  let div = h('DIV', null, lazySwitchValue($state.part, { a: 'no data', b: content }))
   t.is(div.innerHTML, 'no data')
 
   $state.part = 'b'
@@ -72,18 +72,11 @@ test('simpleFlip string keys', t => {
 })
 
 test('lazyShow', t => {
-  const $state = makeState({ count: 1 })
+  const $state = makeState({ count: 0 })
   let seq = 1
   const content = v => h('B', null, 'number: ', $state.count, '/', seq++)
 
-  let div = h(
-    'DIV',
-    null,
-    $R(
-      lazyShow(c => c > 1, content),
-      $state.count,
-    ),
-  )
+  let div = h('DIV', null, lazyShow($state.count, content))
   t.is(div.innerHTML, '')
 
   $state.count = 2
@@ -94,4 +87,32 @@ test('lazyShow', t => {
 
   $state.count = 3
   t.is(div.innerHTML, '<b>number: 3/1</b>')
+})
+
+test('lazyShow2', t => {
+  const $state = makeState({ count: 0, names: [] })
+  let seq = 1
+  const content = v =>
+    h(
+      'B',
+      null,
+      'names: ',
+      $R(v => v.join(','), $state.names),
+      '/',
+      seq++,
+    )
+
+  let div = h('DIV', null, lazyShow($state.count, content))
+  t.is(div.innerHTML, '')
+
+  $state.count = 2
+  $state.names = ['john', 'joe']
+  t.is(div.innerHTML, '<b>names: john,joe/1</b>')
+
+  $state.count = 0
+  t.is(div.innerHTML, '')
+
+  $state.count = 3
+  $state.names = ['john', 'joe', 'jane']
+  t.is(div.innerHTML, '<b>names: john,joe,jane/1</b>')
 })

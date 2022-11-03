@@ -1,18 +1,23 @@
-import { VALUE } from './core.js'
-import { mapObserver, observe } from './observe.js'
+import { isFunc, VALUE } from './core.js'
+import { $R } from './combineState.js'
+import { mapObserver } from './observe.js'
 
-export const lazyShow = (filter, generator) => lazySwitch(v => (filter(v) ? 1 : 0), '', generator)
-export const lazySwitchValue = (...generators) => lazySwitch(v => v, ...generators)
-export const lazySwitch = (indexer, ...generators) => {
-  if (generators.length === 1) generators = generators[0] // support string as keys
-  return v => {
-    let idx = indexer(v)
+export const lazyShow = (value, generator) => lazySwitch(v => (v ? 1 : 0), value, '', generator)
+
+export const lazySwitchValue = (value, ...generators) => lazySwitch(VALUE, value, ...generators)
+
+export const lazySwitch = (indexer, value, ...generators) => {
+  // support string as keys (generrators are in an object ) or array is used instead of varargs
+  if (generators.length === 1) generators = generators[0]
+
+  return $R(v => {
+    const idx = indexer(v)
     let out = generators[idx]
     if (out !== undefined) {
-      if (typeof out === 'function') generators[idx] = out = out(v)
+      if (isFunc(out)) generators[idx] = out = out()
       return out
     }
-  }
+  }, value)
 }
 
 export const Switch = ({ value, ...attr }, children) => {
