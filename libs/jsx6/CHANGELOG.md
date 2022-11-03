@@ -1,6 +1,13 @@
 # Change Log - @jsx6/jsx6
 
-This log was last generated on Sun, 23 Oct 2022 19:56:49 GMT and should not be manually modified.
+This log was last generated on Thu, 03 Nov 2022 14:50:59 GMT and should not be manually modified.
+
+## 1.5.14
+Thu, 03 Nov 2022 14:50:59 GMT
+
+### Updates
+
+- remove filtering option as parameter and use $R for filters ond combining reactives
 
 ## 1.5.13
 Sun, 23 Oct 2022 19:56:49 GMT

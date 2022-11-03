@@ -2,6 +2,18 @@
   "name": "@jsx6/jsx6",
   "entries": [
     {
+      "version": "1.5.14",
+      "tag": "@jsx6/jsx6_v1.5.14",
+      "date": "Thu, 03 Nov 2022 14:50:59 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "remove filtering option as parameter and use $R for filters ond combining reactives"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.5.13",
       "tag": "@jsx6/jsx6_v1.5.13",
       "date": "Sun, 23 Oct 2022 19:56:49 GMT",
