@@ -108,11 +108,14 @@ test('lazyShow2', t => {
   $state.count = 2
   $state.names = ['john', 'joe']
   t.is(div.innerHTML, '<b>names: john,joe/1</b>')
+  const elemRef = div.firstChild
 
   $state.count = 0
   t.is(div.innerHTML, '')
+  t.is(elemRef === div.firstChild, false)
 
   $state.count = 3
   $state.names = ['john', 'joe', 'jane']
   t.is(div.innerHTML, '<b>names: john,joe,jane/1</b>')
+  t.is(elemRef === div.firstChild, true) // same HTML node is reused with different content inside
 })
