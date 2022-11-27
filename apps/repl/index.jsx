@@ -1,6 +1,7 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
 import {
+  $R,
   Jsx6,
   Loop,
   T,
@@ -84,7 +85,7 @@ addToBody(
         item={({ $v }, c, _scope, loop) => (
           <div>
             {console.log('loop', loop)}
-            TPL:<b onclick={e => scope.loop2.removeItem(_scope)}>{$v.name(name => name + '----')}</b>
+            TPL:<b onclick={e => scope.loop2.removeItem(_scope)}>{$R(name => name + '----', $v.name)}</b>
           </div>
         )}
       />
