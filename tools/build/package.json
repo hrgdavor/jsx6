@@ -1,11 +1,11 @@
 {
   "name": "@jsx6/build",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "Monaco editor pre-build for standalone usage",
   "main": "index.js",
-  "unpkg": "cjs/index.js",
-  "module": "esm/index.js",
+  "unpkg": "dist/index.js",
+  "module": "dist/index.esm.js",
   "exports": {
     ".": {
       "require": "./dist/index.js",
@@ -13,12 +13,14 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "index.js",
+    "src"
   ],
   "scripts": {
     "build": "npm run build-editor && npm run build-editor-esm",
-    "build-editor": "esbuild index.js --outdir=dist --bundle --sourcemap --minify --loader:.ttf=file --format=iife --global-name=jsx6build",
-    "build-editor-esm": "esbuild index.js --outfile=dist/index.esm.js --bundle --sourcemap --minify --loader:.ttf=file --format=esm",
+    "build-editor": "esbuild index.js --outdir=dist --bundle --sourcemap --platform=node --minify --loader:.ttf=file --format=iife --global-name=jsx6build ",
+    "build-editor-esm": "esbuild index.js --outfile=dist/index.esm.js --bundle --sourcemap --platform=node --minify --loader:.ttf=file --format=esm",
     "format": "prettier --write \"./*.{js,jsx,json}\"",
     "version": "node ./versync.js 0.34.100 && git add README.md",
     "prepublishOnly": "npm run build"
@@ -27,7 +29,13 @@
     "type": "git",
     "url": "git+https://github.com/hrgdavor/jsx6.git"
   },
-  "keywords": ["build", "watch", "glob", "copy", "mkdir"],
+  "keywords": [
+    "build",
+    "watch",
+    "glob",
+    "copy",
+    "mkdir"
+  ],
   "author": "Davor hrg",
   "license": "MIT",
   "licenses": [
