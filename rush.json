@@ -476,6 +476,12 @@
       "versionPolicyName": "jsx6"
     },
     {
+      "packageName": "@jsx6/build",
+      "projectFolder": "tools/build",
+      "tags": ["build", "watch", "glob", "copy", "mkdir"],
+      "versionPolicyName": "individual"
+    },
+    {
       "packageName": "@jsx6/editor-monaco",
       "projectFolder": "libs/editor-monaco",
       "tags": ["editor", "ui", "monaco", "javascript", "markdown"],
