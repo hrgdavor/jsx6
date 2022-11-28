@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Build utility",
   "main": "index.js",
-  "module": "index.js",
+  "module": "./index.js",
   "exports": {
     ".": {
       "default": "./index.js"
