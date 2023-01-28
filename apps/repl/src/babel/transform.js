@@ -4,7 +4,7 @@ import syntax_jsx from 'babel-plugin-syntax-jsx'
 import { preventInfiniteLoops } from './preventInfiniteLoops'
 
 const babelMissing = () => {
-  throw new Error('Babel module is missing. Please load bable module and call setBabelModule')
+  throw new Error('Babel module is missing. Please load Babel module and call setBabelModule')
 }
 let BABEL = { transform: babelMissing }
 

@@ -13,7 +13,7 @@ import { tryObserve } from './observe.js'
 import { remove } from './remove.js'
 
 let SCOPE
-
+let DUMP_STACK = false
 export const getScope = () => SCOPE
 
 /** Short but pretty usable support function for JSX.
@@ -28,6 +28,10 @@ export function h(tag, attr, ...children) {
 
   if (isStr(tag)) {
     const out = factories.Element(tag)
+    // if (DUMP_STACK) {
+    out.createStack = new Error('createStack')
+    DUMP_STACK = false
+    // }
     insertAttr(attr, out, SCOPE)
     children.forEach(c => insert(out, c))
     return out
@@ -130,11 +134,14 @@ function updateTextNode(node, text) {
  */
 export function domWithScope(scope, f) {
   const old = SCOPE
+  const oldStack = DUMP_STACK
   try {
     SCOPE = scope
+    DUMP_STACK = true
     return f(h)
   } finally {
     SCOPE = old
+    DUMP_STACK = oldStack
   }
 }
 export function domToProps(f) {
