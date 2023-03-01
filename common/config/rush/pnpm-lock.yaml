@@ -5,6 +5,23 @@ importers:
   .:
     specifiers: {}
 
+  ../../apps/nodditor:
+    specifiers:
+      '@jsx6/dom-observer': workspace:^1.5.15
+      '@jsx6/jsx6': workspace:^1.5.15
+      '@trivago/prettier-plugin-sort-imports': ~3.3.0
+      esbuild: ^0.14.39
+      prettier: ~2.7.1
+      vite: ~3.0.9
+    dependencies:
+      '@jsx6/dom-observer': link:../../libs/dom-observer
+      '@jsx6/jsx6': link:../../libs/jsx6
+    devDependencies:
+      '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
+      esbuild: 0.14.47
+      prettier: 2.7.1
+      vite: 3.0.9
+
   ../../apps/repl:
     specifiers:
       '@babel/standalone': ~7.18.12

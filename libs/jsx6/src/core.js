@@ -2,7 +2,11 @@ import { ERR_REQUIRE_FUNC } from './errorCodes.js'
 
 const TRANS = {}
 
-export class Group {}
+export class Group {
+  constructor(obj) {
+    for (let p in obj) this[p] = obj[p]
+  }
+}
 
 export function addTranslations(trans) {
   Object.assign(TRANS, trans)

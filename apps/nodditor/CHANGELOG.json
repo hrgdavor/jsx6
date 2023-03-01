@@ -1,0 +1,20 @@
+{
+  "name": "@jsx6/nodditor",
+  "entries": [
+    {
+      "version": "1.0.0",
+      "tag": "@jsx6/nodditor_v1.0.0",
+      "date": "Wed, 01 Mar 2023 22:32:14 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Dependency @jsx6/dom-observer version bump from workspace:^1.5.15 to workspace:^1.5.16."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx6 version bump from workspace:^1.5.15 to workspace:^1.5.16."
+          }
+        ]
+      }
+    }
+  ]
+}

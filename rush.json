@@ -498,6 +498,12 @@
       "projectFolder": "apps/repl",
       "tags": ["tools", "repl", "tutorial"],
       "versionPolicyName": "jsx6"
+    },
+    {
+      "packageName": "@jsx6/nodditor",
+      "projectFolder": "apps/nodditor",
+      "tags": ["tools", "blocky", "code"],
+      "versionPolicyName": "individual"
     }
   ]
 }

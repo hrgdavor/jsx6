@@ -1,0 +1,20 @@
+.ne-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 100px;
+  min-height: 100px;
+  border: solid 1px gray;
+  border-radius: 3px;
+}
+
+[ne-drag],
+[ne-drag] *:not([ne-nodrag]) {
+  cursor: grab;
+  user-select: none;
+}
+
+[ne-drag] [ne-nodrag] {
+  cursor: initial;
+  user-select: initial;
+}

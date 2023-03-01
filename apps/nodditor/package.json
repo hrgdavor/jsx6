@@ -1,8 +1,8 @@
 {
-  "name": "@jsx6/repl",
-  "version": "1.5.16",
+  "name": "@jsx6/nodditor",
+  "version": "1.0.0",
   "type": "module",
-  "description": "JSX6 REPL engine",
+  "description": "JSX6 blocky nodes code editor",
   "main": "index.js",
   "unpkg": "cjs/index.js",
   "module": "esm/index.js",
@@ -19,6 +19,7 @@
     "cjs"
   ],
   "scripts": {
+    "dev": "npx vite --port 5179",
     "build": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "format": "prettier --write \"./src/**/*.{js,jsx,json}\"",
@@ -32,7 +33,9 @@
   "keywords": [
     "UI",
     "jsx",
-    "repl"
+    "node",
+    "code",
+    "blocky"
   ],
   "author": "Davor hrg",
   "license": "MIT",
@@ -50,18 +53,10 @@
     "esbuild": "^0.14.39",
     "vite": "~3.0.9",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
-    "prettier": "~2.7.1",
-    "@jsx6/editor-monaco": "workspace:^0.34.100",
-    "@babel/standalone": "~7.18.12",
-    "vite-plugin-static-copy": "~0.9.0"
+    "prettier": "~2.7.1"
   },
   "dependencies": {
     "@jsx6/jsx6": "workspace:^1.5.16",
-    "@jsx6/dom-observer": "workspace:^1.5.16",
-    "babel-plugin-syntax-jsx": "~6.18.0",
-    "babel-plugin-jsx-simple": "~1.6.0",
-    "markdown-it": "~13.0.1",
-    "mulmd": "~0.7.0",
-    "perfect-scrollbar": "~1.5.5"
+    "@jsx6/dom-observer": "workspace:^1.5.16"
   }
 }
