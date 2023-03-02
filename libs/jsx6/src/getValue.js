@@ -1,4 +1,4 @@
-import { isFunc } from './core.js'
+import { isFunc, isObj } from './core.js'
 import { mapProp } from './mapProp.js'
 
 export function getValue(obj) {
