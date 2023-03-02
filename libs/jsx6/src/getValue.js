@@ -12,7 +12,7 @@ export function getValue(obj) {
       return obj.checked
     }
   } else {
-    if (typeof obj === 'object') return mapProp(obj, getValue)
+    if (isObj(obj)) return mapProp(obj, getValue)
   }
 
   return obj.value
