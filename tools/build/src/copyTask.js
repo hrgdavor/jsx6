@@ -1,32 +1,41 @@
-import { copyFileSync, mkdirSync } from 'fs'
+import { copyFileSync, mkdirSync, lstatSync } from 'fs'
 
 import glob from 'glob'
 import minimatch from 'minimatch'
+import { watchDir } from './watchDir.js'
 
-export const filterMatches = (files, patterns, include) => {
-  if (patterns?.length) {
-    return files.filter(f => {
-      let ok = !include
-      patterns.forEach(m => {
-        if (minimatch(f, m)) ok = include
-      })
-      return ok
-    })
+/**
+ *
+ * @param {string} file
+ * @param {Array<string>} include
+ * @param {Array<string>} exclude
+ * @returns
+ */
+export const checkMatch = (file, include = [], exclude = []) => {
+  if (exclude?.length) {
+    for (let i = exclude.length - 1; i >= 0; i--) {
+      if (minimatch(file, exclude[i])) return false
+    }
   }
-  return files
+
+  if (include?.length) {
+    let ok = false
+    for (let i = include.length - 1; i >= 0; i--) {
+      if (minimatch(file, include[i])) {
+        ok = true
+        break
+      }
+    }
+    return ok
+  }
+  return true
 }
 
-export const copyTask = (folder, to, { include = [], exclude = [] } = {}) => {
-  mkdirSync(folder, { recursive: true })
+export const copyTask = (folder, to, { include = [], exclude = [], watch = false, delay = 50 } = {}) => {
+  mkdirSync(to, { recursive: true })
   const createdDir = {}
-  const folderNameLen = folder.length
-  let matches = glob
-    .sync(folder + '/**', { sync: true, nodir: true })
-    .map(f => f.substring(folderNameLen + 1))
-  matches = filterMatches(matches, include, true)
-  matches = filterMatches(matches, exclude, false)
 
-  matches.forEach(f => {
+  const copyFile = f => {
     const idx = f.lastIndexOf('/')
     if (idx !== -1) {
       const dirToMake = to + '/' + f.substring(0, idx)
@@ -35,6 +44,19 @@ export const copyTask = (folder, to, { include = [], exclude = [] } = {}) => {
         createdDir[dirToMake] = true
       }
     }
-    copyFileSync(folder + '/' + f, to + '/' + f)
-  })
+    if (!lstatSync(folder + '/' + f).isDirectory()) copyFileSync(folder + '/' + f, to + '/' + f)
+  }
+
+  const folderNameLen = folder.length
+  let matches = glob
+    .sync(folder + '/**', { sync: true, nodir: true })
+    .map(f => f.substring(folderNameLen + 1))
+    .filter(f => checkMatch(f, include, exclude))
+
+  matches.forEach(copyFile)
+  if (watch) {
+    watchDir(folder, (type, f) => {
+      if (checkMatch(f, include, exclude)) copyFile(f)
+    })
+  }
 }
