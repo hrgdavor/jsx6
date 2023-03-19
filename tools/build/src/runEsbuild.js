@@ -1,4 +1,3 @@
-
 export const logBuildPlugin = {
   name: 'buildTime',
   setup(build) {
@@ -14,7 +13,7 @@ export const logBuildPlugin = {
   },
 }
 
-export const runEsbuild = async (esbuild, { watch, ...esBuildOptions }) => {
+export const runEsbuild = async (esbuild, { watch, dispose = true, ...esBuildOptions }) => {
   if (!esBuildOptions.plugins) esBuildOptions.plugins = []
   esBuildOptions.plugins.push(logBuildPlugin)
 
@@ -23,6 +22,7 @@ export const runEsbuild = async (esbuild, { watch, ...esBuildOptions }) => {
   await ctx.rebuild()
 
   if (watch) await ctx.watch()
+  else if (dispose) ctx.dispose()
 
   return ctx
 }
