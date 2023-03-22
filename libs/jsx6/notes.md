@@ -1,3 +1,6 @@
+## VSCODE OPEM
+vscode://file/D:/path/to/file.js:line
+
 ## components and functional style
 looks like in JS calling new on a function is not a problem if function returns value
 in that case it acts like regular function
