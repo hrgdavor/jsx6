@@ -82,9 +82,12 @@ const doCopy = (inp, out, filters = [], rel) => {
     let conetentOut
     if (filters?.length) {
       let content
-      filters.forEach(({ filter, include = [], exclude = [] }) => {
+      filters.forEach(({ filter, binary = false, include = [], exclude = [] }) => {
         if (checkMatch(rel, include, exclude)) {
-          if (!content) content = readFileSync(inp).toString()
+          if (!content) {
+            content = readFileSync(inp)
+            if (!binary) content = content.toString()
+          }
           let tmp = filter(conetentOut === undefined ? content : conetentOut)
           if (tmp !== undefined) conetentOut = tmp
         }

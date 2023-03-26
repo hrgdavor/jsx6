@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/build",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "description": "Build utility",
   "main": "index.js",
