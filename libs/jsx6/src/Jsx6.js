@@ -140,8 +140,8 @@ export class Jsx6 {
 
   init() {}
 
-  addEventListener(name, callback) {
-    this.el.addEventListener(name, callback)
+  addEventListener(...args) {
+    this.el.addEventListener(...args)
   }
 
   getAttribute(attr) {
