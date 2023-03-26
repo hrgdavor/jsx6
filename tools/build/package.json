@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/build",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "type": "module",
   "description": "Build utility",
   "main": "index.js",
@@ -42,8 +42,9 @@
   },
   "homepage": "https://hrgdavor.github.io/jsx6/",
   "devDependencies": {
-    "esbuild": "^0.14.39",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
+    "@types/node": "^18.15.10",
+    "esbuild": "^0.14.39",
     "prettier": "~2.7.1",
     "vitest": "~0.29.3"
   },

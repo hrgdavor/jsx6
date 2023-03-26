@@ -1,3 +1,5 @@
+import { existsSync } from 'fs'
+
 export const logBuildPlugin = {
   name: 'buildTime',
   setup(build) {
@@ -13,13 +15,16 @@ export const logBuildPlugin = {
   },
 }
 
-export const runEsbuild = async (esbuild, { watch, dispose = true, ...esBuildOptions }) => {
+export const runEsbuild = async (
+  esbuild,
+  { watch, dispose = true, skipExisting = false, ...esBuildOptions },
+) => {
   if (!esBuildOptions.plugins) esBuildOptions.plugins = []
   esBuildOptions.plugins.push(logBuildPlugin)
 
   const ctx = await esbuild.context(esBuildOptions)
 
-  await ctx.rebuild()
+  if (!(skipExisting && esBuildOptions.outfile && existsSync(esBuildOptions.outfile))) await ctx.rebuild()
 
   if (watch) await ctx.watch()
   else if (dispose) ctx.dispose()
