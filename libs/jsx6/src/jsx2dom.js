@@ -78,6 +78,13 @@ export function h(tag, attr, ...children) {
   }
 }
 
+export const hSvg = (tag, attr, ...children) => {
+  const out = factories.Svg(tag)
+  insertAttr(attr, out, SCOPE)
+  children.forEach(c => insert(out, c))
+  return out
+}
+
 export function nodeFromObservable(obj) {
   const textNode = factories.Text('')
   const out = [textNode]
