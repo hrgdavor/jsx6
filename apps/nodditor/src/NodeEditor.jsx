@@ -1,5 +1,5 @@
 import { observeResize } from '@jsx6/dom-observer'
-import { Jsx6, addToBody, classIf, findParent, getAttr, insert } from '@jsx6/jsx6'
+import { Jsx6, addToBody, classIf, findParent, fireCustom, getAttr, insert } from '@jsx6/jsx6'
 
 export class NodeEditor extends Jsx6 {
   tpl() {
@@ -10,6 +10,7 @@ export class NodeEditor extends Jsx6 {
     let lx = 0
     let ly = 0
     let box
+    let nid
 
     el.addEventListener('pointerdown', e => {
       let hasBlock
@@ -22,6 +23,7 @@ export class NodeEditor extends Jsx6 {
       })
       if (!box || !hasDrag || hasBlock) return
 
+      nid = getAttr(box, 'nid')
       lx = e.clientX
       ly = e.clientY
       box.startTop = box.offsetTop
@@ -45,12 +47,13 @@ export class NodeEditor extends Jsx6 {
         el.setPointerCapture(e.pointerId)
         isMoving = true
       }
-
+      const top = box.startTop - ly + e.clientY
+      const left = box.startLeft - lx + e.clientX
       const { style } = box
-      let dx = lx - e.clientX
-      let dy = ly - e.clientY
-      style.left = box.startLeft - dx + 'px'
-      style.top = box.startTop - dy + 'px'
+      style.left = left + 'px'
+      style.top = top + 'px'
+      fireCustom(el, 'ne-move', { top, left, nid, el: box })
+      fireCustom(this.el, 'ne-move', { top, left, nid, el: box })
     })
 
     return <></>

@@ -19,7 +19,7 @@
     "cjs"
   ],
   "scripts": {
-    "dev": "npx vite --port 5179",
+    "dev": "npx vite --port 5110",
     "build": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "format": "prettier --write \"./src/**/*.{js,jsx,json}\"",

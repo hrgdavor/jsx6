@@ -6,6 +6,12 @@
   min-height: 100px;
   border: solid 1px gray;
   border-radius: 3px;
+  background: white;
+}
+
+.ne-title {
+  padding: 6px 12px;
+  background: #eee;
 }
 
 [ne-drag],
