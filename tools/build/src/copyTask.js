@@ -1,101 +1,53 @@
 import { copyFileSync, mkdirSync, lstatSync, readFileSync, writeFileSync } from 'fs'
-
 import glob from 'glob'
-import minimatch from 'minimatch'
+
+import { calcRecursive } from './calcRecursive.js'
+import { checkMatch } from './checkMatch.js'
+import { createParentFolder } from './createParentFolder.js'
 import { watchDir } from './watchDir.js'
 
-/**
- *
- * @param {string} file
- * @param {Array<string>} include
- * @param {Array<string>} exclude
- * @returns
- */
-export const checkMatch = (file, include = [], exclude = []) => {
-  if (exclude?.length) {
-    for (let i = exclude.length - 1; i >= 0; i--) {
-      try {
-        if (minimatch(file, exclude[i])) return false
-      } catch (e) {
-        console.error('pattern match failed /', exclude[i], '/ ' + e.message, e)
-      }
-    }
-  }
-
-  if (include?.length) {
-    let ok = false
-    for (let i = include.length - 1; i >= 0; i--) {
-      try {
-        if (minimatch(file, include[i])) {
-          ok = true
-          break
-        }
-      } catch (e) {
-        console.error('pattern match failed /' + exclude[i] + '/ ' + e.message, e)
-      }
-    }
-    return ok
-  }
-  return true
-}
-
-export const copyTask = (
-  folder,
+export function copyTask(
+  srcDir,
   to,
-  { include = [], exclude = [], watch = false, filters = [], delay = 50, recursive } = {},
-) => {
-  if (recursive === undefined) {
-    recursive = !include?.length
-    include?.forEach(inc => {
-      if (inc.includes('**')) recursive = true
-    })
-  }
+  { include = [], exclude = [], filters = [], watch, recursive, delay } = {},
+) {
+  // if recursive is not specified, calculate if it is needed, by inspecting include rules
+  if (recursive === undefined) recursive = calcRecursive(include)
+
   mkdirSync(to, { recursive: true })
-  const createdDir = {}
 
-  const copyFile = rel => {
-    let toPath = to + '/' + rel
-    let fPath = folder + '/' + rel
-    const idx = rel.lastIndexOf('/')
-    if (idx !== -1) {
-      const dirToMake = rel.substring(0, idx)
-      if (!createdDir[dirToMake]) {
-        mkdirSync(dirToMake, { recursive: true })
-        createdDir[dirToMake] = true
-      }
-    }
-    if (!lstatSync(fPath).isDirectory()) doCopy(fPath, toPath, filters, rel)
+  const folderNameLen = srcDir.length
+  glob.sync(srcDir + (recursive ? '/**' : '/*'), { sync: true, nodir: true }).forEach(f => {
+    copyIfMatch(f.substring(folderNameLen + 1))
+  })
+
+  if (watch) {
+    watchDir(srcDir, (type, rel) => copyIfMatch(rel), { recursive, delay })
   }
 
-  const folderNameLen = folder.length
-  let matches = glob.sync(folder + '/**', { sync: true, nodir: true }).forEach(f => {
-    let rel = f.substring(folderNameLen + 1)
-    if (checkMatch(rel, include, exclude)) {
-      copyFile(rel)
+  // function used for initial copy and if needed for watch
+  function copyIfMatch(relativePath) {
+    if (checkMatch(relativePath, include, exclude)) {
+      copyFileWithFilters(srcDir, to, relativePath, filters)
     }
-  })
-  if (watch) {
-    watchDir(
-      folder,
-      (type, rel) => {
-        if (checkMatch(rel, (include = []), (exclude = []))) {
-          copyFile(rel)
-        }
-      },
-      { recursive },
-    )
   }
 }
 
-const doCopy = (inp, out, filters = [], rel) => {
+export function copyFileWithFilters(src, to, relativePath, filters) {
+  let srcPath = src + '/' + relativePath
+  if (lstatSync(srcPath).isDirectory()) return
+
+  let toPath = to + '/' + relativePath
+  createParentFolder(toPath)
+
   try {
     let conetentOut
     if (filters?.length) {
       let content
       filters.forEach(({ filter, binary = false, include = [], exclude = [] }) => {
-        if (checkMatch(rel, include, exclude)) {
+        if (checkMatch(relativePath, include, exclude)) {
           if (!content) {
-            content = readFileSync(inp)
+            content = readFileSync(srcPath)
             if (!binary) content = content.toString()
           }
           let tmp = filter(conetentOut === undefined ? content : conetentOut)
@@ -105,13 +57,13 @@ const doCopy = (inp, out, filters = [], rel) => {
     }
 
     if (conetentOut === undefined) {
-      console.log('copy to', out)
-      copyFileSync(inp, out)
+      console.log('copy to', toPath)
+      copyFileSync(srcPath, toPath)
     } else {
-      console.log('copy transformed to', out)
-      writeFileSync(out, conetentOut)
+      console.log('copy transformed to', toPath)
+      writeFileSync(toPath, conetentOut)
     }
   } catch (e) {
-    console.error('problem copy from ', inp, ' to ', out, ': ', e.message, e)
+    console.error('problem copying from ', srcPath, ' to ', toPath, ': ', e.message, e)
   }
 }
