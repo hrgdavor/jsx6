@@ -42,8 +42,14 @@ export const checkMatch = (file, include = [], exclude = []) => {
 export const copyTask = (
   folder,
   to,
-  { include = [], exclude = [], watch = false, filters = [], delay = 50 } = {},
+  { include = [], exclude = [], watch = false, filters = [], delay = 50, recursive } = {},
 ) => {
+  if (recursive === undefined) {
+    recursive = !include?.length
+    include?.forEach(inc => {
+      if (inc.includes('**')) recursive = true
+    })
+  }
   mkdirSync(to, { recursive: true })
   const createdDir = {}
 
@@ -69,11 +75,15 @@ export const copyTask = (
     }
   })
   if (watch) {
-    watchDir(folder, (type, rel) => {
-      if (checkMatch(rel, (include = []), (exclude = []))) {
-        copyFile(rel)
-      }
-    })
+    watchDir(
+      folder,
+      (type, rel) => {
+        if (checkMatch(rel, (include = []), (exclude = []))) {
+          copyFile(rel)
+        }
+      },
+      { recursive },
+    )
   }
 }
 
