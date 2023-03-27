@@ -1,5 +1,5 @@
 import { isFunc, VALUE } from './core.js'
-import { $R } from './combineState.js'
+import { $S } from './combineState.js'
 import { mapObserver } from './observe.js'
 
 export const lazyShow = (value, generator) => lazySwitch(v => (v ? 1 : 0), value, '', generator)
@@ -10,7 +10,7 @@ export const lazySwitch = (indexer, value, ...generators) => {
   // support string as keys (generrators are in an object ) or array is used instead of varargs
   if (generators.length === 1) generators = generators[0]
 
-  return $R(v => {
+  return $S(v => {
     const idx = indexer(v)
     let out = generators[idx]
     if (out !== undefined) {

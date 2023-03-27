@@ -1,6 +1,6 @@
 import test from 'ava'
 import { makeState, setAnimFunction } from './makeState.js'
-import { $R } from './combineState.js'
+import { $S } from './combineState.js'
 import { tryObserve } from './observe.js'
 
 // call immediately to update state values without async (simpler testing)
@@ -28,7 +28,7 @@ test('state filter', t => {
   // state.count(div2) returns binding function, so we need to call .get it to get actual value
   // state.count(div2) is for templates <b>{state.count(div2)}</div> because there it is recognized
   // as binding and then is observed for changes which are then applied to DOM
-  t.is($R(div2, $state.count)(), 1)
+  t.is($S(div2, $state.count)(), 1)
 })
 
 test('primitives', t => {
@@ -60,5 +60,5 @@ test('value mapping', t => {
   t.is($state.count(), 2)
   t.is($state().count, 2)
 
-  t.is($R(div2, $state.count)(), 1)
+  t.is($S(div2, $state.count)(), 1)
 })

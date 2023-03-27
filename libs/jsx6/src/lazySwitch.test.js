@@ -1,6 +1,6 @@
 import test from 'ava'
 import { makeState, setAnimFunction } from './makeState.js'
-import { $R } from './combineState.js'
+import { $S } from './combineState.js'
 import { h } from './jsx2dom.js'
 import { lazySwitchValue, lazyShow, lazySwitch } from './lazySwitch.js'
 
@@ -97,7 +97,7 @@ test('lazyShow2', t => {
       'B',
       null,
       'names: ',
-      $R(v => v.join(','), $state.names),
+      $S(v => v.join(','), $state.names),
       '/',
       seq++,
     )

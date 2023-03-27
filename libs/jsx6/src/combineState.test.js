@@ -1,7 +1,7 @@
 import test from 'ava'
 import { makeState, setAnimFunction } from './makeState.js'
 import { tryObserve } from './observe.js'
-import { $R } from './combineState.js'
+import { $S } from './combineState.js'
 
 // call immediately to update state values without async (simpler testing)
 setAnimFunction(f => f())
@@ -12,8 +12,8 @@ test('combine', t => {
 
   let testVar = 0
 
-  const combo = $R((num, count) => num + count + 100, $num, $state.count)
-  const half = $R(num => num / 2, $num)
+  const combo = $S((num, count) => num + count + 100, $num, $state.count)
+  const half = $S(num => num / 2, $num)
   tryObserve(combo, v => {
     testVar = v
   })

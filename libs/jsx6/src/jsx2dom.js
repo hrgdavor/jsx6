@@ -1,4 +1,4 @@
-import { isStr, isFunc, isObj, throwErr, Group, isNode } from './core.js'
+import { isStr, isFunc, isObj, throwErr, Group, isNode, NOT } from './core.js'
 import { setAttribute } from './setAttribute.js'
 
 import {
@@ -11,6 +11,7 @@ import {
 import { toDomNode } from './toDomNode.js'
 import { tryObserve } from './observe.js'
 import { remove } from './remove.js'
+import { $S } from './combineState.js'
 
 let SCOPE
 let DUMP_STACK = false
@@ -260,13 +261,28 @@ export function insertAttr(attr, out, self, component) {
         component.loopKey = value
       }
     } else if (isFunc(value)) {
+      if (a[0] === 'x' && a[1] === '-') {
+        let code = a.substring(2)
+        if (code == 'if') {
+          a = 'hidden'
+          value = $S(NOT, value)
+        }
+      }
       factories.Updater(out, null, a, value)
     } else {
+      if (a[0] === 'x' && a[1] === '-') {
+        let code = a.substring(2)
+        if (code == 'if') {
+          a = 'hidden'
+          value = !value
+        }
+      }
       if (a === 'p') {
         setPropGroup(self, component || out, value)
       }
-      if (out.setAttribute)
+      if (out.setAttribute) {
         setAttribute(out, a, a === 'p' && value instanceof Array ? value.join('.') : value)
+      }
     }
   }
 }

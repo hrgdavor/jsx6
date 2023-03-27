@@ -1,5 +1,5 @@
 import { observeIntersect } from '@jsx6/dom-observer'
-import { $R, Jsx6, addToBody, makeState, provideErrTranslations } from '@jsx6/jsx6'
+import { $S, Jsx6, addToBody, makeState, provideErrTranslations } from '@jsx6/jsx6'
 
 import './intersect.css'
 import './main.css'
@@ -13,7 +13,7 @@ const TestIntersect = ({}) => {
   const $s = makeState({ intersectionRatio: 0, isVisible: undefined })
   const idx = seq++
   // const ratioPercent = $s.intersectionRatio(percentStr)
-  const ratioPercent = $R(percentStr, $s.intersectionRatio)
+  const ratioPercent = $S(percentStr, $s.intersectionRatio)
   const out = (
     <div class="TestIntersect">
       <b>{ratioPercent}</b>
@@ -36,8 +36,8 @@ const TestIntersect = ({}) => {
 const MonitorIntersect = ({ value, name }) => {
   return (
     <div class="preview-box">
-      <div style={$R(h => `width:${h}px`, value)}></div>
-      <b>{$R(p => `${name}: ${p}%`, value)}</b>
+      <div style={$S(h => `width:${h}px`, value)}></div>
+      <b>{$S(p => `${name}: ${p}%`, value)}</b>
     </div>
   )
 }

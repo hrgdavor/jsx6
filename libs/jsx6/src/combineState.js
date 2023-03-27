@@ -1,7 +1,7 @@
 import { doSubscribeValue } from './makeState.js'
 import { subscribeSymbol, tryObserve } from './observe.js'
 
-export const $R = (callback, ...bindings) => {
+export const $S = (callback, ...bindings) => {
   const updaters = []
 
   const getValue = () => {
@@ -22,3 +22,5 @@ export const $R = (callback, ...bindings) => {
 
   return getValue
 }
+
+export const $R = $S

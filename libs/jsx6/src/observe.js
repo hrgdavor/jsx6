@@ -33,13 +33,15 @@ export function observe(obj, callback) {
 export function tryObserve(obj, callback) {
   const bindingSub = obj[subscribeSymbol]
   if (bindingSub) {
-    bindingSub(callback)
+    if (callback) bindingSub(callback)
     return true
   }
   // support for promise(.then) or observable(.subscribe) values
   const toObserve = obj.then || obj.subscribe
   if (toObserve) {
-    toObserve.call(obj, callback)
+    if (callback) toObserve.call(obj, callback)
     return true
   }
 }
+
+export const isObservable = obj => tryObserve(obj)
