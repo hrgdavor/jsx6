@@ -30,8 +30,3 @@ test('combine', t => {
   t.is(combo(), 106)
   t.is(testVar, 106)
 })
-
-export const $NOT = signal => $S(v => !v, signal)
-export const $BOOL = signal => $S(v => !!v, signal)
-export const $EQ = (to, signal) => $S(v => to === v, signal)
-export const $NEQ = (to, signal) => $S(v => to !== v, signal)
