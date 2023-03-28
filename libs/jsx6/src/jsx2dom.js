@@ -240,8 +240,8 @@ const AttrUpdater = (node, attr, func) => {
 export function insertAttr(attr, out, self, component) {
   if (!attr) return
 
-  for (const a in attr) {
-    const value = attr[a]
+  for (let a in attr) {
+    let value = attr[a]
 
     if (a[0] === 'o' && a[1] === 'n') {
       if (isFunc(value)) {

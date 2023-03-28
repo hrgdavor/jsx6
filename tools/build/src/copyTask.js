@@ -6,6 +6,12 @@ import { checkMatch } from './checkMatch.js'
 import { createParentFolder } from './createParentFolder.js'
 import { watchDir } from './watchDir.js'
 
+/**
+ *
+ * @param {string} srcDir
+ * @param {string} to
+ * @param {string} options
+ */
 export function copyTask(
   srcDir,
   to,

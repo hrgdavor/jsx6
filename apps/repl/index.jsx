@@ -50,11 +50,12 @@ function NotAComponent(attr) {
 const NotAComponent2 = ({ text = 'NotAComponent2', TagName = 'b', ...attr }) => <TagName {...attr}>{text}</TagName>
 
 class AComponent extends Jsx6 {
-  tpl(h, $state, _state, self) {
-    const value = this.$v
+  tpl(h) {
+    const { $v } = this
+    console.log('aaaaaaaaa', this.el)
     return (
       <div>
-        AComponent:<b onclick={e => this.el.loopComp?.removeItem(this)}>{value.name}</b>
+        AComponent:<b onclick={e => this.el.loopComp?.removeItem(this)}>{$v.name}</b>
       </div>
     )
   }
@@ -72,14 +73,15 @@ const scope = (window.APP = {})
 //     </>
 //   )),
 // )
-
+window.testState = makeState(true)
 addToBody(
   domWithScope(scope, h => (
     <>
+      <div>IF</div>
       <IconNote />
       <AComponent p="comp1" />
       Hello world.{T`test`} ...{ThePromise}
-      <Loop p="loop" title={T`test`} item={AComponent} />
+      <Loop p="loop" title={T`test`} item={AComponent} x-if={window.testState} />
       <Loop
         p="loop2"
         item={({ $v }, c, _scope, loop) => (
