@@ -12,29 +12,19 @@ export class Jsx6 {
   contentArea
   propKey
   groupKey
-  parent
   tagName = 'DIV'
   cName = ''
 
-  constructor(attr, children, parent) {
-    attr ||= {}
-    children ||= []
-
-    // TODO make readonly using Object.defineProperty ... after making utility function for it
-    // if(attr.if){
-    //   const ifValue = attr.if
-    //   delete attr.if
-    //   attr.hidden = isFunc(ifValue) ? v=>!ifValue() : !ifValue
-    // }
+  constructor(attr = {}, children = []) {
     this.attr = attr
     this.children = children
-    this.parent = parent
 
     if (attr.tagName !== undefined) {
       this.tagName = attr.tagName
       delete attr.tagName
     }
     domWithScope(this, () => this.createEl())
+    if (!attr.lazyload) this.__init()
   }
 
   /*  Lazy initialize state proxy object*/
@@ -76,11 +66,10 @@ export class Jsx6 {
     }
   }
 
-  __init(parent, before) {
+  __init() {
     if (this.__initialized) return
     this.initTemplate()
     this.insertChildren()
-    insert(parent, this.el, before)
     this.init(this.$s)
     this.__initialized = true
   }
@@ -106,7 +95,7 @@ export class Jsx6 {
 
   insertAttr(attr) {
     // can not add attributes to text node
-    if (this.tagName) insertAttr(attr, this.el, this.parent, this)
+    if (this.tagName) insertAttr(attr, this.el, this, this)
   }
 
   created() {}

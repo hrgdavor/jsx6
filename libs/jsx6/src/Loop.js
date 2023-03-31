@@ -67,7 +67,7 @@ export class Loop extends Jsx6 {
     const item = this.item
     const attr = { ...this.itemAttr }
     if (item.prototype) {
-      comp = new this.item(attr, [], this.parent)
+      comp = new this.item(attr, [])
       this.insertBefore(comp)
     } else {
       attr.value = attr.$v = makeState(newData)
@@ -76,7 +76,7 @@ export class Loop extends Jsx6 {
         setValue: valueProxy,
         getValue: valueProxy,
       }
-      comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp, this.parent)))
+      comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp)))
       this.insertBefore(comp.el)
     }
     comp.el.loopComp = this

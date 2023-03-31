@@ -66,6 +66,8 @@ let ThePromise = new Promise((resolve, reject) => {
 })
 
 const scope = (window.APP = {})
+// addToBody([<AComponent title="aaa" />])
+
 // addToBody(
 //   domWithScope(scope, h => (
 //     <>
@@ -73,6 +75,7 @@ const scope = (window.APP = {})
 //     </>
 //   )),
 // )
+
 window.testState = makeState(true)
 addToBody(
   domWithScope(scope, h => (
@@ -100,10 +103,10 @@ addToBody(
 )
 console.log('scope', scope)
 scope.loop?.setValue([{ name: 'jozo' }, { name: 'mirko' }])
-// scope.loop?.setValue([{ name: 'jozo' }])
 scope.loop2?.setValue([{ name: 'jozo2' }, { name: 'mirko2' }])
-// scope.loop2?.setValue([{ name: 'jozo' }])
 
 console.log(scope)
 console.log('scope.loop.getValue', scope.loop?.getValue())
 console.log('scope.loop2.getValue', scope.loop2?.getValue())
+
+//*/

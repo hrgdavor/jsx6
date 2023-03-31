@@ -312,7 +312,6 @@ export function forInsert(newChild) {
   if (isFunc(newChild)) {
     newChild = forInsertFuncObj(newChild)
   } else if (!isNode(newChild)) {
-    if (!newChild) debugger
     if (isNode(newChild.el)) {
       newChild = newChild.el
     } else {
@@ -325,14 +324,16 @@ export function forInsert(newChild) {
 export function insert(parent, newChild, before, _self) {
   if (newChild === undefined || newChild === null) return
   if (!parent) throwErr(ERR_REQUIRE_PARENT, { parent, newChild, before })
+
+  if (newChild instanceof Array) {
+    return newChild.map(c => insert(parent, c, before, _self))
+  }
+
   const _parent = parent.insertBefore ? parent : toDomNode(parent)
 
   if (!_parent.insertBefore) console.error('missing insertBefore', _parent, parent)
   let _newChild
   try {
-    if (newChild?.__init) {
-      newChild.__init(parent)
-    }
     _newChild = forInsert(newChild)
     if (_newChild instanceof Array) {
       _newChild.forEach(c => _parent.insertBefore(c, toDomNode(before)))
@@ -347,6 +348,7 @@ export function insert(parent, newChild, before, _self) {
 }
 
 export const addToBody = n => insert(document.body, n)
+export const addToHead = n => insert(document.head, n)
 
 let factories = {
   AttrUpdater,
