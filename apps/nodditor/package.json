@@ -56,7 +56,7 @@
     "prettier": "~2.7.1"
   },
   "dependencies": {
-    "@jsx6/jsx6": "workspace:^1.5.21",
-    "@jsx6/dom-observer": "workspace:^1.5.21"
+    "@jsx6/jsx6": "workspace:^1.5.22",
+    "@jsx6/dom-observer": "workspace:^1.5.22"
   }
 }
