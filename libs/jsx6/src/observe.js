@@ -1,7 +1,9 @@
 import { isFunc, throwErr } from './core.js'
+import { doSubscribeValue } from './makeState.js'
 import { ERR_NOT_OBSERVABLE } from './errorCodes.js'
 
 export const subscribeSymbol = Symbol('subscribe')
+export const triggerSymbol = Symbol('trigger')
 
 export function mapObserver(obj, mapper) {
   // if (obj.isBindingFunc) return obj(mapper)
@@ -30,7 +32,8 @@ export function observe(obj, callback) {
   if (!tryObserve(obj, callback)) throwErr(ERR_NOT_OBSERVABLE, obj)
 }
 
-export function tryObserve(obj, callback) {
+export function tryObserve(obj, callback = null) {
+  if (!obj) return false
   const bindingSub = obj[subscribeSymbol]
   if (bindingSub) {
     if (callback) bindingSub(callback)
@@ -42,6 +45,12 @@ export function tryObserve(obj, callback) {
     if (callback) toObserve.call(obj, callback)
     return true
   }
+}
+
+export function tryTriggerSignal($signal) {
+  const bindingTrig = $signal[triggerSymbol]
+  bindingTrig?.()
+  return !!bindingTrig
 }
 
 export const isObservable = obj => tryObserve(obj)

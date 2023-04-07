@@ -1,6 +1,6 @@
 import { runFunc, throwErr, isObj, requireFunc, isFunc, isObjNN } from './core.js'
 import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC, ERR_STATE_UPDATE_OBJECT_REQ } from './errorCodes.js'
-import { subscribeSymbol } from './observe.js'
+import { subscribeSymbol, triggerSymbol } from './observe.js'
 
 // TODO test and make work integration with Observable and RX
 const dirty = new Set()
@@ -92,7 +92,9 @@ function asBinding(func, state, prop, updaters) {
   //func.update = f => (state[prop] = f(state[prop]()))
 
   func[subscribeSymbol] = u => doSubscribeValue(updaters, u, func)
-
+  func[triggerSymbol] = () => {
+    if (updaters.length) runInBatch(updaters)
+  }
   // TODO reimplement sync
   // func.sync = f => {
   //   doSubscribe(updaters, () => f(func()))
@@ -257,6 +259,7 @@ export function makeState(rawState, returnAll) {
 
   specialProps.set(extendValueSymbol, extend)
   specialProps.set(subscribeSymbol, subscribe)
+  specialProps.set(triggerSymbol, _addDirty)
 
   return returnAll ? [bindingsProxy, state] : bindingsProxy
 }

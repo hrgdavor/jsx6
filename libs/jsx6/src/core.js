@@ -1,6 +1,6 @@
 import { ERR_REQUIRE_FUNC } from './errorCodes.js'
 
-const TRANS = {}
+export const TRANS = {}
 
 export class Group {
   constructor(obj) {
@@ -41,7 +41,7 @@ export const throwErr = (c, info) => {
 
 export const NOT = v => !v
 export const VALUE = v => v
-export const BOOL = v => !!v
+export const IS = v => !!v
 export const EQ = to => v => to === v
 export const NEQ = to => v => to !== v
 
@@ -49,6 +49,7 @@ export const isFunc = f => typeof f === 'function'
 export const isStr = s => typeof s === 'string'
 export const isObj = o => typeof o === 'object'
 export const isObjNN = o => o !== null && typeof o === 'object'
+export const isNullish = o => o !== null && o === undefined
 export const isArray = a => a instanceof Array
 
 /** Check if a value is a DOM Node. You may be tempted to use 'instanceof Node'

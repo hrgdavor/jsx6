@@ -2,6 +2,24 @@
   "name": "@jsx6/jsx6",
   "entries": [
     {
+      "version": "1.6.0",
+      "tag": "@jsx6/jsx6_v1.6.0",
+      "date": "Fri, 07 Apr 2023 14:20:32 GMT",
+      "comments": {}
+    },
+    {
+      "version": "1.5.23",
+      "tag": "@jsx6/jsx6_v1.5.23",
+      "date": "Fri, 07 Apr 2023 14:15:39 GMT",
+      "comments": {
+        "none": [
+          {
+            "comment": "additional signals, and templatestrings support"
+          }
+        ]
+      }
+    },
+    {
       "version": "1.5.22",
       "tag": "@jsx6/jsx6_v1.5.22",
       "date": "Sat, 01 Apr 2023 06:49:09 GMT",

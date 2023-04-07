@@ -1,11 +1,33 @@
 import { doSubscribeValue, runInBatch } from './makeState.js'
-import { t } from './core.js'
+import { addTranslations, t, TRANS } from './core.js'
+import { subscribeSymbol, triggerSymbol } from './observe.js'
+import { $S } from './combineState.js'
 
+/**  @type {Array<Function>} */
 const translationUpdaters = []
 
-export function refreshTranslations() {
+const $translationsSignal = () => {
+  return TRANS
+}
+
+/**
+ * @param {Function} callback
+ */
+export function observeTranslations(callback) {
+  translationUpdaters.push(callback)
+}
+
+export function addTranslationsAndNotify(t) {
+  addTranslations(t)
+  fireTranslationsChange()
+}
+
+export function fireTranslationsChange() {
   runInBatch(translationDirtyRunner)
 }
+
+$translationsSignal[subscribeSymbol] = observeTranslations
+$translationsSignal[triggerSymbol] = fireTranslationsChange
 
 const translationDirtyRunner = () => translationUpdaters.forEach(f => f())
 
@@ -15,3 +37,5 @@ export function T(code) {
   out.subscribe = u => doSubscribeValue(translationUpdaters, u, out)
   return out
 }
+
+export const $T = $code => $S(t, $code, $translationsSignal)
