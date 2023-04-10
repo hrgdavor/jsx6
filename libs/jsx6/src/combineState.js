@@ -60,3 +60,7 @@ export const $NEQStrict = (to, signal) => $S(v => to !== v, signal)
 
 export const $EQ = (to, signal) => $S(v => to == v, signal)
 export const $NEQ = (to, signal) => $S(v => to != v, signal)
+
+export const $If = (signal, t, f) => $S(v => (v ? t : f), signal)
+
+export const $Map = (map, signal) => $S(v => map[v] || v, signal)
