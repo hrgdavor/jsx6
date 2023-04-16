@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.6.2",
+  "version": "1.6.1",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",
@@ -10,12 +10,11 @@
   "exports": {
     ".": {
       "require": "./cjs/index.js",
-      "default": "./index.js"
+      "default": "./dist/index.js"
     }
   },
   "files": [
-    "index.js",
-    "src",
+    "dist",
     "esm",
     "cjs"
   ],
@@ -23,7 +22,7 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "ava",
-    "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
+    "prepublishOnly": "npm run build && npm run build-cjs"
   },
   "repository": {
     "type": "git",
