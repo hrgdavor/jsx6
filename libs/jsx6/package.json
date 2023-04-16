@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",
@@ -23,7 +23,7 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "ava",
-    "prepublishOnly": "npm run build && npm run build-cjs"
+    "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
   },
   "repository": {
     "type": "git",
@@ -46,8 +46,9 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/README.md",
   "devDependencies": {
-    "esbuild": "^0.14.39",
     "ava": "~4.3.3",
-    "jsdom": "~20.0.1"
+    "esbuild": "^0.14.39",
+    "jsdom": "~20.0.1",
+    "typescript": "^5.0.4"
   }
 }
