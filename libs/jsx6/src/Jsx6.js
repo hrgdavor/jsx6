@@ -2,6 +2,7 @@ import { makeState } from './makeState.js'
 import { domWithScope, insert } from './jsx2dom.js'
 import { insertAttr, h } from './jsx2dom.js'
 import { isObj } from './core.js'
+import { addClass } from './addClass'
 
 /**
  * @class
@@ -16,7 +17,7 @@ export class Jsx6 {
   cName = ''
 
   constructor(attr = {}, children = []) {
-    this.attr = attr
+    this.attr = this.initAttr(attr)
     this.children = children
 
     if (attr.tagName !== undefined) {
@@ -27,6 +28,9 @@ export class Jsx6 {
     if (!attr.lazyload) this.__init()
   }
 
+  initAttr(attr) {
+    return attr
+  }
   /*  Lazy initialize state proxy object*/
   get $s() {
     if (!this._$s) {
@@ -84,7 +88,7 @@ export class Jsx6 {
       this.el = document.createTextNode('')
     } else {
       this.el = h(this.tagName)
-      if (this.cName) this.classList.add(this.cName)
+      if (this.cName) addClass(this.el, this.cName)
     }
     this.insertAttr(this.attr)
     this.contentArea ||= this.el
