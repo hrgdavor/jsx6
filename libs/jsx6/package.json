@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",

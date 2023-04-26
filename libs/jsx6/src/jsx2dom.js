@@ -239,6 +239,7 @@ const AttrUpdater = (node, attr, func) => {
 
 export function insertAttr(attr, out, self, component) {
   if (!attr) return
+  if (!self) self = SCOPE
 
   for (let a in attr) {
     let value = attr[a]

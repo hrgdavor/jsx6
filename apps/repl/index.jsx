@@ -80,7 +80,7 @@ window.testState = makeState(true)
 addToBody(
   domWithScope(scope, h => (
     <>
-      <div>IF</div>
+      <div>array:{[<span>1</span>]}</div>
       <IconNote />
       <AComponent p="comp1" />
       Hello world.{T`test`} ...{ThePromise}
