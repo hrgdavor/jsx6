@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/dom-observer",
-  "version": "1.6.6",
+  "version": "1.6.7",
   "type": "module",
   "sideEffects": false,
   "description": "Performance for multiple ResizeObserver and IntersectionObserver",
