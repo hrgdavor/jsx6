@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",
@@ -42,6 +42,11 @@
   ],
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
+  },
+  "ava": {
+    "files": [
+      "src/**/*.test.js"
+    ]
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/README.md",
   "devDependencies": {

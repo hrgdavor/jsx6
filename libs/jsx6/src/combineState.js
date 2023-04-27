@@ -34,7 +34,7 @@ export const $S = (transformer, ...bindings) => {
 
   bindings.forEach(b => tryObserve(b, recalculate))
 
-  getValue[subscribeSymbol] = u => doSubscribeValue(updaters, u, getValue)
+  getValue[subscribeSymbol] = (u, skipTrigger) => doSubscribeValue(updaters, u, getValue, skipTrigger)
   getValue[triggerSymbol] = fireChanged
 
   return getValue

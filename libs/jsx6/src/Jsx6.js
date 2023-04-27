@@ -1,8 +1,7 @@
 import { makeState } from './makeState.js'
 import { domWithScope, insert } from './jsx2dom.js'
 import { insertAttr, h } from './jsx2dom.js'
-import { isObj } from './core.js'
-import { addClass } from './addClass'
+import { addClass } from './addClass.js'
 
 /**
  * @class

@@ -23,7 +23,7 @@ export function mapObserver(obj, mapper) {
   const updaters = []
   const value = mapper(isFunc(obj) ? obj() : undefined)
 
-  getValue[subscribeSymbol] = u => doSubscribeValue(updaters, u, getValue)
+  getValue[subscribeSymbol] = (u, skipTrigger) => doSubscribeValue(updaters, u, getValue, skipTrigger)
 
   return getValue
 }
@@ -32,11 +32,11 @@ export function observe(obj, callback) {
   if (!tryObserve(obj, callback)) throwErr(ERR_NOT_OBSERVABLE, obj)
 }
 
-export function tryObserve(obj, callback = null) {
+export function tryObserve(obj, callback = null, skipTrigger) {
   if (!obj) return false
   const bindingSub = obj[subscribeSymbol]
   if (bindingSub) {
-    if (callback) bindingSub(callback)
+    if (callback) bindingSub(callback, skipTrigger)
     return true
   }
   // support for promise(.then) or observable(.subscribe) values

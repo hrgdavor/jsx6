@@ -5,6 +5,7 @@ import { isFunc, isStr } from './core.js'
 
 let clockSignal
 let clockSignalSeconds
+let requestAnimationFrame = globalThis.requestAnimationFrame || (f => setTimeout(() => f(), 10))
 
 function initClockSignal() {
   clockSignal = makeState(Date.now())
@@ -101,27 +102,14 @@ export const $DurationSignalSeconds = (formatter, signal) => $DurationSignal(for
 export function $DurationSignal(formatter, signal, seconds = false) {
   let zeroValue = formatter(0) // use what formatter will make for zero as initial value
   let out = makeState(zeroValue)
-  let clock
-  // observe the signal to update the value
-  tryObserve(signal, update) // this will also trigger update function with initial value
-
-  // if the current value for signal is zero or null, clock will not be initialized
-  // when a value arrives we will initialize the clock and listen to the clock signal
+  let clock = seconds ? getClockSignalSeconds() : getClockSignal()
+  // observe the signals to update the value
+  tryObserve(clock, update, true) // avoid triggerring update twice
+  tryObserve(signal, update)
 
   function update() {
     let signalValue = signal()
-    let val = zeroValue
-    if (signalValue) {
-      // we have a value, so we can proceed with calculating duration and formatting it
-      if (!clock) {
-        // lazy initialize the clock
-        clock = seconds ? getClockSignalSeconds() : getClockSignal()
-        tryObserve(clock, update)
-        return // tryObserve will trigger udpate immediately, so we do not need to continue to the calculation
-      }
-      val = formatter(clock() - signalValue)
-    }
-    out(val)
+    out(signalValue ? formatter(clock() - signalValue) : zeroValue)
   }
   return out
 }

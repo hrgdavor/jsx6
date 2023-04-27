@@ -4,7 +4,7 @@
  * @param {String|Array<String>} add class names
  */
 
-import { isArray } from './core'
+import { isArray } from './core.js'
 import { toDomNode } from './toDomNode.js'
 
 export function addClass(node, add) {

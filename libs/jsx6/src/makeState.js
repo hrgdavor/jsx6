@@ -74,15 +74,15 @@ export function runDirty() {
   }
 }
 
-export function doSubscribeValue(updaters, updater, func) {
+export function doSubscribeValue(updaters, updater, func, skipTrigger) {
   requireFunc(updater, ERR_DIRTY_RUNNER_FUNC)
-  doSubscribe(updaters, () => updater(func()))
+  doSubscribe(updaters, () => updater(func()), skipTrigger)
 }
 
-export function doSubscribe(updaters, updater) {
+export function doSubscribe(updaters, updater, skipTrigger) {
   requireFunc(updater, ERR_DIRTY_RUNNER_FUNC)
   updaters.push(updater)
-  updater()
+  if (!skipTrigger) updater()
 }
 
 function asBinding(func, state, prop, updaters) {
@@ -91,7 +91,7 @@ function asBinding(func, state, prop, updaters) {
   // TODO check if needed, what is this ?
   //func.update = f => (state[prop] = f(state[prop]()))
 
-  func[subscribeSymbol] = u => doSubscribeValue(updaters, u, func)
+  func[subscribeSymbol] = (u, skipTrigger) => doSubscribeValue(updaters, u, func, skipTrigger)
   func[triggerSymbol] = () => {
     if (updaters.length) runInBatch(updaters)
   }
@@ -210,7 +210,7 @@ export function makeState(rawState, returnAll) {
     return false
   }
 
-  const subscribe = u => doSubscribeValue(updaters, u, returnRaw)
+  const subscribe = (u, skipTrigger) => doSubscribeValue(updaters, u, returnRaw, skipTrigger)
 
   const extend = (newData, force) => {
     if (!newData) return
