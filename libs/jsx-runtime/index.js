@@ -6,4 +6,4 @@ function jsx(tag, { children, ...attr }) {
   return h(tag, attr, children)
 }
 
-export { jsx, jsx as jsxs, jsxDEV, Fragment }
+export { jsx, jsx as jsxs, Fragment }
