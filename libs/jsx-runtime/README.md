@@ -2,7 +2,7 @@
 
 to use with esbuild cli:
 
-`--jsx=automatic --jsx-import-source=@sjx6`
+`--jsx=automatic --jsx-import-source=@jsx6`
 
 or esbuild JS API:
 

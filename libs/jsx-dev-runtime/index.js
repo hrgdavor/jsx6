@@ -1,8 +1,6 @@
 import { h, isNode } from '@jsx6/jsx6'
 import { activateJsxInspector } from './src/activateJsxInspector'
 
-const Fragment = ({ children }) => children
-
 function jsxDEV(tag, { children, ...attr }, key, isStatic, source) {
   let out = h(tag, attr, children)
   if (isNode(out)) out._source = source
@@ -12,6 +10,10 @@ function jsxDEV(tag, { children, ...attr }, key, isStatic, source) {
 function jsx(tag, { children, ...attr }) {
   return h(tag, attr, children)
 }
+
+// it will be called via jsx function, and there we extract children from first age and
+// provide as second arg
+var Fragment = (attr, children) => children
 
 activateJsxInspector()
 

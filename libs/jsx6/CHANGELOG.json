@@ -2,6 +2,18 @@
   "name": "@jsx6/jsx6",
   "entries": [
     {
+      "version": "1.6.15",
+      "tag": "@jsx6/jsx6_v1.6.15",
+      "date": "Sun, 30 Apr 2023 16:59:17 GMT",
+      "comments": {}
+    },
+    {
+      "version": "1.6.14",
+      "tag": "@jsx6/jsx6_v1.6.14",
+      "date": "Sun, 30 Apr 2023 09:48:12 GMT",
+      "comments": {}
+    },
+    {
       "version": "1.6.13",
       "tag": "@jsx6/jsx6_v1.6.13",
       "date": "Sun, 30 Apr 2023 09:34:35 GMT",
