@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "publish": "cd libs/jsx6 && npm publish && cd ../dom-observer && npm publish && cd ../../apps/repl && npm publish"
+    "publish": "cd libs/jsx6 && npm publish && cd ../dom-observer && npm publish && cd ../../apps/repl && npm publish && cd ../../libs/jsx-runtime && npm publish && cd ../../libs/jsx-dev-runtime && npm publish"
   },
   "dependencies": {}
 }

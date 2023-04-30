@@ -1,5 +1,5 @@
 import { observeResize } from '@jsx6/dom-observer'
-import { Jsx6, addToBody, classIf, findParent, fireCustom, getAttr, insert } from '@jsx6/jsx6'
+import { Jsx6, addToBody, classIf, findParent, fireCustom, getAttr, h, insert } from '@jsx6/jsx6'
 
 export class NodeEditor extends Jsx6 {
   tpl() {

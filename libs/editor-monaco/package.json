@@ -48,7 +48,7 @@
   },
   "homepage": "https://hrgdavor.github.io/jsx6/",
   "devDependencies": {
-    "esbuild": "^0.14.39",
+    "esbuild": "^0.17.18",
     "vite": "~3.0.9",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "prettier": "~2.7.1",

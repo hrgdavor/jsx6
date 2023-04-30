@@ -44,7 +44,7 @@
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "@types/node": "^18.15.10",
-    "esbuild": "^0.14.39",
+    "esbuild": "^0.17.18",
     "prettier": "~2.7.1",
     "minimatch": "^5.0.1",
     "vitest": "~0.29.3"

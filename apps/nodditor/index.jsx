@@ -1,4 +1,4 @@
-import { hSvg, insert } from '@jsx6/jsx6'
+import { h, hSvg, insert } from '@jsx6/jsx6'
 
 import './main.css'
 import './ne-blocks.css'

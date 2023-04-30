@@ -1,3 +1,24 @@
+## jsx-runtime
+
+https://github.com/reactjs/rfcs/blob/createlement-rfc/text/0000-create-element-changes.md
+
+jsx functions need to move to package: `@jsx6/jsx-runtime` or rename `@jsx6/jsx6` to it
+this also allows to have  `@jsx6/jsx-dev-runtime`
+
+for esbuild, no need to define fragment and jsx tag, but define
+- `--jsx=automatic` or JS: `jsx:automatic`
+- `--jsx-import-source`, `jsxImportSource` — Overrides the root import for runtime functions (default "react") change to `@jsx6`
+- `--jsx-dev` - to inject sour data
+
+`export {jsx, jsx as jsxs, Fragment}`
+- jsx function (tagName,attr)
+  - children is not an argument but 
+  - in dev mode more arge: isStaticChildren(like jsxs), source, _self
+- jsxs - when <div>{a}{b}</div> to know ith is in template and not array that needs keys
+  - this is react specifis and not needed, so we can export the same function for jsx and jsxs 
+  - in dev it is a param isStaticChildren
+
+
 ## VSCODE OPEM
 vscode://file/D:/path/to/file.js:line
 

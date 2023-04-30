@@ -476,6 +476,18 @@
       "versionPolicyName": "jsx6"
     },
     {
+      "packageName": "@jsx6/jsx-runtime",
+      "projectFolder": "libs/jsx-runtime",
+      "tags": ["jsx", "ui", "jsx-runtime"],
+      "versionPolicyName": "jsx6"
+    },
+    {
+      "packageName": "@jsx6/jsx-dev-runtime",
+      "projectFolder": "libs/jsx-dev-runtime",
+      "tags": ["jsx", "ui", "jsx-dev-runtime"],
+      "versionPolicyName": "jsx6"
+    },
+    {
       "packageName": "@jsx6/build",
       "projectFolder": "tools/build",
       "tags": ["build", "watch", "glob", "copy", "mkdir"],
