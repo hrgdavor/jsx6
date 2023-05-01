@@ -1,5 +1,5 @@
 import { observeResize } from '@jsx6/dom-observer'
-import { Jsx6, fireEvent } from '@jsx6/jsx6'
+import { Jsx6, fireEvent, h } from '@jsx6/jsx6'
 
 import { Defered } from './async/Defered'
 
@@ -36,9 +36,7 @@ function fireEventListener(obj, name, params) {
 }
 
 export class FlipFrame extends Jsx6 {
-  constructor(...args) {
-    super(...args)
-    const [attr] = args
+  initAttr(attr) {
     const iframeAttr = {
       sandbox: attr?.sandbox || 'allow-same-origin allow-scripts',
       src: attr?.src || 'about:blank',
@@ -46,6 +44,8 @@ export class FlipFrame extends Jsx6 {
     }
     this.iframes = [h('iframe', iframeAttr), h('iframe', iframeAttr)]
     this.frameIndex = 0
+    console.log('attr', attr, this.iframes)
+    return attr
   }
 
   reloadFrame(cb) {

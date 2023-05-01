@@ -2,12 +2,13 @@
 // https://github.com/stacktracejs/error-stack-parser
 import { insert, provideErrTranslations } from '@jsx6/jsx6'
 
-import styles from './editor.css'
-import { setMonacoModule } from './src/MonacoEditor'
-import { TutorialRunner } from './src/TutorialRunner'
-import { setBabelModule, transformcjs } from './src/babel/transform'
-import { runCode } from './src/runner/simpleRunner'
-import { fetchText } from './src/util/fetchText'
+import { setMonacoModule } from './MonacoEditor'
+import { TutorialRunner } from './TutorialRunner'
+import { setBabelModule, transformcjs } from './babel/transform'
+import './editor.css'
+import './main.css'
+import { runCode } from './runner/simpleRunner'
+import { fetchText } from './util/fetchText'
 
 /** can be removed if wanting to cut a little bit on the output size, but get coded error messages */
 provideErrTranslations()
@@ -59,7 +60,7 @@ tutorialRunner.registerRunner('render_jsx', (code, iframe) => {
   runCode(codeToRun, iframe)
 })
 
-const mdName = 'demistify.jsx.md'
+const mdName = 'random.tricks.md'
 fetchText('./' + mdName).then(md => {
   tutorialRunner.showMd(md)
 })

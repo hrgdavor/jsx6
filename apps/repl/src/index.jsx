@@ -13,8 +13,8 @@ import {
   tryObserve,
 } from '@jsx6/jsx6'
 
+import IconNote from './icons/icon-note'
 import './main.css'
-import IconNote from './src/icons/icon-note'
 
 provideErrTranslations()
 

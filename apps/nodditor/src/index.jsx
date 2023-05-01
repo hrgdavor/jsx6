@@ -1,9 +1,11 @@
 import { h, hSvg, insert } from '@jsx6/jsx6'
 
+import { NodeEditor } from './NodeEditor.jsx'
+import { Message } from './blocks/Message.js'
+import { Switch } from './blocks/Switch.js'
 import './main.css'
+import { makeLineConnector } from './makeLineConnector.js'
 import './ne-blocks.css'
-import { NodeEditor } from './src/NodeEditor.jsx'
-import { makeLineConnector } from './src/makeLineConnector.js'
 
 const points = {}
 const strength = 60
@@ -30,22 +32,9 @@ console.log('line', svgLayer)
 
 const editor = (self.APP = (
   <NodeEditor class="fxs1 fx1" onne-move={onMove}>
-    <div class="ne-block" nid="1" style="top:10px; left:30px;">
-      <div class="ne-title" ne-drag>
-        Block 1
-      </div>
-      <div ne-nodrag>NO DRAG</div>
-      <b lid="1">o</b>
-      -------------
-      <b rid="1">o</b>
-    </div>
-    <div class="ne-block" nid="2" style="top:100px; left:200px;">
-      <div class="ne-title" ne-drag>
-        Block 2
-      </div>
-      <div ne-nodrag>NO DRAG</div>
-      <b rid="1">o</b>
-    </div>
+    <Switch nid="1" style="top:10px; left:30px;" />
+    <Switch nid="2" style="top:220px; left:30px;" />
+    <Message nid="3" style="top:100px; left:200px;" />
     {svgLayer}
   </NodeEditor>
 ))

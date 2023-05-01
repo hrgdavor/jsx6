@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/dom-observer",
-  "version": "1.6.15",
+  "version": "1.6.16",
   "type": "module",
   "sideEffects": false,
   "description": "Performance for multiple ResizeObserver and IntersectionObserver",
@@ -15,6 +15,7 @@
   },
   "files": [
     "index.js",
+    "src",
     "esm",
     "cjs"
   ],

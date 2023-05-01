@@ -1,0 +1,26 @@
+{
+  "changes": [
+    {
+      "changeType": 1,
+      "comment": "Dependency @jsx6/dom-observer version bump from ^1.6.15 to ^1.6.16.",
+      "packageName": "@jsx6/nodditor"
+    },
+    {
+      "changeType": 1,
+      "comment": "Dependency @jsx6/jsx-runtime version bump from ^1.6.15 to ^1.6.16.",
+      "packageName": "@jsx6/nodditor"
+    },
+    {
+      "changeType": 1,
+      "comment": "Dependency @jsx6/jsx6 version bump from ^1.6.15 to ^1.6.16.",
+      "packageName": "@jsx6/nodditor"
+    },
+    {
+      "changeType": 1,
+      "comment": "Dependency @jsx6/jsx-dev-runtime version bump from ^1.6.15 to ^1.6.16.",
+      "packageName": "@jsx6/nodditor"
+    }
+  ],
+  "packageName": "@jsx6/nodditor",
+  "email": "hrgdavor@gmail.com"
+}

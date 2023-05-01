@@ -58,5 +58,8 @@
     // "typescript": [
     //   "~2.4.0"
     // ]
+    "@jsx6/dom-observer":[
+      "workspace:*"
+    ]
   }
 }

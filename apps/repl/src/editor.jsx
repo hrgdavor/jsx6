@@ -2,8 +2,9 @@
 // https://github.com/stacktracejs/error-stack-parser
 import { insert } from '@jsx6/jsx6'
 
-import styles from './editor.css'
-import { TutorialRunner } from './src/TutorialRunner'
+import { TutorialRunner } from './TutorialRunner'
+import './editor.css'
+import './main.css'
 
 const codeMark = '```'
 export const mdSample = `## h1

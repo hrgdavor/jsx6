@@ -2,14 +2,12 @@ export function activateJsxInspector() {
   let body = document.body
   body.addEventListener('contextmenu', e => {
     if (!e.ctrlKey) return
-    addAttribute(e.target.getRootNode())
-    addAttribute(findShadowRoot(e.target))
+    addJsxSrcAttribute(e.target.getRootNode())
+    addJsxSrcAttribute(findShadowRoot(e.target))
   })
 }
 
-globalThis.activateJsxInspector = activateJsxInspector
-
-function addAttribute(el) {
+function addJsxSrcAttribute(el) {
   if (!el) return
   let src = el._source
   if (src) {
@@ -18,7 +16,7 @@ function addAttribute(el) {
   }
   let ch = el.firstElementChild
   while (ch) {
-    addAttribute(ch)
+    addJsxSrcAttribute(ch)
     ch = ch.nextElementSibling
   }
 }
@@ -29,3 +27,6 @@ function findShadowRoot(element) {
   if (!element.parentNode) return null
   return findShadowRoot(element.parentNode)
 }
+
+globalThis.activateJsxInspector = activateJsxInspector
+globalThis.addJsxSrcAttribute = addJsxSrcAttribute

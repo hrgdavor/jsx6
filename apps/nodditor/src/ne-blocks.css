@@ -1,0 +1,53 @@
+.ne-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 100px;
+  min-height: 100px;
+  border: solid 1px gray;
+  border-radius: 3px;
+  background: white;
+}
+
+.ne-title {
+  padding: 6px 12px;
+  background: #eee;
+}
+
+[ne-drag],
+[ne-drag] *:not([ne-nodrag]) {
+  cursor: grab;
+  user-select: none;
+}
+
+[ne-drag] [ne-nodrag] {
+  cursor: initial;
+  user-select: initial;
+}
+
+.ne-block [ne-item] {
+  position: relative;
+  padding: 2px 12px;
+  border: solid 1px #eee;
+}
+
+.ne-block [ne-connect] {
+  position: absolute;
+  background: #eff;
+  display: inline-block;
+  border: solid 1px gray;
+  width: 10px;
+  height: 20px;
+  border-radius: 10px;
+}
+.ne-block [ne-connect='in'] {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  left: -10px;
+}
+
+.ne-block [ne-connect='out'] {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  right: -10px;
+}

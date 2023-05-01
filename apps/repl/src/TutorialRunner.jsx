@@ -3,14 +3,14 @@ import { Jsx6, addToBody, classIf, insert } from '@jsx6/jsx6'
 import { parse, stringify } from 'mulmd'
 import PerfectScrollbar from 'perfect-scrollbar'
 
-import styles2 from '../tutorial.css'
+import '../tutorial.css'
 import { FlipFrame } from './FlipFrame'
 import { MonacoEditor, colorize } from './MonacoEditor'
 import { queueCodeChange } from './applyCodeChange'
 import { insertImports } from './markdown/insertImports'
 import { extractProvided, markdown } from './markdown/markdown'
 import { splitChapters } from './markdown/splitChapters'
-import stylesPS from './perfect-scrollbar.css'
+import './perfect-scrollbar.css'
 // TODO use from jsx6/editor-monaco
 import { syncScroll } from './util/syncScroll'
 

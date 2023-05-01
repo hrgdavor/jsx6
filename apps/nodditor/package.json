@@ -6,25 +6,14 @@
   "main": "index.js",
   "unpkg": "cjs/index.js",
   "module": "esm/index.js",
-  "exports": {
-    ".": {
-      "require": "./cjs/index.js",
-      "default": "./esm/index.js"
-    }
-  },
   "files": [
     "index.js",
-    "src",
-    "esm",
-    "cjs"
+    "src"
   ],
   "scripts": {
-    "dev": "npx vite --port 5110",
-    "build": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
-    "build-cjs": "esbuild index.jsx --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
-    "format": "prettier --write \"./src/**/*.{js,jsx,json}\"",
-    "prepublishOnly": "npm run build && npm run build-cjs",
-    "build-local-jsx6": "esbuild ../../libs/jsx6/index.js --bundle --outfile=dist/jsx6.js --sourcemap --format=cjs"
+    "start": "node src_build/build.js --dev",
+    "build": "node src_build/build.js",
+    "format": "prettier --write \"./src/**/*.{js,jsx,json}\""
   },
   "repository": {
     "type": "git",
@@ -51,15 +40,15 @@
   "homepage": "https://hrgdavor.github.io/jsx6/",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "@jsx6/build": "0.2.0",
+    "@jsx6/build": "^0.2.0",
+    "@jsx6/jsx-dev-runtime": "^1.6.16",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "live-server": "^1.2.2",
-    "@jsx6/jsx-dev-runtime": "1.6.15",
     "prettier": "~2.7.1"
   },
   "dependencies": {
-    "@jsx6/jsx6": "^1.6.15",
-    "@jsx6/jsx-runtime": "^1.6.15",
-    "@jsx6/dom-observer": "^1.6.15"
+    "@jsx6/jsx6": "^1.6.16",
+    "@jsx6/jsx-runtime": "^1.6.16",
+    "@jsx6/dom-observer": "^1.6.16"
   }
 }

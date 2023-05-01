@@ -2,7 +2,7 @@
 // https://github.com/stacktracejs/error-stack-parser
 import { insert, provideErrTranslations } from '@jsx6/jsx6'
 
-import styles from './editor.css'
+import './editor.css'
 import { setMonacoModule } from './src/MonacoEditor'
 import { TutorialRunner } from './src/TutorialRunner'
 import { setBabelModule, transformcjs } from './src/babel/transform'
