@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "allowJs": true,
+    "checkJs": true,
+    "target": "ESNext",
+    "outDir": "build",
+    "moduleResolution": "node16"
+  },
+  "exclude": ["node_modules", "build_dev", "build", "dist"]
+}

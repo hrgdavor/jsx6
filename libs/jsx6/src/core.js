@@ -88,6 +88,19 @@ export const runFunc = (f, args = []) => {
   }
 }
 
+/** Call a function and catch any errors. Errors are printed using console.error.
+ *
+ * @param {Function} f the function to call
+ * @param {Array} args arguments for the function
+ */
+export const runFuncNoArg = f => {
+  try {
+    f()
+  } catch (e) {
+    console.error(e, f)
+  }
+}
+
 /** Generate error code for JSX6 errors.
  *
  * @param {Number} c numeric code of the error

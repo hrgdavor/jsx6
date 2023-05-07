@@ -60,6 +60,9 @@
     // ]
     "@jsx6/dom-observer":[
       "workspace:*"
+    ],
+    "@jsx6/jsx6":[
+      "workspace:*"
     ]
   }
 }

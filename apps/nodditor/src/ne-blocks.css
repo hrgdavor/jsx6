@@ -32,6 +32,8 @@
 }
 
 .ne-block [ne-connect] {
+  top: 0;
+  user-select: none;
   position: absolute;
   background: #eff;
   display: inline-block;
@@ -50,4 +52,8 @@
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   right: -10px;
+}
+
+.ne-block [ne-connect].target {
+  border-color: red;
 }

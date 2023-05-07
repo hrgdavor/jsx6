@@ -12,17 +12,31 @@ export const fireCustom = (el, name, detail) => {
  * First parameter is details object, and event is second parameter.
  * This is useful for cases when we are most interested in detail object, or want to simply expand parts of it.
  *
- * @param {*} el
- * @param {*} name
- * @param {*} callback
- * @param {*} options
+ * @param {Element} el
+ * @param {string} name
+ * @param {Function} callback
+ * @param {object} [options]
  * @returns {Function} that removes the listener upon call
  */
 export const listenCustom = (el, name, callback, options) => {
   const cb = e => callback(e.detail || {}, e)
   el.addEventListener(name, cb, options)
   return function () {
-    el.removeEventListener(cb, options)
+    el.removeEventListener(name, cb, options)
+  }
+}
+
+/** Listen to event similar to addEventListener, but return a remove function *
+ * @param {Element} el
+ * @param {string} name
+ * @param {Function} callback
+ * @param {object} [options]
+ * @returns {Function} that removes the listener upon call
+ */
+export const listen = (el, name, callback, options) => {
+  el.addEventListener(name, callback, options)
+  return function () {
+    el.removeEventListener(name, callback, options)
   }
 }
 
