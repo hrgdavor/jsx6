@@ -9,6 +9,10 @@ html {
   margin: 0;
   padding: 0;
 }
+body {
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 13px;
+}
 .hidden,
 [hidden] {
   display: none !important;

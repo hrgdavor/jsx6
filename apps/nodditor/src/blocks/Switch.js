@@ -12,18 +12,20 @@ export function Switch(attr) {
         <b ncid="i1" ne-connect="in" />
         Block 1
       </div>
-      <div ne-nodrag>NO DRAG</div>
-      <div ne-item>
-        <div onclick={expandClick}>-------------</div>
-        <b ncid="o1" ne-connect="out" />
-      </div>
-      <div ne-item>
-        <div onclick={expandClick}>-------------</div>
-        <b ncid="o2" ne-connect="out" />
-      </div>
-      <div ne-item>
-        <div onclick={expandClick}>-------------</div>
-        <b ncid="o3" ne-connect="out" />
+      <div class="ne-content">
+        <div ne-nodrag>NO DRAG</div>
+        <div ne-item>
+          <div onclick={expandClick}>-------------</div>
+          <b ncid="o1" ne-connect="out" />
+        </div>
+        <div ne-item>
+          <div onclick={expandClick}>-------------</div>
+          <b ncid="o2" ne-connect="out" />
+        </div>
+        <div ne-item>
+          <div onclick={expandClick}>-------------</div>
+          <b ncid="o3" ne-connect="out" />
+        </div>
       </div>
     </div>
   )

@@ -78,8 +78,8 @@ export class ConnectLine {
   setPosAligned(p, con, skipUpdate) {
     let [x, y] = con.pos
     let [w, h] = con.size
-    y += Math.floor(h / 2)
-    x += p.align == 'left' ? 2 : w - 2
+    y += Math.floor(h / 2) + con.offsetY
+    x += Math.floor(w / 2) + con.offsetX
     p.pos = [x, y]
     if (!skipUpdate) this.updatePath()
   }
@@ -125,6 +125,9 @@ export class ConnectLine {
   setSelected(sel) {
     this.selected = sel
     this.line1.style.stroke = sel ? '#2ea7a7' : 'black'
-    if (sel) console.log('this.el.focus()', this.el.focus())
+  }
+
+  focus() {
+    this.el.focus()
   }
 }

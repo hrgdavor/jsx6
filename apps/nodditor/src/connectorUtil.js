@@ -25,6 +25,7 @@ export function findConnector(blockData) {
       let connectData = connectorMap.get(ncId)
       if (!connectData) {
         addResize(resizeSet, el, rootNode, blockData)
+        let cStyle = getComputedStyle(el)
         let relPos = calcPos(el, blockData.rootNode)
         connectData = {
           id: ncId,
@@ -33,6 +34,8 @@ export function findConnector(blockData) {
           idFull: blockData.id + '/' + ncId,
           el,
           relPos,
+          offsetX: parseFloat(cStyle.getPropertyValue('--offset-x')) || 0,
+          offsetY: parseFloat(cStyle.getPropertyValue('--offset-y')) || 0,
           root: blockData,
           editor: this,
           size: [el.offsetWidth, el.offsetHeight],

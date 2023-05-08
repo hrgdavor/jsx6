@@ -90,7 +90,7 @@ export class LineInteraction {
         if (connectorData == firstCon || !connectorData) {
           otherCon = null
         }
-        line.setPos2(x, y)
+        line.setPos2(x - 1, y)
       }
     }
 

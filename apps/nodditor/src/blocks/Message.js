@@ -8,10 +8,12 @@ export function Message(attr) {
         <b ncid="i1" ne-connect="in" />
         Block 2
       </div>
-      <div ne-nodrag>NO DRAG</div>
-      <div ne-item>
-        bla bla
-        <b ncid="o1" ne-connect="out" />
+      <div class="ne-content">
+        <div ne-nodrag>NO DRAG</div>
+        <div ne-item>
+          bla bla
+          <b ncid="o1" ne-connect="out" />
+        </div>
       </div>
     </div>
   )

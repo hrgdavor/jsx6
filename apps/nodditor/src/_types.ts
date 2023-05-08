@@ -9,6 +9,8 @@ export interface ConnectorData {
   root: BlockData
   relPos: Array<number>
   pos: Array<number>
+  offsetX: number
+  offsetY: number
   size: Array<number>
   editor: NodeEditor
 }

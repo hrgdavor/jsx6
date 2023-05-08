@@ -1,17 +1,26 @@
 .ne-block {
+  box-shadow: 2px 2px 4px #ccc;
+  color: #555;
   position: absolute;
   top: 0;
   left: 0;
   min-width: 100px;
   min-height: 100px;
-  border: solid 1px gray;
-  border-radius: 3px;
-  background: white;
+  border-radius: 6px;
+  padding: 3px;
+  background: #eee;
 }
 
 .ne-title {
+  border-top-left-radius: 3px;
+  border-top-right-radius: 3px;
   padding: 6px 12px;
   background: #eee;
+}
+.ne-content {
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
+  background: #fff;
 }
 
 [ne-drag],
@@ -32,28 +41,43 @@
 }
 
 .ne-block [ne-connect] {
+  background: rgba(0, 0, 0, 0.01);
   top: 0;
   user-select: none;
   position: absolute;
-  background: #eff;
   display: inline-block;
-  border: solid 1px gray;
-  width: 10px;
+  width: 20px;
   height: 20px;
   border-radius: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+.ne-block [ne-connect]:before {
+  content: ' ';
+  width: 8px;
+  height: 8px;
+  border-radius: 7px;
+  border: solid 1px gray;
+  background-color: white;
+}
+
 .ne-block [ne-connect='in'] {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  left: -10px;
+  --offset-x: -4px;
+  --offset-y: 0;
+  left: -13px;
 }
 
 .ne-block [ne-connect='out'] {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  right: -10px;
+  --offset-x: 4px;
+  --offset-y: 0;
+  right: -15px;
 }
 
+.ne-block [ne-connect].target:before {
+  border-color: rgb(240, 102, 102);
+}
+.ne-block [ne-connect]:hover,
 .ne-block [ne-connect].target {
-  border-color: red;
+  background: rgba(0, 0, 0, 0.1);
 }
