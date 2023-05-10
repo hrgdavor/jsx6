@@ -28,7 +28,9 @@ export interface LinePoint {
 
 export interface BlockData {
   id: string
+  type: string
   pos: Array<number>
+  size: Array<number>
   rootNode: HTMLElement
   block: Object
   map: Map<string, ConnectorData>

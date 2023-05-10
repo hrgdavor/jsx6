@@ -61,15 +61,25 @@ export class NodeEditor extends Jsx6 {
       arr.forEach(e => {
         let { target, contentRect, borderBoxSize } = e
         let boxSize = borderBoxSize[0]
-        /** @type {ConnectorData} */
-        let ncData = target.ncData
-        if (ncData) {
-          let size = [boxSize.inlineSize, boxSize.blockSize]
+        let size = [boxSize.inlineSize, boxSize.blockSize]
+
+        if (target.ncData) {
+          /** @type {ConnectorData} */
+          let ncData = target.ncData
           if (pairChanged(size, ncData.size)) {
             // fire change
             ncData.size = size
             ncData.changed = changeTs
             blocksChanged.add(ncData.root)
+          }
+        } else if (target.neBlock) {
+          /** @type {BlockData} */
+          let neBlock = target.neBlock
+          neBlock.size = [boxSize.inlineSize, boxSize.blockSize]
+          if (pairChanged(size, neBlock.size)) {
+            // fire change
+            neBlock.size = size
+            blocksChanged.add(neBlock)
           }
         } else {
           let neBlock
@@ -96,7 +106,7 @@ export class NodeEditor extends Jsx6 {
     return attr
   }
 
-  add(block, id, { pos = [0, 0] } = {}) {
+  add(block, id, { pos = [0, 0], type = '' } = {}) {
     setAttribute(block, 'nid', id)
     let rootNode = /** @type {HTMLBlock}*/ (toDomNode(block))
     insert(this, rootNode)
@@ -105,7 +115,9 @@ export class NodeEditor extends Jsx6 {
     /** @type {BlockData} */
     let blockData = (rootNode.neBlock = {
       id,
+      type,
       pos: [0, 0],
+      size: [0, 0],
       rootNode,
       block,
       map: new Map(),
