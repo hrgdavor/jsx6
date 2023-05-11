@@ -7,3 +7,13 @@
 .NodeEditor svg g:focus {
   outline: rgba(0, 0, 0, 0.1) auto 5px;
 }
+
+.NodeEditor .ne-focus-bt {
+  position: absolute;
+  right: 0;
+  background: #eee;
+}
+.NodeEditor .ne-focus-bt:focus {
+  background: #aaa;
+  outline: solid 1px red;
+}

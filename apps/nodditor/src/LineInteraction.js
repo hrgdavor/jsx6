@@ -107,6 +107,7 @@ export class LineInteraction {
       isDown = false
       isMoving = false
       line = null
+      this.editor.focus()
     }
 
     listenUntil(con.el, con.el, 'pointerdown', pointerdown)

@@ -2,6 +2,63 @@
   "name": "@jsx6/nodditor",
   "entries": [
     {
+      "version": "1.0.4",
+      "tag": "@jsx6/nodditor_v1.0.4",
+      "date": "Thu, 11 May 2023 14:42:10 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Dependency @jsx6/dom-observer version bump from ^1.6.15 to ^1.6.16."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-runtime version bump from ^1.6.15 to ^1.6.16."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx6 version bump from ^1.6.15 to ^1.6.16."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-dev-runtime version bump from ^1.6.15 to ^1.6.16."
+          },
+          {
+            "comment": "Dependency @jsx6/dom-observer version bump from ^1.6.16 to ^1.6.17."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-runtime version bump from ^1.6.16 to ^1.6.17."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx6 version bump from ^1.6.16 to ^1.6.17."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-dev-runtime version bump from ^1.6.16 to ^1.6.17."
+          },
+          {
+            "comment": "Dependency @jsx6/dom-observer version bump from ^1.6.17 to ^1.6.18."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-runtime version bump from ^1.6.17 to ^1.6.18."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx6 version bump from ^1.6.17 to ^1.6.18."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-dev-runtime version bump from ^1.6.17 to ^1.6.18."
+          },
+          {
+            "comment": "Dependency @jsx6/dom-observer version bump from ^1.6.18 to ^1.6.19."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-runtime version bump from ^1.6.18 to ^1.6.19."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx6 version bump from ^1.6.18 to ^1.6.19."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-dev-runtime version bump from ^1.6.18 to ^1.6.19."
+          }
+        ]
+      }
+    },
+    {
       "version": "1.0.3",
       "tag": "@jsx6/nodditor_v1.0.3",
       "date": "Sun, 30 Apr 2023 16:59:17 GMT",

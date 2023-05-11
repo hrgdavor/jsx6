@@ -1,5 +1,6 @@
 import { observeResize } from '@jsx6/dom-observer'
 import {
+  $S,
   Jsx6,
   addClass,
   classIf,
@@ -11,8 +12,10 @@ import {
   isArray,
   isNode,
   listen,
+  observe,
   remove,
   setAttribute,
+  setSelected,
   toDomNode,
 } from '@jsx6/jsx6'
 
@@ -41,6 +44,8 @@ export class NodeEditor extends Jsx6 {
   lines = []
   /** @type {ConnectLine} */
   selectedLine
+  /** @type {Array<BlockData>} */
+  selectedBlocks
   blockMap = new Map()
   nodeMap = new Map()
 
@@ -208,9 +213,13 @@ export class NodeEditor extends Jsx6 {
 
   tpl() {
     const { $s, el } = this
-
-    let isDown = false
-    let isMoving = false
+    $S(
+      (isDown, btFocus) => {
+        classIf(this.el, 'focused', isDown || btFocus)
+      },
+      $s.isDown,
+      $s.btFocus,
+    )
     let lx = 0
     let ly = 0
     let domNode
@@ -234,28 +243,34 @@ export class NodeEditor extends Jsx6 {
       ly = e.clientY
       domNode.startLeft = blockData.pos[0]
       domNode.startTop = blockData.pos[1]
-      isDown = true
+      $s.isDown = true
+      this.selectBlocks([blockData])
+      this.focus()
     })
 
     el.addEventListener('pointerup', e => {
-      if (!isDown) return
-      isDown = false
-      if (isMoving) el.releasePointerCapture(e.pointerId)
-      isMoving = false
+      if (!$s.isDown()) {
+        this.deselect()
+        return
+      }
+      $s.isDown = false
+      if ($s.isMoving()) el.releasePointerCapture(e.pointerId)
+      $s.isMoving = false
       let { pos } = blockData
       this.fireCustom(el, 'ne-move-done', { top: pos[1], left: pos[1], nid, domNode, pos })
       blockData = domNode = nid = undefined
+      this.focus()
     })
 
     let _timer
     el.addEventListener('pointermove', e => {
-      if (!isDown) return
+      if (!$s.isDown()) return
 
-      if (!isMoving) {
+      if (!$s.isMoving()) {
         // pointer capture inside pointerdown caused clicking to not work
         // it is better to capture pointer only on pointer down + first movement
         el.setPointerCapture(e.pointerId)
-        isMoving = true
+        $s.isMoving = true
       }
       const top = domNode.startTop - ly + e.clientY
       const left = domNode.startLeft - lx + e.clientX
@@ -267,12 +282,19 @@ export class NodeEditor extends Jsx6 {
       })
     })
     const keypress = e => {
-      if (e.key === 'Delete' && document.activeElement == this.selectedLine?.el) this.removeLine(this.selectedLine)
+      if (e.key === 'Delete' && document.activeElement == this.focusBt) this.removeLine(this.selectedLine)
     }
     listen(this.el, 'keydown', keypress)
-    return (this.svgLayer = hSvg('svg', {
-      style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;',
-    }))
+    return [
+      (this.svgLayer = hSvg('svg', {
+        style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;',
+      })),
+      (this.focusBt = (
+        <button class="ne-focus-bt" onfocus={e => ($s.btFocus = true)} onblur={e => ($s.btFocus = false)}>
+          F
+        </button>
+      )),
+    ]
   }
 
   /**
@@ -299,11 +321,37 @@ export class NodeEditor extends Jsx6 {
     return con
   }
 
+  selectBlocks(blocks) {
+    if (blocks.length) this.selectConnector(null)
+    this.selectedBlocks = blocks
+    this.blocks.forEach(p => {
+      /** @type {Element|any} */
+      let block = p.block
+      let sel = blocks.includes(p)
+      if (block.setSelected) {
+        block.setSelected(sel)
+      } else {
+        setSelected(block, sel)
+      }
+    })
+  }
+
   selectConnector(con) {
+    if (con) this.selectBlocks([])
     this.selectedLine = con
     this.lines.forEach(p => {
       p.setSelected(p == con)
     })
+    this.focus()
+  }
+
+  deselect() {
+    this.selectConnector()
+    this.selectBlocks([])
+  }
+
+  focus() {
+    this.focusBt.focus()
   }
 
   /**

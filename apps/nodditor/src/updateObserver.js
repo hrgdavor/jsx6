@@ -1,9 +1,7 @@
-import { observe } from '@jsx6/jsx6'
-
 /**
  *
- * @param {Set<Element} newSet
- * @param {Set<element} oldSet
+ * @param {Set<Element>} newSet
+ * @param {Set<Element>} oldSet
  * @param {ResizeObserver} observer
  */
 export function updateObserver(newSet, oldSet, observer) {

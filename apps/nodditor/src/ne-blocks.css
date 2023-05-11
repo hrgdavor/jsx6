@@ -11,12 +11,20 @@
   background: #eee;
 }
 
+.NodeEditor .ne-block[selected] {
+  outline: solid 2px rgb(132, 132, 132);
+}
+.NodeEditor.focused .ne-block[selected] {
+  outline: solid 2px rgb(46, 167, 167);
+}
+
 .ne-title {
   border-top-left-radius: 3px;
   border-top-right-radius: 3px;
   padding: 6px 12px;
   background: #eee;
 }
+
 .ne-content {
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;

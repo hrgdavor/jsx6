@@ -12,9 +12,7 @@ import { makeLine } from './svgUtil.js'
 export class ConnectLine {
   constructor({ strength = 60 } = {}) {
     this.strength = strength
-    this.el = hSvg('g', { tabindex: 0 })
-    insert(this.el, (this.line1 = makeLine(strength)))
-    insert(this.el, (this.line2 = makeLine(strength, 'transparent', 8)))
+    this.el = hSvg('g', {}, (this.line1 = makeLine(strength)), (this.line2 = makeLine(strength, 'transparent', 8)))
 
     /** @type {LinePoint} */
     this.p1 = { pos: [0, 0], listen: [], align: 'right', con: null }
@@ -125,9 +123,5 @@ export class ConnectLine {
   setSelected(sel) {
     this.selected = sel
     this.line1.style.stroke = sel ? '#2ea7a7' : 'black'
-  }
-
-  focus() {
-    this.el.focus()
   }
 }
