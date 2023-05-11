@@ -8,25 +8,27 @@ importers:
   ../../apps/nodditor:
     specifiers:
       '@jsx6/build': ^0.2.0
-      '@jsx6/dom-observer': ^1.6.17
-      '@jsx6/jsx-dev-runtime': ^1.6.17
-      '@jsx6/jsx-runtime': ^1.6.17
-      '@jsx6/jsx6': workspace:*
+      '@jsx6/dom-observer': ^1.6.20
+      '@jsx6/jsx-dev-runtime': ^1.6.20
+      '@jsx6/jsx-runtime': ^1.6.20
+      '@jsx6/jsx6': ^1.6.20
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       esbuild: ^0.17.18
       live-server: ^1.2.2
       prettier: ~2.7.1
+      typescript: ^5.0.4
     dependencies:
-      '@jsx6/dom-observer': 1.6.17
-      '@jsx6/jsx-runtime': 1.6.17
-      '@jsx6/jsx6': link:../../libs/jsx6
+      '@jsx6/dom-observer': 1.6.20
+      '@jsx6/jsx-runtime': 1.6.20
+      '@jsx6/jsx6': 1.6.20
     devDependencies:
       '@jsx6/build': 0.2.0
-      '@jsx6/jsx-dev-runtime': 1.6.17
+      '@jsx6/jsx-dev-runtime': 1.6.20
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
       esbuild: 0.17.18
       live-server: 1.2.2
       prettier: 2.7.1
+      typescript: 5.0.4
 
   ../../apps/repl:
     specifiers:
@@ -34,9 +36,9 @@ importers:
       '@jsx6/build': ^0.2.0
       '@jsx6/dom-observer': workspace:*
       '@jsx6/editor-monaco': workspace:^0.34.100
-      '@jsx6/jsx-dev-runtime': ^1.6.17
-      '@jsx6/jsx-runtime': ^1.6.17
-      '@jsx6/jsx6': ^1.6.17
+      '@jsx6/jsx-dev-runtime': ^1.6.20
+      '@jsx6/jsx-runtime': ^1.6.20
+      '@jsx6/jsx6': ^1.6.20
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       babel-plugin-jsx-simple: ~1.6.0
       babel-plugin-syntax-jsx: ~6.18.0
@@ -48,8 +50,8 @@ importers:
       prettier: ~2.7.1
     dependencies:
       '@jsx6/dom-observer': link:../../libs/dom-observer
-      '@jsx6/jsx-runtime': 1.6.17
-      '@jsx6/jsx6': 1.6.17
+      '@jsx6/jsx-runtime': 1.6.20
+      '@jsx6/jsx6': 1.6.20
       babel-plugin-jsx-simple: 1.6.0
       babel-plugin-syntax-jsx: 6.18.0
       markdown-it: 13.0.1
@@ -59,7 +61,7 @@ importers:
       '@babel/standalone': 7.18.12
       '@jsx6/build': 0.2.0
       '@jsx6/editor-monaco': link:../../libs/editor-monaco
-      '@jsx6/jsx-dev-runtime': 1.6.17
+      '@jsx6/jsx-dev-runtime': 1.6.20
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
       esbuild: 0.17.18
       live-server: 1.2.2
@@ -92,22 +94,22 @@ importers:
 
   ../../libs/jsx-dev-runtime:
     specifiers:
-      '@jsx6/jsx6': ^1.6.17
+      '@jsx6/jsx6': ^1.6.20
       ava: ~4.3.3
       esbuild: ^0.17.18
     dependencies:
-      '@jsx6/jsx6': 1.6.17
+      '@jsx6/jsx6': 1.6.20
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
 
   ../../libs/jsx-runtime:
     specifiers:
-      '@jsx6/jsx6': ^1.6.17
+      '@jsx6/jsx6': ^1.6.20
       ava: ~4.3.3
       esbuild: ^0.17.18
     dependencies:
-      '@jsx6/jsx6': 1.6.17
+      '@jsx6/jsx6': 1.6.20
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
@@ -610,24 +612,24 @@ packages:
       glob: 8.0.3
     dev: true
 
-  /@jsx6/dom-observer/1.6.17:
-    resolution: {integrity: sha512-uuj0e3kdPPVBB31OxAE2/TXZy7jK+omrHpATeiOWnSJI5lLSiu1Emsyu2rIakju6wdO4C+vAzA8H69lY8knitQ==}
+  /@jsx6/dom-observer/1.6.20:
+    resolution: {integrity: sha512-/a7MnC2aHd3g5aZFOnwvwGCEid5diYRSQoFpaJ7pO+IFNIk6vVVuW60+C3spjpxDZDxkGRYdCZTWJ21NTZFIoQ==}
     dev: false
 
-  /@jsx6/jsx-dev-runtime/1.6.17:
-    resolution: {integrity: sha512-iOD4fLbFzx2FoEWyj+9BPkWn/ihy2d6T3maD8FfzqPRYOd01+JysnFHBks7LbfYB3BrGKux+tFurtLIvHxfvZg==}
+  /@jsx6/jsx-dev-runtime/1.6.20:
+    resolution: {integrity: sha512-JOGU2OcyaMv8FDzvjmFl6rpZQ8UHT8ZxC2qqEL+/tZi8oETIGuR0bx+LoFTxZXJUJtZmz3HO9yIitx0CboSJaA==}
     dependencies:
-      '@jsx6/jsx6': 1.6.17
+      '@jsx6/jsx6': 1.6.20
     dev: true
 
-  /@jsx6/jsx-runtime/1.6.17:
-    resolution: {integrity: sha512-Vvn9UTx5EKiuEfVwrUIh27+fe+5ChMJRqon/OTD+cXwnvqYHXkj84FtXvZk05YC/GhxcyBYNS3DGgUyuqX8djA==}
+  /@jsx6/jsx-runtime/1.6.20:
+    resolution: {integrity: sha512-ggbLI3/rHlQoaQNDf3sgk62EnNQdq0WVynNImVd1Z1Ms5vz2lCWV7sRSRHwss0uO7F37M4QfHSywcakeQVpE0w==}
     dependencies:
-      '@jsx6/jsx6': 1.6.17
+      '@jsx6/jsx6': 1.6.20
     dev: false
 
-  /@jsx6/jsx6/1.6.17:
-    resolution: {integrity: sha512-s8IyNdRzlWqEtCst1sRh4uYOrdoAck6g0CWMvb00gRPtrLsDBSeQDaeBRAGQX2vKJ1ktBBhm8oHrnH8zd5pHWA==}
+  /@jsx6/jsx6/1.6.20:
+    resolution: {integrity: sha512-QVB2ZPqnsOTiZovpPxrmG9v8jjWRal9xsVRXw1t80Z2p3KeGwbxgftmRPttGnOeZ8jWUmpEzv8RFx+h0f+UB4g==}
 
   /@nodelib/fs.scandir/2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}

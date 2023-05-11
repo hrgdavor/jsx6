@@ -8,6 +8,7 @@ import { addClass } from './addClass.js'
  */
 export class Jsx6 {
   isJsx6 = true
+  /** @type {HTMLElement} */
   el
   contentArea
   propKey

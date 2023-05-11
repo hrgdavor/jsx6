@@ -4,9 +4,7 @@ import { ConnectLine } from './ConnectLine.js'
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
-import './main.css'
 import { makeLineConnector } from './makeLineConnector.js'
-import './ne-blocks.css'
 
 const points = {}
 
@@ -32,7 +30,7 @@ const moveDone = ({ detail }) => {
 
 /**  @type {NodeEditor} */
 // @ts-ignore
-const editor = (self.APP = <NodeEditor class="fxs1 fx1" onne-move={onMove} onne-move-done={moveDone} />)
+const editor = <NodeEditor class="fxs1 fx1" onne-move={onMove} onne-move-done={moveDone} style="margin-left: 50px" />
 
 insert(document.body, editor)
 setTimeout(() => {

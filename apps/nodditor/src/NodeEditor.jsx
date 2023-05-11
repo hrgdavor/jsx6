@@ -1,9 +1,11 @@
 import { observeResize } from '@jsx6/dom-observer'
 import {
+  $Or,
   $S,
   Jsx6,
   addClass,
   classIf,
+  debounceMicro,
   findParent,
   fireCustom,
   getAttr,
@@ -21,7 +23,6 @@ import {
 
 import { ConnectLine } from './ConnectLine.js'
 import { LineInteraction } from './LineInteraction.js'
-import './NodeEditor.css'
 import { findConnector, recalcPos, updatePos } from './connectorUtil.js'
 import { finalize, listenUntil } from './listenUntil.js'
 import { pairChanged } from './pairUtils.js'
@@ -58,6 +59,7 @@ export class NodeEditor extends Jsx6 {
 
   initAttr(attr) {
     addClass(attr, 'NodeEditor')
+    attr.tabindex = '0'
     this.lineinteraciton = new LineInteraction(this)
     const handler = arr => {
       /** @type {Set<BlockData>} */
@@ -111,6 +113,13 @@ export class NodeEditor extends Jsx6 {
     return attr
   }
 
+  /**
+   *
+   * @param {any} block
+   * @param {string} id
+   * @param {Object} [param2]
+   * @returns {BlockData}
+   */
   add(block, id, { pos = [0, 0], type = '' } = {}) {
     setAttribute(block, 'nid', id)
     let rootNode = /** @type {HTMLBlock}*/ (toDomNode(block))
@@ -123,7 +132,7 @@ export class NodeEditor extends Jsx6 {
       type,
       pos: [0, 0],
       size: [0, 0],
-      rootNode,
+      el: rootNode,
       block,
       map: new Map(),
       resizeSet: new Set(),
@@ -132,9 +141,10 @@ export class NodeEditor extends Jsx6 {
     })
     this.blocks.push(blockData)
     this.blockMap.set(id, blockData)
-    this.nodeMap.set(blockData.rootNode, blockData)
+    this.nodeMap.set(blockData.el, blockData)
     this.setPos(blockData, pos)
     this.initConnectorTracking(blockData)
+    return blockData
   }
 
   initConnectorTracking(id) {
@@ -199,6 +209,19 @@ export class NodeEditor extends Jsx6 {
     }
   }
 
+  removeBlock(block) {
+    let idx = this.blocks.indexOf(block)
+    console.log('idx', idx, toDomNode(block.el))
+    if (idx != -1) {
+      this.blocks.splice(idx, 1)
+      // todo remove lines connected to it
+      let lines = this.lines.filter(line => line.p1.con?.root.id == block.id || line.p2.con?.root.id == block.id)
+      lines.forEach(l => this.removeLine(l))
+      remove(block.el)
+      finalize(block)
+    }
+  }
+
   setPos(nid, pos) {
     let blockData = this.getBlockData(nid)
     if (blockData) {
@@ -207,19 +230,16 @@ export class NodeEditor extends Jsx6 {
         updatePos(con)
         this.fireCustom(con.el, 'ne-move', { ...con })
       })
-      blockData.rootNode.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`
+      blockData.el.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`
     }
   }
 
   tpl() {
     const { $s, el } = this
-    $S(
-      (isDown, btFocus) => {
-        classIf(this.el, 'focused', isDown || btFocus)
-      },
-      $s.isDown,
-      $s.btFocus,
-    )
+    // create a signal tht tells if editor has focus to work with blocks or lines
+    // used to decide if delete will try to delete blocks or lines and for other needs
+    this.$focusOrSelecting = $Or($s.isDown, $s.hasFocus)
+    observe(this.$focusOrSelecting, f => classIf(this.el, 'focused', f))
     let lx = 0
     let ly = 0
     let domNode
@@ -282,18 +302,24 @@ export class NodeEditor extends Jsx6 {
       })
     })
     const keypress = e => {
-      if (e.key === 'Delete' && document.activeElement == this.focusBt) this.removeLine(this.selectedLine)
+      if (e.key === 'Delete' && this.$focusOrSelecting()) {
+        if (this.selectedLine) {
+          this.removeLine(this.selectedLine)
+        } else if (this.selectBlocks.length) {
+          ;[...this.selectedBlocks].forEach(block => {
+            this.removeBlock(block)
+          })
+          this.selectBlocks([])
+        }
+      }
     }
     listen(this.el, 'keydown', keypress)
+    this.el.onfocus = e => ($s.hasFocus = true)
+    this.el.onblur = e => ($s.hasFocus = false)
     return [
       (this.svgLayer = hSvg('svg', {
         style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;',
       })),
-      (this.focusBt = (
-        <button class="ne-focus-bt" onfocus={e => ($s.btFocus = true)} onblur={e => ($s.btFocus = false)}>
-          F
-        </button>
-      )),
     ]
   }
 
@@ -351,7 +377,7 @@ export class NodeEditor extends Jsx6 {
   }
 
   focus() {
-    this.focusBt.focus()
+    this.el.focus()
   }
 
   /**

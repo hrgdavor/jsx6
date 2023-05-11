@@ -1,19 +1,23 @@
 {
   "name": "@jsx6/nodditor",
-  "version": "1.0.4",
+  "version": "1.0.9",
   "type": "module",
   "description": "JSX6 blocky nodes code editor",
   "main": "index.js",
   "unpkg": "cjs/index.js",
   "module": "esm/index.js",
+  "exports": {
+    ".": {
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
-    "index.js",
-    "src"
+    "dist"
   ],
   "scripts": {
     "start": "node src_build/build.js --dev",
     "build": "node src_build/build.js",
-    "format": "prettier --write \"./src/**/*.{js,jsx,json}\""
+    "prepublishOnly": "npx tsc"
   },
   "repository": {
     "type": "git",
@@ -41,14 +45,15 @@
   "devDependencies": {
     "esbuild": "^0.17.18",
     "@jsx6/build": "^0.2.0",
-    "@jsx6/jsx-dev-runtime": "^1.6.19",
+    "@jsx6/jsx-dev-runtime": "^1.6.21",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "live-server": "^1.2.2",
-    "prettier": "~2.7.1"
+    "prettier": "~2.7.1",
+    "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@jsx6/jsx6": "^1.6.19",
-    "@jsx6/jsx-runtime": "^1.6.19",
-    "@jsx6/dom-observer": "^1.6.19"
+    "@jsx6/jsx6": "^1.6.21",
+    "@jsx6/jsx-runtime": "^1.6.21",
+    "@jsx6/dom-observer": "^1.6.21"
   }
 }

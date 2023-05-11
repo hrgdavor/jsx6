@@ -74,6 +74,10 @@ export class LineInteraction {
         con.el.setPointerCapture(e.pointerId)
         isMoving = true
       }
+      /** @type {DOMRect} */
+      let rect = this.editor.el.getBoundingClientRect()
+      let lx = rect.x
+      let ly = rect.y
       let x = e.clientX
       let y = e.clientY
       let target2 = /** @type {HTMLConnector} */ (document.elementFromPoint(x, y))
@@ -90,7 +94,7 @@ export class LineInteraction {
         if (connectorData == firstCon || !connectorData) {
           otherCon = null
         }
-        line.setPos2(x - 1, y)
+        line.setPos2(x - 1 - lx, y - ly)
       }
     }
 

@@ -9,7 +9,7 @@ import { pairSum } from './pairUtils.js'
  * @returns
  */
 export function findConnector(blockData) {
-  let { connectorMap, rootNode } = blockData
+  let { connectorMap, el: rootNode } = blockData
   let resizeSet = new Set()
   resizeSet.add(rootNode)
 
@@ -26,7 +26,7 @@ export function findConnector(blockData) {
       if (!connectData) {
         addResize(resizeSet, el, rootNode, blockData)
         let cStyle = getComputedStyle(el)
-        let relPos = calcPos(el, blockData.rootNode)
+        let relPos = calcPos(el, blockData.el)
         connectData = {
           id: ncId,
           changed: 1,
@@ -76,7 +76,7 @@ export function addResize(resizeSet, el, rootNode, blockData) {
  * @param {import('./_types.js').ConnectorData} connectData
  */
 export function recalcPos(connectData) {
-  connectData.relPos = calcPos(connectData.el, connectData.root.rootNode)
+  connectData.relPos = calcPos(connectData.el, connectData.root.el)
   updatePos(connectData)
 }
 

@@ -4,8 +4,11 @@
     "allowJs": true,
     "checkJs": true,
     "target": "ESNext",
-    "outDir": "build",
+    "outDir": "dist",
+    "rootDir": ".",
+    "declaration": true,
+    "declarationMap": true,
     "moduleResolution": "node16"
   },
-  "exclude": ["node_modules", "build_dev", "build", "dist"]
+  "include": ["index.js", "src"]
 }

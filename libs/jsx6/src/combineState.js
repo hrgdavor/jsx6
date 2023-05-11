@@ -62,5 +62,14 @@ export const $EQ = (to, signal) => $S(v => to == v, signal)
 export const $NEQ = (to, signal) => $S(v => to != v, signal)
 
 export const $If = (signal, t, f) => $S(v => (v ? t : f), signal)
+export const $Any = (...signals) =>
+  $S((...arr) => {
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i]) return true
+    }
+    return false
+  }, signals)
+export const $Or = (sa, sb) => $S((a, b) => a || b, sa, sb)
+export const $And = (sa, sb) => $S((a, b) => a && b, sa, sb)
 
 export const $Map = (map, signal) => $S(v => map[v] || v, signal)

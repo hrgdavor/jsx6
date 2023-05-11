@@ -31,7 +31,7 @@ export interface BlockData {
   type: string
   pos: Array<number>
   size: Array<number>
-  rootNode: HTMLElement
+  el: HTMLElement
   block: Object
   map: Map<string, ConnectorData>
   resizeSet: Set<Element>

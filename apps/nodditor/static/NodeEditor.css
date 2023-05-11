@@ -2,18 +2,22 @@
   position: relative;
 }
 
-.NodeEditor svg {
+.NodeEditor:focus {
+  outline: none;
 }
 .NodeEditor svg g:focus {
   outline: rgba(0, 0, 0, 0.1) auto 5px;
 }
 
 .NodeEditor .ne-focus-bt {
+  top: 0;
+  left: 0;
+  /* width: 100%; */
+  /* height: 100%; */
   position: absolute;
-  right: 0;
   background: #eee;
 }
 .NodeEditor .ne-focus-bt:focus {
-  background: #aaa;
+  background: #fee;
   outline: solid 1px red;
 }

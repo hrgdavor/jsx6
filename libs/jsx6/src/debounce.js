@@ -1,6 +1,6 @@
 // @ts-check
 
-export const debounceMicro = func => {
+export function debounceMicro(func) {
   let promise
   return (...args) => {
     if (!promise) {
@@ -13,7 +13,7 @@ export const debounceMicro = func => {
   }
 }
 
-function debounce(func, timeout = 300) {
+export function debounce(func, timeout = 300) {
   let timer
   return (...args) => {
     clearTimeout(timer)
@@ -23,7 +23,7 @@ function debounce(func, timeout = 300) {
   }
 }
 
-function debounceLeading(func, timeout = 300) {
+export function debounceLeading(func, timeout = 300) {
   let timer
   return (...args) => {
     clearTimeout(timer)
