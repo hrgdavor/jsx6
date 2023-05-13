@@ -302,7 +302,7 @@ export class NodeEditor extends Jsx6 {
       })
     })
     const keypress = e => {
-      if (e.key === 'Delete' && this.$focusOrSelecting()) {
+      if ((e.key === 'Delete' || e.key === 'Backspace') && this.$focusOrSelecting()) {
         if (this.selectedLine) {
           this.removeLine(this.selectedLine)
         } else if (this.selectBlocks.length) {
@@ -311,6 +311,7 @@ export class NodeEditor extends Jsx6 {
           })
           this.selectBlocks([])
         }
+        e.preventDefault()
       }
     }
     listen(this.el, 'keydown', keypress)
