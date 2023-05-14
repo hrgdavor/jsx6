@@ -4,7 +4,7 @@ import { EditableTitle } from '../EditableTitle.js'
 
 export function Message(attr) {
   addClass(attr, 'ne-block')
-  let title = EditableTitle()
+  let title = EditableTitle({ onchange: e => console.log('change'), oninput: e => console.log('input') })
   title.setValue('Message')
   return (
     <div {...attr}>

@@ -5,8 +5,8 @@ import { makeLineConnector } from './makeLineConnector.js'
 import { makeLine } from './svgUtil.js'
 
 /**
- * @typedef {import('./_types.js').LinePoint} LinePoint
- * @typedef {import('./_types.js').ConnectorData} ConnectorData
+ * @typedef {import('./NodeEditor.jsx').LinePoint} LinePoint
+ * @typedef {import('./NodeEditor.jsx').ConnectorData} ConnectorData
  */
 
 export class ConnectLine {

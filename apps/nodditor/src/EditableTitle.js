@@ -1,4 +1,4 @@
-import { addClass } from '@jsx6/jsx6'
+import { addClass, fireCustom } from '@jsx6/jsx6'
 
 import { selectElementText } from './selectElementText.js'
 
@@ -7,19 +7,22 @@ export const EditableTitle = (attr = {}) => {
   addClass(attr, 'EditableTitle')
   const getValue = () => el.textContent
   const setValue = v => (el.textContent = v)
+  let old
   let el = (
     <div
       {...attr}
       onpointerup={e => {
-        console.log('onpointerup', e.target.textContent, e)
-        //contenteditable="true"
-        e.target.setAttribute('contenteditable', 'true')
-        selectElementText(e.target)
+        if (e.ctrlKey || e.shiftKey || e.altKey) return
+        old = el.textContent
+        el.setAttribute('contenteditable', 'true')
+        selectElementText(el)
       }}
       onblur={e => {
-        console.log('blur', e.target)
-        e.target.removeAttribute('contenteditable')
-        // setAttribute(e.target, false)
+        el.removeAttribute('contenteditable')
+        let value = el.textContent
+        if (value != old) {
+          fireCustom(el, 'change', { value })
+        }
       }}
     ></div>
   )

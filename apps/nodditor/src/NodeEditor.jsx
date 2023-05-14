@@ -1,4 +1,3 @@
-import { observeResize } from '@jsx6/dom-observer'
 import {
   $Or,
   $S,
@@ -29,10 +28,46 @@ import { pairChanged } from './pairUtils.js'
 import { updateObserver } from './updateObserver.js'
 
 /**
- * @typedef {import('./_types.js').ConnectorData} ConnectorData
- * @typedef {import('./_types.js').HTMLConnector} HTMLConnector
- * @typedef {import('./_types.js').HTMLBlock} HTMLBlock
- * @typedef {import('./_types.js').BlockData} BlockData
+  @typedef BlockData
+  @property {string} id
+  @property {string} type
+  @property {Array<number>} pos
+  @property {Array<number>} size
+  @property {HTMLElement} el
+  @property {Object} block
+  @property {Map<string, ConnectorData>} map
+  @property {Set<Element>} resizeSet
+  @property {Map<string, ConnectorData>} connectorMap
+  @property {NodeEditor} editor
+
+  @typedef  HTMLBlock_
+  @property {BlockData} neBlock
+
+  @typedef  {HTMLElement & HTMLBlock_} HTMLBlock
+  
+  @typedef ConnectorData
+  @property {string} id
+  @property {number} changed
+  @property {string} idFull
+  @property {HTMLElement} el
+  @property {BlockData} root
+  @property {Array<number>} relPos
+  @property {Array<number>} pos
+  @property {number} offsetX
+  @property {number} offsetY
+  @property {Array<number>} size
+  @property {NodeEditor} editor
+  
+  @typedef HTMLConnector_
+  @property {ConnectorData} ncData
+  @typedef  {HTMLElement & HTMLConnector_} HTMLConnector
+
+  @typedef LinePoint
+  @property {Array<number>} pos
+  @property {ConnectorData} con
+  @property {Array<Function>} listen
+  @property {string} align
+  
  */
 
 /**

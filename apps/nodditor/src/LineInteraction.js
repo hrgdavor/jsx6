@@ -5,8 +5,8 @@ import { NodeEditor } from './NodeEditor.jsx'
 import { listenCustomUntil, listenUntil } from './listenUntil.js'
 
 /**
- * @typedef {import('./_types.js').ConnectorData} ConnectorData
- * @typedef {import('./_types.js').HTMLConnector} HTMLConnector
+ * @typedef {import('./NodeEditor.jsx').ConnectorData} ConnectorData
+ * @typedef {import('./NodeEditor.jsx').HTMLConnector} HTMLConnector
  */
 
 export class LineInteraction {

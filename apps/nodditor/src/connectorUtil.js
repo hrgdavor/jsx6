@@ -5,7 +5,7 @@ import { pairSum } from './pairUtils.js'
 
 /**
  *
- * @param {import('./_types.js').BlockData} blockData
+ * @param {import('./NodeEditor.jsx').BlockData} blockData
  * @returns
  */
 export function findConnector(blockData) {
@@ -63,7 +63,7 @@ export function findConnector(blockData) {
  * @param {Set<HTMLElement>} resizeSet
  * @param {HTMLElement|*} el
  * @param {HTMLElement} rootNode
- * @param {import('./_types.js').BlockData} blockData
+ * @param {import('./NodeEditor.jsx').BlockData} blockData
  */
 export function addResize(resizeSet, el, rootNode, blockData) {
   resizeSet.add(el)
@@ -73,7 +73,7 @@ export function addResize(resizeSet, el, rootNode, blockData) {
 }
 
 /**
- * @param {import('./_types.js').ConnectorData} connectData
+ * @param {import('./NodeEditor.jsx').ConnectorData} connectData
  */
 export function recalcPos(connectData) {
   connectData.relPos = calcPos(connectData.el, connectData.root.el)
@@ -81,7 +81,7 @@ export function recalcPos(connectData) {
 }
 
 /**
- * @param {import('./_types.js').ConnectorData} connectData
+ * @param {import('./NodeEditor.jsx').ConnectorData} connectData
  */
 export function updatePos(connectData) {
   connectData.pos = pairSum(connectData.relPos, connectData.root.pos)
