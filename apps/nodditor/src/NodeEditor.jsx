@@ -98,6 +98,7 @@ export class NodeEditor extends Jsx6 {
   }
 
   initAttr({ menu = null, ...attr } = {}) {
+    // @ts-ignore
     addClass(attr, 'NodeEditor')
     this.menuGenerator = menu
     // @ts-ignore
@@ -386,13 +387,19 @@ export class NodeEditor extends Jsx6 {
     ]
   }
 
-  deleteSelectedBlocks() {
-    ;[...this.selectedBlocks].forEach(block => {
-      this.removeBlock(block)
-    })
+  clear() {
+    this.deleteBlocks([...this.blocks])
     this.selectBlocks([])
   }
-
+  deleteSelectedBlocks() {
+    this.deleteBlocks([...this.selectedBlocks])
+    this.selectBlocks([])
+  }
+  deleteBlocks(blocks) {
+    blocks.forEach(block => {
+      this.removeBlock(block)
+    })
+  }
   /**
    *
    * @param {string|Array<string>} c1

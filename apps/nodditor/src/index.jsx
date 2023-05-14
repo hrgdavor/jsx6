@@ -51,8 +51,8 @@ menu.afterAdd = function (blocks) {
 
 /**  @type {NodeEditor} */
 const editor = (
-  // @ts-ignore
   <NodeEditor
+    // @ts-ignore
     class="fxs1 fx1"
     menu={() => menu}
     onne-move={onMove}

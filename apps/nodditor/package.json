@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/nodditor",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "type": "module",
   "description": "JSX6 blocky nodes code editor",
   "main": "index.js",
