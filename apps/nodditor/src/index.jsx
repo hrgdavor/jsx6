@@ -1,4 +1,4 @@
-import { forEachProp, insert } from '@jsx6/jsx6'
+import { forEachProp, insert, makeState } from '@jsx6/jsx6'
 
 import { ConnectLine } from './ConnectLine.js'
 import { NodeEditor } from './NodeEditor.jsx'
@@ -28,9 +28,38 @@ const moveDone = ({ detail }) => {
   localStorage.setItem('ne.positions', JSON.stringify(positions))
 }
 
+function deleteBlocks() {
+  editor.deleteSelectedBlocks()
+}
+
+/** @type {any} */
+let $s = makeState({ hasEdit: true })
+let menu = (
+  <div class="fx ne-menu" sty:le="padding: 4px; border: solid 1px gray">
+    <div class="ne-bt ne-delete" onclick={deleteBlocks}>
+      X
+    </div>
+    <div class="ne-bt" x-if={$s.hasEdit}>
+      E
+    </div>
+  </div>
+)
+
+menu.afterAdd = function (blocks) {
+  let blockData = blocks[0]
+}
+
 /**  @type {NodeEditor} */
-// @ts-ignore
-const editor = <NodeEditor class="fxs1 fx1" onne-move={onMove} onne-move-done={moveDone} style="margin-left: 50px" />
+const editor = (
+  // @ts-ignore
+  <NodeEditor
+    class="fxs1 fx1"
+    menu={() => menu}
+    onne-move={onMove}
+    onne-move-done={moveDone}
+    style="margin-left: 50px"
+  />
+)
 
 insert(document.body, editor)
 setTimeout(() => {

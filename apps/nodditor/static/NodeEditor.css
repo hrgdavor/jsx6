@@ -21,3 +21,22 @@
   background: #fee;
   outline: solid 1px red;
 }
+
+.ne-menu {
+  padding-bottom: 5px;
+}
+.ne-menu .ne-bt {
+  cursor: pointer;
+  padding: 4px 8px;
+  margin: 0 5px;
+  border-radius: 5px;
+  outline: solid 1px #ddd;
+  background: #fff;
+}
+
+.ne-menu .ne-bt:hover {
+  background-color: #eee;
+}
+.ne-menu .ne-delete {
+  color: red;
+}

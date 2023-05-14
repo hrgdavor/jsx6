@@ -17,6 +17,7 @@ import {
   remove,
   setAttribute,
   setSelected,
+  setVisible,
   toDomNode,
 } from '@jsx6/jsx6'
 
@@ -24,6 +25,7 @@ import { ConnectLine } from './ConnectLine.js'
 import { LineInteraction } from './LineInteraction.js'
 import { findConnector, recalcPos, updatePos } from './connectorUtil.js'
 import { finalize, listenUntil } from './listenUntil.js'
+import { moveMenu } from './moveMenu.js'
 import { pairChanged } from './pairUtils.js'
 import { updateObserver } from './updateObserver.js'
 
@@ -85,6 +87,9 @@ export class NodeEditor extends Jsx6 {
   blockMap = new Map()
   nodeMap = new Map()
 
+  /** @type {HTMLElement} */
+  currentMenu = null
+
   /**
    * @param {ConnectorData} con
    */
@@ -92,8 +97,10 @@ export class NodeEditor extends Jsx6 {
     this.lineinteraciton.newConnector(con)
   }
 
-  initAttr(attr) {
+  initAttr({ menu = null, ...attr } = {}) {
     addClass(attr, 'NodeEditor')
+    this.menuGenerator = menu
+    // @ts-ignore
     attr.tabindex = '0'
     this.lineinteraciton = new LineInteraction(this)
     const handler = arr => {
@@ -280,20 +287,29 @@ export class NodeEditor extends Jsx6 {
     let domNode
     let nid
     let blockData
+    let ignore
 
     el.addEventListener('dragstart', e => {
       if (blockData) e.preventDefault()
     })
     el.addEventListener('pointerdown', e => {
+      ignore = false
       let hasDrag
       let hasBlock
+      let insideMenu
       domNode = findParent(e.target, p => {
         if (!p.hasAttribute) return false
         if (p.hasAttribute('ne-drag')) hasDrag = true
         if (p.hasAttribute('ne-nodrag')) hasBlock = true
+        if (p == this.currentMenu) {
+          insideMenu = true
+          ignore = true
+          console.log('insideMenu', insideMenu)
+          return true
+        }
         return p.hasAttribute('nid')
       })
-      if (!domNode || !hasDrag || hasBlock) return
+      if (!domNode || !hasDrag || hasBlock || insideMenu) return
 
       nid = getAttr(domNode, 'nid')
       blockData = this.getBlockData(nid)
@@ -306,6 +322,7 @@ export class NodeEditor extends Jsx6 {
     })
 
     el.addEventListener('pointerup', e => {
+      if (ignore) return
       if (!$s.isDown()) {
         this.deselect()
         return
@@ -326,6 +343,7 @@ export class NodeEditor extends Jsx6 {
 
     let _timer
     el.addEventListener('pointermove', e => {
+      if (ignore) return
       if (!$s.isDown()) return
 
       if (!$s.isMoving()) {
@@ -343,6 +361,8 @@ export class NodeEditor extends Jsx6 {
       _timer = requestAnimationFrame(() => {
         if (!blockData) return
         this.setPos(blockData, [left, top])
+        let menu = this.currentMenu
+        if (menu) moveMenu([blockData], menu)
         this.fireCustom(el, 'ne-move', { top, left, nid, domNode, pos: blockData.pos })
       })
     })
@@ -351,10 +371,7 @@ export class NodeEditor extends Jsx6 {
         if (this.selectedLine) {
           this.removeLine(this.selectedLine)
         } else if (this.selectBlocks.length) {
-          ;[...this.selectedBlocks].forEach(block => {
-            this.removeBlock(block)
-          })
-          this.selectBlocks([])
+          this.deleteSelectedBlocks()
         }
         e.preventDefault()
       }
@@ -367,6 +384,13 @@ export class NodeEditor extends Jsx6 {
         style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;',
       })),
     ]
+  }
+
+  deleteSelectedBlocks() {
+    ;[...this.selectedBlocks].forEach(block => {
+      this.removeBlock(block)
+    })
+    this.selectBlocks([])
   }
 
   /**
@@ -392,10 +416,38 @@ export class NodeEditor extends Jsx6 {
     this.lines.push(con)
     return con
   }
+  /**
+   *
+   * @typedef Menu
+   * @property {Function} afterAdd
+   *
+   * @typedef {HTMLElement & Menu} MenuHtml
+   *
+   * @param {*} blocks
+   */
 
   selectBlocks(blocks) {
-    if (blocks.length) this.selectConnector(null)
     this.selectedBlocks = blocks
+    let old = this.currentMenu
+    let menu
+    if (blocks.length) {
+      this.selectConnector(null)
+      /** @type {MenuHtml} */
+      menu = this.menuGenerator?.(blocks)
+      if (old && old != menu) setVisible(old, false)
+      if (menu) {
+        setVisible(menu, true)
+        if (menu != old) {
+          menu.style.position = 'absolute'
+          insert(this, menu)
+        }
+        moveMenu(blocks, menu)
+        menu.afterAdd?.(blocks)
+      }
+    } else {
+      if (old) setVisible(old, false)
+    }
+    this.currentMenu = menu
     this.blocks.forEach(p => {
       /** @type {Element|any} */
       let block = p.block
