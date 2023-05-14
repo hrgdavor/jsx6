@@ -246,6 +246,9 @@ export class NodeEditor extends Jsx6 {
     let nid
     let blockData
 
+    el.addEventListener('dragstart', e => {
+      if (blockData) e.preventDefault()
+    })
     el.addEventListener('pointerdown', e => {
       let hasDrag
       let hasBlock
@@ -264,8 +267,7 @@ export class NodeEditor extends Jsx6 {
       domNode.startLeft = blockData.pos[0]
       domNode.startTop = blockData.pos[1]
       $s.isDown = true
-      this.selectBlocks([blockData])
-      this.focus()
+      //  this.focus()
     })
 
     el.addEventListener('pointerup', e => {
@@ -278,8 +280,13 @@ export class NodeEditor extends Jsx6 {
       $s.isMoving = false
       let { pos } = blockData
       this.fireCustom(el, 'ne-move-done', { top: pos[1], left: pos[1], nid, domNode, pos })
+      if ($s.isMoving()) {
+        e.preventDefault()
+      } else {
+        this.selectBlocks([blockData])
+      }
       blockData = domNode = nid = undefined
-      this.focus()
+      //this.focus()
     })
 
     let _timer
@@ -291,6 +298,9 @@ export class NodeEditor extends Jsx6 {
         // it is better to capture pointer only on pointer down + first movement
         el.setPointerCapture(e.pointerId)
         $s.isMoving = true
+        this.selectBlocks([blockData])
+        window.getSelection().removeAllRanges()
+        this.focus()
       }
       const top = domNode.startTop - ly + e.clientY
       const left = domNode.startLeft - lx + e.clientX
@@ -369,7 +379,7 @@ export class NodeEditor extends Jsx6 {
     this.lines.forEach(p => {
       p.setSelected(p == con)
     })
-    this.focus()
+    //this.focus()
   }
 
   deselect() {

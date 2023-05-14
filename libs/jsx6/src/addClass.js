@@ -3,7 +3,7 @@ import { toDomNode } from './toDomNode.js'
 
 /** Shortcut utility
  *
- * @param {Node} node
+ * @param {Node|Object} node
  * @param {String|Array<String>} add class names
  */
 export function addClass(node, add) {

@@ -24,7 +24,9 @@
   padding: 6px 12px;
   background: #eee;
 }
-
+.EditableTitle {
+  min-height: 16px;
+}
 .ne-content {
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
@@ -68,6 +70,9 @@
   border-radius: 7px;
   border: solid 1px gray;
   background-color: white;
+}
+.ne-block [ne-connect][ne-connect='in']:before {
+  border-radius: 3px;
 }
 
 .ne-block [ne-connect='in'] {
