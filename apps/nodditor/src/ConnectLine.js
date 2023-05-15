@@ -1,4 +1,4 @@
-import { hSvg, insert, listenCustom, runFuncNoArg } from '@jsx6/jsx6'
+import { classIf, hSvg, insert, listenCustom, runFuncNoArg } from '@jsx6/jsx6'
 
 import { addFinalizer } from './listenUntil.js'
 import { makeLineConnector } from './makeLineConnector.js'
@@ -122,6 +122,6 @@ export class ConnectLine {
    */
   setSelected(sel) {
     this.selected = sel
-    this.line1.style.stroke = sel ? '#2ea7a7' : 'black'
+    classIf(this.el, 'selected', sel)
   }
 }

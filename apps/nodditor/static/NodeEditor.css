@@ -8,6 +8,19 @@
 .NodeEditor svg g:focus {
   outline: rgba(0, 0, 0, 0.1) auto 5px;
 }
+.NodeEditor svg g path:first-child {
+  stroke: black;
+  stroke-width: 2px;
+}
+.NodeEditor svg g.selected path:first-child {
+  stroke: #2ea7a7;
+}
+.NodeEditor svg g.ne-from-sel-block path:first-child {
+  stroke: #bfc233;
+}
+.NodeEditor svg g.ne-to-sel-block path:first-child {
+  stroke: #2e6ca7;
+}
 
 .NodeEditor .ne-focus-bt {
   top: 0;

@@ -438,7 +438,11 @@ export class NodeEditor extends Jsx6 {
     this.selectedBlocks = blocks
     let old = this.currentMenu
     let menu
+    let blockIdMap = {}
     if (blocks.length) {
+      blocks.forEach(b => {
+        blockIdMap[b.id] = 1
+      })
       this.selectConnector(null)
       /** @type {MenuHtml} */
       menu = this.menuGenerator?.(blocks)
@@ -465,6 +469,16 @@ export class NodeEditor extends Jsx6 {
       } else {
         setSelected(block, sel)
       }
+    })
+    this.lines.forEach(l => {
+      if (blockIdMap[l.p1.con?.root.id]) {
+        console.log('from', l.el)
+      }
+      if (blockIdMap[l.p2.con?.root.id]) {
+        console.log('to', l.el)
+      }
+      classIf(l.el, 'ne-from-sel-block', blockIdMap[l.p1.con?.root.id])
+      classIf(l.el, 'ne-to-sel-block', blockIdMap[l.p2.con?.root.id])
     })
   }
 
