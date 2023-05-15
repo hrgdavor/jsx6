@@ -29,6 +29,7 @@ export function findConnector(blockData) {
         let relPos = calcPos(el, blockData.el)
         connectData = {
           id: ncId,
+          dir: getAttr(el, 'ne-connect'),
           changed: 1,
           pos: [0, 0],
           idFull: blockData.id + '/' + ncId,

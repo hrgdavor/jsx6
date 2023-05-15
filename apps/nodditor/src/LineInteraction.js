@@ -52,7 +52,7 @@ export class LineInteraction {
         }
       }
 
-      if (con.id[0] == 'i') return
+      if (con.dir == 'in') return
       if (this.editor.lineHasConnector(con)) return
 
       line = this.editor.addConnector(new ConnectLine())
@@ -83,7 +83,7 @@ export class LineInteraction {
       let target2 = /** @type {HTMLConnector} */ (document.elementFromPoint(x, y))
       let connectorData = target2.ncData
       // do not allow connect to output as second part
-      if (connectorData?.id[0] == 'o') connectorData = null
+      if (connectorData?.dir == 'out') connectorData = null
 
       if (connectorData && connectorData != firstCon) {
         markTarget(connectorData, 1)

@@ -49,6 +49,7 @@ import { updateObserver } from './updateObserver.js'
   
   @typedef ConnectorData
   @property {string} id
+  @property {string} dir
   @property {number} changed
   @property {string} idFull
   @property {HTMLElement} el
