@@ -12,7 +12,7 @@ import { makeLine } from './svgUtil.js'
 export class ConnectLine {
   constructor({ strength = 60 } = {}) {
     this.strength = strength
-    this.el = hSvg('g', {}, (this.line1 = makeLine(strength)), (this.line2 = makeLine(strength, 'transparent', 8)))
+    this.el = hSvg('g', {}, (this.line1 = makeLine(strength)), (this.line2 = makeLine(strength)))
 
     /** @type {LinePoint} */
     this.p1 = { pos: [0, 0], listen: [], align: 'right', con: null }
