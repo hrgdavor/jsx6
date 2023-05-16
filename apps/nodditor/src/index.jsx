@@ -88,6 +88,7 @@ setTimeout(() => {
   forEachProp(positions, (pos, key) => editor.setPos(key, pos))
 
   editor.addConnectorFromTo('1/o1', '2/i1')
+  editor.addConnectorFromTo('1/o3', '2/i1')
 }, 1)
 
 //editor.getConnectorPos(1, 'o1')

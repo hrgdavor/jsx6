@@ -126,7 +126,6 @@ export class NodeEditor extends Jsx6 {
         } else if (target.neBlock) {
           /** @type {BlockData} */
           let neBlock = target.neBlock
-          neBlock.size = [boxSize.inlineSize, boxSize.blockSize]
           if (pairChanged(size, neBlock.size)) {
             // fire change
             neBlock.size = size
@@ -471,12 +470,6 @@ export class NodeEditor extends Jsx6 {
       }
     })
     this.lines.forEach(l => {
-      if (blockIdMap[l.p1.con?.root.id]) {
-        console.log('from', l.el)
-      }
-      if (blockIdMap[l.p2.con?.root.id]) {
-        console.log('to', l.el)
-      }
       classIf(l.el, 'ne-from-sel-block', blockIdMap[l.p1.con?.root.id])
       classIf(l.el, 'ne-to-sel-block', blockIdMap[l.p2.con?.root.id])
     })
