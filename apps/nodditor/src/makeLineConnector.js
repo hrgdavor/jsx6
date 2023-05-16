@@ -1,4 +1,4 @@
-const { min, abs } = Math
+const { min, sqrt } = Math
 
 /** Generate bezier curve that connects two points (left1,top1)--(left2,top2)
  *
@@ -10,6 +10,6 @@ const { min, abs } = Math
  * @returns {String} path definition for the bezier
  */
 export const makeLineConnector = (strength, left1, top1, left2, top2) => {
-  strength = min(strength, abs(left1 - left2), abs(top1 - top2))
+  strength = min(strength, sqrt((left1 - left2) ** 2 + (top1 - top2) ** 2) / 2)
   return `M${left1} ${top1} C${left1 + strength} ${top1} ${left2 - strength} ${top2} ${left2} ${top2}`
 }
