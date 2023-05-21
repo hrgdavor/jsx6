@@ -166,6 +166,9 @@ export class NodeEditor extends Jsx6 {
   add(block, id, { pos = [0, 0], type = '' } = {}) {
     setAttribute(block, 'nid', id)
     let rootNode = /** @type {HTMLBlock}*/ (toDomNode(block))
+    block.setNodeEditor?.(this)
+    // @ts-ignore
+    rootNode.nodeEditor = this
     insert(this, rootNode)
     rootNode.style.top = '0'
     rootNode.style.left = '0'
@@ -244,7 +247,6 @@ export class NodeEditor extends Jsx6 {
 
   removeLine(line) {
     let idx = this.lines.indexOf(line)
-    console.log('idx', idx, toDomNode(line.el))
     if (idx != -1) {
       this.lines.splice(idx, 1)
       remove(line.el)
@@ -254,7 +256,6 @@ export class NodeEditor extends Jsx6 {
 
   removeBlock(block) {
     let idx = this.blocks.indexOf(block)
-    console.log('idx', idx, toDomNode(block.el))
     if (idx != -1) {
       this.blocks.splice(idx, 1)
       // todo remove lines connected to it
@@ -305,7 +306,6 @@ export class NodeEditor extends Jsx6 {
         if (p == this.currentMenu) {
           insideMenu = true
           ignore = true
-          console.log('insideMenu', insideMenu)
           return true
         }
         return p.hasAttribute('nid')
@@ -319,7 +319,6 @@ export class NodeEditor extends Jsx6 {
       domNode.startLeft = blockData.pos[0]
       domNode.startTop = blockData.pos[1]
       $s.isDown = true
-      //  this.focus()
     })
 
     el.addEventListener('pointerup', e => {

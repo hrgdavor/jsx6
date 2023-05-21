@@ -54,32 +54,33 @@ export class LineInteraction {
 
       if (con.dir == 'in') return
       if (this.editor.lineHasConnector(con)) return
-
-      line = this.editor.addConnector(new ConnectLine())
-      this.editor.selectConnector(line)
-      line.setSelected(true)
-      line.setPoint1(con)
-      firstCon = con
-      markTarget(con, 1)
-
-      line.setPos2(lx, ly)
       isDown = true
     }
 
     const pointermove = e => {
       if (!isDown) return
-      if (isDown && !isMoving) {
-        // pointer capture inside pointerdown caused clicking to not work
-        // it is better to capture pointer only on pointer down + first movement
-        con.el.setPointerCapture(e.pointerId)
-        isMoving = true
-      }
       /** @type {DOMRect} */
       let rect = this.editor.el.getBoundingClientRect()
       let lx = rect.x
       let ly = rect.y
       let x = e.clientX
       let y = e.clientY
+
+      if (isDown && !isMoving) {
+        line = this.editor.addConnector(new ConnectLine())
+        this.editor.selectConnector(line)
+        line.setSelected(true)
+        line.setPoint1(con)
+        firstCon = con
+        markTarget(con, 1)
+
+        line.setPos2(x, y)
+
+        // pointer capture inside pointerdown caused clicking to not work
+        // it is better to capture pointer only on pointer down + first movement
+        con.el.setPointerCapture(e.pointerId)
+        isMoving = true
+      }
       let target2 = /** @type {HTMLConnector} */ (document.elementFromPoint(x, y))
       let connectorData = target2.ncData
       // do not allow connect to output as second part
