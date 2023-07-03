@@ -2,6 +2,7 @@ import {
   $Or,
   $S,
   Jsx6,
+  Jsx6old,
   addClass,
   classIf,
   debounceMicro,
@@ -98,64 +99,6 @@ export class NodeEditor extends Jsx6 {
     this.lineinteraciton.newConnector(con)
   }
 
-  initAttr({ menu = null, ...attr } = {}) {
-    // @ts-ignore
-    addClass(attr, 'NodeEditor')
-    this.menuGenerator = menu
-    // @ts-ignore
-    attr.tabindex = '0'
-    this.lineinteraciton = new LineInteraction(this)
-    const handler = arr => {
-      /** @type {Set<BlockData>} */
-      let blocksChanged = new Set()
-      let changeTs = Date.now()
-      arr.forEach(e => {
-        let { target, contentRect, borderBoxSize } = e
-        let boxSize = borderBoxSize[0]
-        let size = [boxSize.inlineSize, boxSize.blockSize]
-
-        if (target.ncData) {
-          /** @type {ConnectorData} */
-          let ncData = target.ncData
-          if (pairChanged(size, ncData.size)) {
-            // fire change
-            ncData.size = size
-            ncData.changed = changeTs
-            blocksChanged.add(ncData.root)
-          }
-        } else if (target.neBlock) {
-          /** @type {BlockData} */
-          let neBlock = target.neBlock
-          if (pairChanged(size, neBlock.size)) {
-            // fire change
-            neBlock.size = size
-            blocksChanged.add(neBlock)
-          }
-        } else {
-          let neBlock
-          let p = target
-          while (p && !neBlock) {
-            neBlock = p.neBlock
-            p = p.parentElement
-          }
-          if (neBlock) blocksChanged.add(neBlock)
-        }
-      })
-      blocksChanged.forEach(block => {
-        block.connectorMap.forEach(con => {
-          let tmp = con.pos
-          recalcPos(con)
-          // changed position or size
-          if (pairChanged(tmp, con.pos) || con.changed == changeTs) {
-            this.fireCustom(con.el, 'ne-move', { ...con })
-          }
-        })
-      })
-    }
-    this.observer = new ResizeObserver(handler)
-    return attr
-  }
-
   /**
    *
    * @param {any} block
@@ -234,7 +177,7 @@ export class NodeEditor extends Jsx6 {
       cid = blockId.substring(idx + 1)
       blockId = blockId.substring(0, idx)
     }
-    return this.blockMap.get(blockId).connectorMap.get(cid)
+    return this.blockMap.get(blockId)?.connectorMap.get(cid)
   }
 
   lineHasConnector(con) {
@@ -278,12 +221,70 @@ export class NodeEditor extends Jsx6 {
     }
   }
 
-  tpl() {
-    const { $s, el } = this
+  tpl({ menu = null, ...attr } = {}) {
+    // @ts-ignore
+    addClass(attr, 'NodeEditor')
+    this.menuGenerator = menu
+    // @ts-ignore
+    attr.tabindex = '0'
+    this.lineinteraciton = new LineInteraction(this)
+    const handler = arr => {
+      /** @type {Set<BlockData>} */
+      let blocksChanged = new Set()
+      let changeTs = Date.now()
+      arr.forEach(e => {
+        let { target, contentRect, borderBoxSize } = e
+        let boxSize = borderBoxSize[0]
+        let size = [boxSize.inlineSize, boxSize.blockSize]
+
+        if (target.ncData) {
+          /** @type {ConnectorData} */
+          let ncData = target.ncData
+          if (pairChanged(size, ncData.size)) {
+            // fire change
+            ncData.size = size
+            ncData.changed = changeTs
+            blocksChanged.add(ncData.root)
+          }
+        } else if (target.neBlock) {
+          /** @type {BlockData} */
+          let neBlock = target.neBlock
+          if (pairChanged(size, neBlock.size)) {
+            // fire change
+            neBlock.size = size
+            blocksChanged.add(neBlock)
+          }
+        } else {
+          let neBlock
+          let p = target
+          while (p && !neBlock) {
+            neBlock = p.neBlock
+            p = p.parentElement
+          }
+          if (neBlock) blocksChanged.add(neBlock)
+        }
+      })
+      blocksChanged.forEach(block => {
+        block.connectorMap.forEach(con => {
+          let tmp = con.pos
+          recalcPos(con)
+          // changed position or size
+          if (pairChanged(tmp, con.pos) || con.changed == changeTs) {
+            this.fireCustom(con.el, 'ne-move', { ...con })
+          }
+        })
+      })
+    }
+    this.observer = new ResizeObserver(handler)
+
+    this.svgLayer = hSvg('svg', { style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;' })
+    let el = <div {...attr}>{this.svgLayer}</div>
+    // @ts-ignore
+    const { $s } = this
     // create a signal tht tells if editor has focus to work with blocks or lines
     // used to decide if delete will try to delete blocks or lines and for other needs
     this.$focusOrSelecting = $Or($s.isDown, $s.hasFocus)
-    observe(this.$focusOrSelecting, f => classIf(this.el, 'focused', f))
+    observe(this.$focusOrSelecting, f => classIf(el, 'focused', f))
     let lx = 0
     let ly = 0
     let domNode
@@ -376,14 +377,10 @@ export class NodeEditor extends Jsx6 {
         e.preventDefault()
       }
     }
-    listen(this.el, 'keydown', keypress)
-    this.el.onfocus = e => ($s.hasFocus = true)
-    this.el.onblur = e => ($s.hasFocus = false)
-    return [
-      (this.svgLayer = hSvg('svg', {
-        style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;',
-      })),
-    ]
+    listen(el, 'keydown', keypress)
+    el.onfocus = e => ($s.hasFocus = true)
+    el.onblur = e => ($s.hasFocus = false)
+    return el
   }
 
   clear() {
@@ -489,6 +486,7 @@ export class NodeEditor extends Jsx6 {
   }
 
   focus() {
+    // @ts-ignore
     this.el.focus()
   }
 
@@ -500,6 +498,7 @@ export class NodeEditor extends Jsx6 {
    */
   fireCustom(el, name, detail = {}) {
     fireCustom(el, name, detail)
+    // @ts-ignore
     fireCustom(this.el, name, detail)
   }
 }

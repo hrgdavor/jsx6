@@ -60,6 +60,7 @@ export class LineInteraction {
     const pointermove = e => {
       if (!isDown) return
       /** @type {DOMRect} */
+      //@ts-ignore
       let rect = this.editor.el.getBoundingClientRect()
       let lx = rect.x
       let ly = rect.y

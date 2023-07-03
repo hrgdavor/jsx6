@@ -1,10 +1,11 @@
-import { forEachProp, insert, makeState } from '@jsx6/jsx6'
+import { forEachProp, insert, makeState, provideErrTranslations } from '@jsx6/jsx6'
 
 import { ConnectLine } from './ConnectLine.js'
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
-import { makeLineConnector } from './makeLineConnector.js'
+
+provideErrTranslations()
 
 const points = {}
 

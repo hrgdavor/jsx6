@@ -1,6 +1,6 @@
 import { isFunc, throwErr } from './core.js'
 import { doSubscribeValue } from './makeState.js'
-import { ERR_NOT_OBSERVABLE } from './errorCodes.js'
+import { JSX6E13_NOT_OBSERVABLE } from './errorCodes.js'
 
 export const subscribeSymbol = Symbol('subscribe')
 export const triggerSymbol = Symbol('trigger')
@@ -29,7 +29,7 @@ export function mapObserver(obj, mapper) {
 }
 
 export function observe(obj, callback) {
-  if (!tryObserve(obj, callback)) throwErr(ERR_NOT_OBSERVABLE, obj)
+  if (!tryObserve(obj, callback)) throwErr(JSX6E13_NOT_OBSERVABLE, obj)
 }
 
 export function tryObserve(obj, callback = null, skipTrigger) {

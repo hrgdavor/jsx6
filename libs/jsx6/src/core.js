@@ -1,4 +1,4 @@
-import { ERR_REQUIRE_FUNC } from './errorCodes.js'
+import { JSX6E7_REQUIRE_FUNC } from './errorCodes.js'
 
 export const TRANS = {}
 
@@ -31,11 +31,11 @@ export function t(code, ...rest) {
 
 export const errorMessage = c => t(errCode(c))
 
-export const throwErr = (c, info) => {
+export const throwErr = (c, ...info) => {
   const code = errCode(c)
   let msg = t(code)
   if (msg != code) msg = code + ' ' + msg
-  console.error(msg, info)
+  console.error(msg, ...info)
   throw new Error(msg)
 }
 
@@ -68,7 +68,7 @@ export const isNode = obj => obj?.nodeType !== undefined //
  * @returns {Function} provided function
  * @throws Error if value is not a function
  */
-export const requireFunc = (func, err = ERR_REQUIRE_FUNC) => {
+export const requireFunc = (func, err = JSX6E7_REQUIRE_FUNC) => {
   if (!func || !isFunc(func)) {
     throwErr(err, { func })
   }

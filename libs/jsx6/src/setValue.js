@@ -3,10 +3,8 @@ import { mapProp } from './mapProp.js'
 
 export function setValue(obj, value) {
   if (obj === null || obj === undefined) return obj
-
   if (isFunc(obj.setValue)) return obj.setValue(value)
   if (isFunc(obj)) return setValue(obj(), value)
-
   if (obj instanceof window.Element) {
     if (obj.tagName === 'INPUT' && obj.type === 'checkbox') {
       obj.checked = value
@@ -15,8 +13,8 @@ export function setValue(obj, value) {
     }
   } else {
     value = value || {}
-    mapProp(value, (o, p) => {
-      if (obj[p]) setValue(obj[p], value[p])
+    mapProp(obj, (o, p) => {
+      if (o) setValue(o, value[p])
     })
   }
 }

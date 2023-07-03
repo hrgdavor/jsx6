@@ -1,36 +1,25 @@
 import { throwErr } from './core.js'
 import { makeState } from './makeState.js'
-import { ERR_ITEM_NOT_FOUND } from './errorCodes.js'
-import { domWithScope, forInsert, h } from './jsx2dom.js'
-import { Jsx6 } from './Jsx6.js'
+import { JSX6E12_ITEM_NOT_FOUND } from './errorCodes.js'
+import { domWithScope, factories, forInsert, h, insert } from './jsx2dom.js'
 
 const _remove = item => {
   const el = item.el
   el.parentNode?.removeChild(el)
 }
 
-export class Loop extends Jsx6 {
+export class Loop {
   items = []
   allItems = []
   count = 0
 
-  constructor(attr, children) {
-    let itemAttr = attr
-    attr = { tagName: attr.loopTag || '', p: attr.p }
-    delete itemAttr.p
-    delete itemAttr.loopTag
-
-    super(attr, children)
-
+  constructor({ p, item, tpl, ...itemAttr } = {}) {
     this.itemAttr = itemAttr
 
-    if (itemAttr.item) {
-      this.item = itemAttr.item
-      delete itemAttr.item
-    } else if (itemAttr.tpl) {
-      this.tplFunc = itemAttr.tpl
-      delete itemAttr.tpl
-    }
+    this.item = item
+    this.tplFunc = tpl
+
+    this.el = factories.Text('')
   }
 
   setValue(v) {
@@ -61,6 +50,10 @@ export class Loop extends Jsx6 {
     item.el.loopIndex = i
   }
 
+  insert(el, before) {
+    insert(this.el.parentNode, el, before || this.el)
+  }
+
   makeItem(newData, i) {
     let comp
 
@@ -68,7 +61,7 @@ export class Loop extends Jsx6 {
     const attr = { ...this.itemAttr }
     if (item.prototype) {
       comp = new this.item(attr, [])
-      this.insertBefore(comp)
+      this.insert(comp)
     } else {
       attr.value = attr.$v = makeState(newData)
       const valueProxy = attr.$v
@@ -77,7 +70,7 @@ export class Loop extends Jsx6 {
         getValue: valueProxy,
       }
       comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp)))
-      this.insertBefore(comp.el)
+      this.insert(comp.el)
     }
     comp.el.loopComp = this
     comp.setValue(newData)
@@ -93,7 +86,7 @@ export class Loop extends Jsx6 {
         const el = it[i].el
         el.loopIndex = i
         if (i < count && !el.parentNode) {
-          this.insertBefore(el)
+          this.insert(el)
         } else if (i >= count && el.parentNode) {
           el.parentNode.removeChild(el)
         }
@@ -135,7 +128,6 @@ export class Loop extends Jsx6 {
 
     this._fixItemList()
 
-    this.fireEvent({ name: 'afterPop', item: item })
     return item
   }
 
@@ -148,13 +140,13 @@ export class Loop extends Jsx6 {
     } else {
       this.allItems.splice(insertBefore, 0, item)
     }
-    this.insertBefore(item.el, elBefore)
+    this.insert(item.el, elBefore)
     this._fixItemList(true)
   }
 
   removeItem(item) {
     var index = this.getItemIndex(item)
-    if (index === -1 || index === undefined) throwErr(ERR_ITEM_NOT_FOUND, item)
+    if (index === -1 || index === undefined) throwErr(JSX6E12_ITEM_NOT_FOUND, item)
     this.splice(index, 1)
   }
 
@@ -175,7 +167,7 @@ export class Loop extends Jsx6 {
         var newItem = countReusable > 0 ? this.allItems.pop() : this.makeItem(toAdd[d], index)
         this.allItems.splice(index, 0, newItem)
         var next = this.allItems[index + 1]
-        this.insertBefore(this.allItems[index].el, next ? next.el : null)
+        this.insert(this.allItems[index].el, next ? next.el : null)
         countReusable--
       }
       this.setItem(toAdd[d], index)
@@ -187,7 +179,7 @@ export class Loop extends Jsx6 {
       var removed = this.allItems.splice(index, deleteCount)
       for (var i = 0; i < removed.length; i++) {
         var tmp = removed[i]
-        this.insertBefore(tmp.el, this.itemNextSibling || null)
+        this.insert(tmp.el, this.itemNextSibling || null)
         this.allItems.push(tmp)
         _remove(tmp)
       }

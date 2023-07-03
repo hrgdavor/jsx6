@@ -7,6 +7,8 @@ import {
   T,
   addToBody,
   domWithScope,
+  getScope,
+  insertAttr,
   makeState,
   provideErrTranslations,
   runInBatch,
@@ -50,11 +52,10 @@ function NotAComponent(attr) {
 const NotAComponent2 = ({ text = 'NotAComponent2', TagName = 'b', ...attr }) => <TagName {...attr}>{text}</TagName>
 
 class AComponent extends Jsx6 {
-  tpl(h) {
+  tpl(attr = {}) {
     const { $v } = this
-    console.log('aaaaaaaaa', this.el)
     return (
-      <div>
+      <div {...attr}>
         AComponent:<b onclick={e => this.el.loopComp?.removeItem(this)}>{$v.name}</b>
       </div>
     )
@@ -76,12 +77,23 @@ const scope = (window.APP = {})
 //   )),
 // )
 
+class TestWcNoDeclare extends HTMLElement {
+  constructor(...args) {
+    super()
+    insertAttr(args[0], this)
+    console.log('args', args)
+    this.textContent = 'TestWcNoDeclare'
+  }
+}
+customElements.define('word-count', TestWcNoDeclare)
 window.testState = makeState(true)
 addToBody(
   domWithScope(scope, h => (
     <>
+      {<TestWcNoDeclare class="test" />}
       <div>array:{[<span>1</span>]}</div>
       <IconNote />
+      {console.log('scope', getScope())}
       <AComponent p="comp1" />
       Hello world.{T`test`} ...{ThePromise}
       <Loop p="loop" title={T`test`} item={AComponent} x-if={window.testState} />

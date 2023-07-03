@@ -1,5 +1,9 @@
 import { runFunc, throwErr, isObj, requireFunc, isFunc, isObjNN } from './core.js'
-import { ERR_DIRTY_RECURSION, ERR_DIRTY_RUNNER_FUNC, ERR_STATE_UPDATE_OBJECT_REQ } from './errorCodes.js'
+import {
+  JSX6E4_DIRTY_RECURSION,
+  JSX6E5_DIRTY_RUNNER_FUNC,
+  JSX6E11_STATE_UPDATE_OBJECT_REQ,
+} from './errorCodes.js'
 import { subscribeSymbol, triggerSymbol } from './observe.js'
 
 // TODO test and make work integration with Observable and RX
@@ -43,7 +47,7 @@ export function runInBatch(callback) {
     callback.forEach(runInBatch)
     return
   }
-  requireFunc(callback, ERR_DIRTY_RUNNER_FUNC)
+  requireFunc(callback, JSX6E5_DIRTY_RUNNER_FUNC)
 
   // TDOD check if it is better to just run the udpater immediately
   if (isRunning) {
@@ -75,12 +79,12 @@ export function runDirty() {
 }
 
 export function doSubscribeValue(updaters, updater, func, skipTrigger) {
-  requireFunc(updater, ERR_DIRTY_RUNNER_FUNC)
+  requireFunc(updater, JSX6E5_DIRTY_RUNNER_FUNC)
   doSubscribe(updaters, () => updater(func()), skipTrigger)
 }
 
 export function doSubscribe(updaters, updater, skipTrigger) {
-  requireFunc(updater, ERR_DIRTY_RUNNER_FUNC)
+  requireFunc(updater, JSX6E5_DIRTY_RUNNER_FUNC)
   updaters.push(updater)
   if (!skipTrigger) updater()
 }
@@ -214,7 +218,7 @@ export function makeState(rawState, returnAll) {
 
   const extend = (newData, force) => {
     if (!newData) return
-    if (typeof newData !== 'object') throwErr(ERR_STATE_UPDATE_OBJECT_REQ)
+    if (typeof newData !== 'object') throwErr(JSX6E11_STATE_UPDATE_OBJECT_REQ)
 
     let changed = false
     for (const p in newData) {

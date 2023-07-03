@@ -111,10 +111,19 @@ export class ConnectLine {
   }
 
   updatePath() {
-    let [x1, y1] = this.p1.pos
-    let [x2, y2] = this.p2.pos
-    this.line1.setAttribute('d', makeLineConnector(this.strength, x1, y1, x2, y2))
-    this.line2.setAttribute('d', makeLineConnector(this.strength, x1, y1, x2, y2))
+    let line = makeLineConnector(
+      this.strength,
+      this.p1.pos,
+      this.p1.pos, // todo box pos
+      [100, 100],
+      'R',
+      this.p2.pos,
+      [0, 0], // todo box pos
+      [100, 100],
+      'L',
+    )
+    this.line1.setAttribute('d', line)
+    this.line2.setAttribute('d', line)
   }
 
   /**

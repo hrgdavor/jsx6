@@ -20,12 +20,12 @@ export const parseArgs = (alias = {}, argv) => {
       }
       key = alias[key] || key
     }
-    let idx = key.indexOf('=')
-    if (idx !== -1) {
-      value = numOrStr(key.substring(idx + 1))
-      key = key.substring(0, idx)
-    }
     if (key) {
+      let idx = key.indexOf('=')
+      if (idx !== -1) {
+        value = numOrStr(key.substring(idx + 1))
+        key = key.substring(0, idx)
+      }
       out[key] = value
     } else {
       _rest.push(arg)

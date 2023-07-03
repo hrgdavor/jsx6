@@ -5,25 +5,26 @@ const monacoMissing = () => {
 }
 let monaco = { colorize: monacoMissing, editor: { create: monacoMissing } }
 
-export class MonacoEditor extends Jsx6 {
-  setValue(value) {
-    this.editor.getModel().setValue(value)
+export const MonacoEditor = (attr = {}) => {
+  let el = <div {...attr} />
+
+  el.setValue = function (value) {
+    editor.getModel().setValue(value)
   }
 
-  getValue() {
-    return this.editor.getModel().getValue()
+  el.getValue = function () {
+    return editor.getModel().getValue()
   }
 
-  init() {
-    this.editor = monaco.editor.create(this.el, {
-      value: '',
-      language: 'javascript',
-      automaticLayout: true,
-      minimap: {
-        enabled: false,
-      },
-    })
-  }
+  let editor = (el.editor = monaco.editor.create(el, {
+    value: '',
+    language: 'javascript',
+    automaticLayout: true,
+    minimap: {
+      enabled: false,
+    },
+  }))
+  return el
 }
 
 export const colorize = (...args) => monaco.editor.colorize(...args)

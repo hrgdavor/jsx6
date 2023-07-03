@@ -1,5 +1,5 @@
 import { observeResize } from '@jsx6/dom-observer'
-import { Jsx6, fireEvent, h } from '@jsx6/jsx6'
+import { Jsx6old, fireEvent, h } from '@jsx6/jsx6'
 
 import { Defered } from './async/Defered'
 
@@ -35,7 +35,7 @@ function fireEventListener(obj, name, params) {
   })
 }
 
-export class FlipFrame extends Jsx6 {
+export class FlipFrame extends Jsx6old {
   initAttr(attr) {
     const iframeAttr = {
       sandbox: attr?.sandbox || 'allow-same-origin allow-scripts',

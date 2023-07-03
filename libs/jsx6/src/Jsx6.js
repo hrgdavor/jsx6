@@ -1,35 +1,12 @@
-import { makeState } from './makeState.js'
-import { domWithScope, insert } from './jsx2dom.js'
-import { insertAttr, h } from './jsx2dom.js'
-import { addClass } from './addClass.js'
+import { makeState, domWithScope, insert } from '@jsx6/jsx6'
 
-/**
- * @class
- */
 export class Jsx6 {
   isJsx6 = true
-  /** @type {HTMLElement} */
-  el
-  contentArea
   propKey
   groupKey
-  tagName = 'DIV'
-  cName = ''
-
-  constructor(attr = {}, children = []) {
-    this.attr = this.initAttr(attr)
-    this.children = children
-
-    if (attr.tagName !== undefined) {
-      this.tagName = attr.tagName
-      delete attr.tagName
-    }
-    domWithScope(this, () => this.createEl())
-    if (!attr.lazyload) this.__init()
-  }
-
-  initAttr(attr) {
-    return attr
+  constructor(...args) {
+    /** @type {HTMLElement} */
+    this.el = domWithScope(this, () => this.tpl(...args))
   }
   /*  Lazy initialize state proxy object*/
   get $s() {
@@ -38,7 +15,6 @@ export class Jsx6 {
     }
     return this._$s
   }
-
   set $s(state) {
     if (!this._$s) {
       this._$s = makeState(state)
@@ -46,11 +22,9 @@ export class Jsx6 {
       this._$s(state)
     }
   }
-
   getValue() {
     return this.$v()
   }
-
   /*  Lazy initialize value proxy object*/
   get $v() {
     if (!this.__$v) {
@@ -58,7 +32,6 @@ export class Jsx6 {
     }
     return this.__$v
   }
-
   setValue(v) {
     this.$v(v)
   }
@@ -69,74 +42,22 @@ export class Jsx6 {
       this.__$v(v)
     }
   }
-
-  __init() {
-    if (this.__initialized) return
-    this.initTemplate()
-    this.insertChildren()
-    this.init(this.$s)
-    this.__initialized = true
-  }
-
   setParent(parent) {
     if (parent === window) console.error('window as parent ', this)
     this.parent = parent
   }
-
-  createEl() {
-    if (!this.tagName) {
-      this.el = document.createTextNode('')
-    } else {
-      this.el = h(this.tagName)
-      if (this.cName) addClass(this.el, this.cName)
-    }
-    this.insertAttr(this.attr)
-    this.contentArea ||= this.el
-
-    this.el.propKey = this.propKey
-    this.el.groupKey = this.groupKey
-  }
-
-  insertAttr(attr) {
-    // can not add attributes to text node
-    if (this.tagName) insertAttr(attr, this.el, this, this)
-  }
-
-  created() {}
-
-  initTemplate() {
-    const state = this.$s
-    let def = domWithScope(this, () => this.tpl(h))
-    if (def) {
-      let parent = this.el
-      let before = null
-      if (this.el instanceof Array) {
-        before = this.el[0]
-        parent = before.parentNode
-      }
-      insert(parent, def, before)
-      return def
-    }
-  }
-
   /**
    * @param h - jsx factory
    * @param state - state object
    * @param $ - state binding proxy
    * @param self - reference to this
    */
-  tpl(h, state, $state, self) {}
-
-  insertChildren() {
-    if (this.children) insert(this.contentArea, this.children)
+  tpl(attr = {}) {
+    return <div {...attr} />
   }
-
-  init() {}
-
   addEventListener(...args) {
     this.el.addEventListener(...args)
   }
-
   getAttribute(attr) {
     return this.el.getAttribute(attr)
   }
@@ -155,14 +76,6 @@ export class Jsx6 {
   appendChild(c) {
     insert(this.el, c)
   }
-  insertBefore(c, before) {
-    if (this.el.nodeType == 3) {
-      insert(this.el.parentNode, c, before || this.el)
-    } else {
-      insert(this.contentArea || this.el, c, before)
-    }
-  }
-
   get classList() {
     return this.el.classList
   }
@@ -176,5 +89,4 @@ export class Jsx6 {
     return this.el.textContent
   }
 }
-
 Jsx6.isComponentClass = true

@@ -1,16 +1,16 @@
 import { observeResize } from '@jsx6/dom-observer'
-import { Jsx6, addToBody, classIf, insert } from '@jsx6/jsx6'
+import { Jsx6old, addToBody, classIf, insert } from '@jsx6/jsx6'
 import { parse, stringify } from 'mulmd'
 import PerfectScrollbar from 'perfect-scrollbar'
 
-import '../tutorial.css'
 import { FlipFrame } from './FlipFrame'
-import { MonacoEditor, colorize } from './MonacoEditor'
-import { queueCodeChange } from './applyCodeChange'
-import { insertImports } from './markdown/insertImports'
-import { extractProvided, markdown } from './markdown/markdown'
-import { splitChapters } from './markdown/splitChapters'
+import { MonacoEditor, colorize } from './MonacoEditor.jsx'
+import { queueCodeChange } from './applyCodeChange.js'
+import { insertImports } from './markdown/insertImports.jsx'
+import { extractProvided, markdown } from './markdown/markdown.js'
+import { splitChapters } from './markdown/splitChapters.jsx'
 import './perfect-scrollbar.css'
+import './tutorial.css'
 // TODO use from jsx6/editor-monaco
 import { syncScroll } from './util/syncScroll'
 
@@ -19,7 +19,7 @@ const langMap = { js: 'typescript', jsx: 'typescript' }
 const myColorize = (code, lang) => colorize(code, langMap[lang] || lang)
 const suffix = (val, suf) => (val !== undefined ? val + suf : '')
 
-export class TutorialRunner extends Jsx6 {
+export class TutorialRunner extends Jsx6old {
   defCodeRunner = function () {}
   codeRunner
   runnerMap = {}

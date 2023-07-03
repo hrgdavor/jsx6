@@ -1,10 +1,10 @@
-import { Jsx6 } from '@jsx6/jsx6'
+import { Jsx6old } from '@jsx6/jsx6'
 
 // import * as monaco from 'monaco-editor'
 // https://zserge.com/posts/js-editor/
 // https://jsfiddle.net/zserge/gkbjv47n/
 
-export class Editor extends Jsx6 {
+export class Editor extends Jsx6old {
   cName = 'MiniEditor'
   init() {
     this.el.setAttribute('contenteditable', 'true')

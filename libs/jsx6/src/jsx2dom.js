@@ -2,11 +2,11 @@ import { isStr, isFunc, isObj, throwErr, Group, isNode, NOT } from './core.js'
 import { setAttribute } from './setAttribute.js'
 
 import {
-  ERR_CONTEXT_REQUIRED,
-  ERR_LISTENER_MUST_BE_FUNC,
-  ERR_NULL_TAG,
-  ERR_STATE_UPDATE_OBJECT_REQ,
-  ERR_UNSUPPORTED_TAG,
+  JSX6E10_CONTEXT_REQUIRED,
+  JSX6E9_LISTENER_MUST_BE_FUNC,
+  JSX6E13_NOT_OBSERVABLE,
+  JSX6E1_NULL_TAG,
+  JSX6E2_UNSUPPORTED_TAG,
 } from './errorCodes.js'
 import { toDomNode } from './toDomNode.js'
 import { tryObserve } from './observe.js'
@@ -70,11 +70,11 @@ export function h(tag, attr, ...children) {
       // if the value is already a HTML element, we just return it, no need for processing
       return tag
     } else if (isObj(tag)) {
-      return nodeFromObservable(tag) || throwErr(ERR_UNSUPPORTED_TAG, tag)
+      return nodeFromObservable(tag) || throwErr(JSX6E2_UNSUPPORTED_TAG, tag)
     } else {
       // not sure what else to enable if tag is type of object
       // this may be expanded in the future to allow more capabilities
-      throwErr(ERR_UNSUPPORTED_TAG, tag)
+      throwErr(JSX6E2_UNSUPPORTED_TAG, tag)
     }
   }
 }
@@ -209,7 +209,7 @@ function Updater(parent, before, attr, obj) {
     }
 
     if (!tryObserve(obj, updater)) {
-      throwErr(ERR_STATE_UPDATE_OBJECT_REQ, obj)
+      throwErr(JSX6E13_NOT_OBSERVABLE, 'attribute:', attr, ',value:', obj, ',parent:', parent)
     }
   }
 }
@@ -248,7 +248,7 @@ export function insertAttr(attr, out, self, component) {
       if (isFunc(value)) {
         out.addEventListener(a.substring(2), value.bind(self))
       } else {
-        throwErr(ERR_LISTENER_MUST_BE_FUNC, attr)
+        throwErr(JSX6E9_LISTENER_MUST_BE_FUNC, attr)
       }
     } else if (a === 'key') {
       out.loopKey = value
@@ -291,7 +291,7 @@ export function insertAttr(attr, out, self, component) {
 function setPropGroup(self, part, path) {
   if (isStr(path)) path = path.split('.')
   const [$group, $key] = path
-  if (self === undefined) throw throwErr(ERR_CONTEXT_REQUIRED)
+  if (self === undefined) throw throwErr(JSX6E10_CONTEXT_REQUIRED)
   if ($key) {
     if (!self[$group]) self[$group] = new Group()
     self[(part.$group = $group)][(part.$key = $key)] = part
@@ -351,14 +351,14 @@ export function insert(parent, newChild, before, _self) {
 export const addToBody = n => insert(document.body, n)
 export const addToHead = n => insert(document.head, n)
 
-let factories = {
+export let factories = {
   AttrUpdater,
   NodeUpdater,
   Updater,
   TextValue,
   Text: t => document.createTextNode(t),
-  Svg: t => (t ? document.createElementNS('http://www.w3.org/2000/svg', t) : throwErr(ERR_NULL_TAG)),
-  Html: (t, o) => (t ? document.createElement(t, o) : throwErr(ERR_NULL_TAG)),
+  Svg: t => (t ? document.createElementNS('http://www.w3.org/2000/svg', t) : throwErr(JSX6E1_NULL_TAG)),
+  Html: (t, o) => (t ? document.createElement(t, o) : throwErr(JSX6E1_NULL_TAG)),
   Element: (t, o) => factories.Html(t, o),
 }
 const factoriesDefaults = factories

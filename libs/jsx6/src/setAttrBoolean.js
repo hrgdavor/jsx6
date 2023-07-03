@@ -1,5 +1,4 @@
 import { isNode, isObj } from './core.js'
-import { Jsx6 } from './Jsx6.js'
 
 export function setAttrBoolean(obj, attr, value) {
   if (obj) {
