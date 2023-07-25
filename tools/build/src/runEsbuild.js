@@ -1,6 +1,6 @@
 import { existsSync } from 'fs'
 
-export const logBuildPlugin = {
+export const logBuildPlugin = output => ({
   name: 'buildTime',
   setup(build) {
     let buildStartTime
@@ -9,18 +9,18 @@ export const logBuildPlugin = {
     })
     build.onEnd(result => {
       if (!result.errors.length) {
-        console.log('build finished in ' + (Date.now() - buildStartTime) + 'ms')
+        console.log('build finished in ' + (Date.now() - buildStartTime) + 'ms\t ' + (output || ''))
       }
     })
   },
-}
+})
 
 export const runEsbuild = async (
   esbuild,
   { watch, dispose = true, skipExisting = false, ...esBuildOptions },
 ) => {
   if (!esBuildOptions.plugins) esBuildOptions.plugins = []
-  esBuildOptions.plugins.push(logBuildPlugin)
+  esBuildOptions.plugins.push(logBuildPlugin(esBuildOptions.outfile))
 
   const ctx = await esbuild.context(esBuildOptions)
 
