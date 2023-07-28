@@ -24,7 +24,8 @@ export const runEsbuild = async (
 
   const ctx = await esbuild.context(esBuildOptions)
 
-  if (!(skipExisting && esBuildOptions.outfile && existsSync(esBuildOptions.outfile))) await ctx.rebuild()
+  if (!watch && !(skipExisting && esBuildOptions.outfile && existsSync(esBuildOptions.outfile)))
+    await ctx.rebuild()
 
   if (watch) await ctx.watch()
   else if (dispose) ctx.dispose()

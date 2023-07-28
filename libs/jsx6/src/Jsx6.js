@@ -65,7 +65,7 @@ export class Jsx6 {
     return this.el.setAttribute(attr, value)
   }
   hasAttribute(attr) {
-    return this.el.hasAttribute(attr)
+    return this.el?.hasAttribute?.(attr)
   }
   removeAttribute(attr) {
     return this.el.removeAttribute(attr)

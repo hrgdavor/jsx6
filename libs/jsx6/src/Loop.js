@@ -63,7 +63,7 @@ export class Loop {
       comp = new this.item(attr, [])
       this.insert(comp)
     } else {
-      attr.value = attr.$v = makeState(newData)
+      attr.value = attr.$v = makeState({ ...newData })
       const valueProxy = attr.$v
       comp = {
         setValue: valueProxy,
