@@ -24,8 +24,13 @@ export const runEsbuild = async (
 
   const ctx = await esbuild.context(esBuildOptions)
 
-  if (!watch && !(skipExisting && esBuildOptions.outfile && existsSync(esBuildOptions.outfile)))
+  // always build if not present yet
+  // if file is already generated, do not build
+  // - if explicit skipExisting
+  // - if watch mode (because it will be done in ctx.watch())
+  if (!((skipExisting || watch) && esBuildOptions.outfile && existsSync(esBuildOptions.outfile))) {
     await ctx.rebuild()
+  }
 
   if (watch) await ctx.watch()
   else if (dispose) ctx.dispose()
