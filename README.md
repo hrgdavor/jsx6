@@ -10,7 +10,9 @@ A JSX library without a special compiler that changes DOM precisely and reactive
 
 - Can be built by pure(full-speed) [esbuid](https://esbuild.github.io/) without any plugins. 
 
-- Supports observables and promises out of the box (probably will also support signals)
+- Supports observables and promises out of the box 
+
+- if there is a popular standalone signals lib will consider integrating 
 
 
 ## WILL NOT
