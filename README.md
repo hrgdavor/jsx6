@@ -1,4 +1,6 @@
-# JSX6
+# JSX6  (apps only, no SSR).
+
+Almost vanilla JS, focused on building applications by leveraging JSX and signals.
 
 A JSX library without a special compiler that changes DOM precisely and reactively.
 
@@ -11,11 +13,11 @@ A JSX library without a special compiler that changes DOM precisely and reactive
 - Supports observables and promises out of the box (probably will also support signals)
 
 
-## NON goals
+## WILL NOT
 
-WILL NOT sacrifice any functionality or even attempt to support server side rendering like Next.js or others. It is strictly for apps that are not crawled by search engines. I personally am convinced that those use cases only bring ugly compromises that I never needed in my JavaScript coding career that spans all the way to 1998.
+even attempt to support server side rendering like Next.js or others. It is strictly for apps that are not crawled by search engines. Supporting or even slightly considering SSR can only bring ugly compromises that I luckily never personally needed in my JavaScript apps.
 
-## useful standalone part of JSX6
+## Useful standalone parts of JSX6
 
 If more parts of `jsx6` will make sense as standalone libs this section will be updated.
 
