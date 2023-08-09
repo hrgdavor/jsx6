@@ -27,9 +27,9 @@ https://github.com/hrgdavor/jsx6/tree/main/libs/dom-observer
 
 Performance for multiple ResizeObserver and IntersectionObserver can degrade if a new observer is created for each listener case, but some can be reused and it has become clear that It is better to reuse them instead of creating new for each observed element.
 
-## JSX in general intro
+## About JSX in general 
 
-https://github.com/hrgdavor/jsx6/tree/main/libs/dom-observer 
+https://hrgdavor.github.io/jsx6/demistify/ 
 
 It is an interactive tutorial about JSX that is also a good introduction to this library.
 
