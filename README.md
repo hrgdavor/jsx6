@@ -17,7 +17,7 @@ A JSX library without a special compiler that changes DOM precisely and reactive
 
 ## WILL NOT
 
-even attempt to support server side rendering like Next.js or others. It is strictly for apps that are not crawled by search engines. Supporting or even slightly considering SSR can only bring ugly compromises that I luckily never personally needed in my JavaScript apps.
+even attempt to support SSR(Server Side Rendering) or make compromises for using in websites. It is strictly for JS applications that are not crawled by search engines. Supporting or even slightly considering SSR can only bring ugly compromises that I luckily never personally needed in my JavaScript apps.
 
 ## Useful standalone parts of JSX6
 
