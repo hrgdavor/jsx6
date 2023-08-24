@@ -19,8 +19,12 @@ Just to compare thy syntax, let us imagine we have two signals with numbers `$a,
 ```js
 // automagic is more readable
 const $sum = $S(()=>$a() + $b())
+
 // manual composition is similar to printf
 const $sum = $S((a,b)=>a + b, $a, $b)
+// when template func is declared separately readability is comaprable to automagic
+const sum = (a,b)=>a + b // this is also nice for reusability
+const $sum = $S(sum, $a, $b)
 ```
 
 **Manual** composition is easier to implement and arguably easier to reason about. It will be the initial implementation (and likely the only one here).
