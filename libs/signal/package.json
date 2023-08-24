@@ -1,9 +1,9 @@
 {
-  "name": "@jsx6/jsx-dev-runtime",
+  "name": "@jsx6/signal",
   "version": "1.6.25",
   "type": "module",
   "sideEffects": false,
-  "description": "JSX dev runtime for jsx6",
+  "description": "signal implementation for vanilla JS or JSX",
   "main": "index.js",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
@@ -14,7 +14,6 @@
     }
   },
   "files": [
-    "src",
     "index.js",
     "esm",
     "cjs"
@@ -47,7 +46,7 @@
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
   },
-  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/jsx-dev-runtime/README.md",
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
     "@jsx6/jsx6": "^1.6.25"
   },

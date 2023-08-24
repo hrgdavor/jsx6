@@ -34,7 +34,7 @@ $s.mode = 'preview'
 console.log('mode', $s.mode())
 ```
 
-You can use the value like this to hide an element initially. It will evaluate immediately and will not be updated when signal value changes. This is only useful in some cases.
+You can use the value like this to hide an element initially. It will evaluate immediately and will not be updated when signal value changes. This may be useful in some cases, but not here.
 
 ```js
 let div1 = <div hidden={$s.mode() !== 'edit'}>edit</div>
@@ -45,7 +45,7 @@ You can give reference to a signal as the attribute value. This way attribute wi
 ```js
 let div2 = <div hidden={$s.mode}>edit</div>
 ```
-This is not what we need here.
+This is also not what we need here.
 
 
 ## Giving derived value to attribute based on a signal
