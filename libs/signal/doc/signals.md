@@ -33,7 +33,7 @@ const $sum = $S(sum, $a, $b)
 
 - create a new signal
 - take initial value of all dependent signals
-- pass the values to template function to produce value
-- listen for changes on all dependent signals and produce new value on change
+- pass the values to template function to produce the derived value
+- listen for changes on all dependent signals and produce new derived value on change
 
 Without using compiler tricks like Svelte, an **auto-magic** signal composer needs to setup a trap, then call the function and catch access to any signal during the call, and subscribe to changes. This may not sound like a hard task to some, but I imagine it being difficult to implement well, and also debug if something goes wrong.
