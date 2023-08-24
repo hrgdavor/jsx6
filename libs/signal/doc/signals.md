@@ -6,7 +6,7 @@ As far as I am aware, at the time of writing this document, `signals ` are a pop
 
 Problems that `signals ` are aiming to solve  are not totally new, there were different approaches to solve the same problems in the past. When talking about GUI, it is THE problem to solve: *how to reflect changes in the interface in a reliable way that is also easy to use as a developer*. You could say it is about reactivity, or reactive programming. `Signals ` implementation here my sound similar to RxJS in some aspects.
 
-RxJS rant:  *for me RxJS is absolutely awful to use and I hate reading other people's RxJS code. Maybe Angular is the reason it feels so awful to use. Maybe, on it's own, it is actually ok.*
+**RxJS rant:**  *for me RxJS is absolutely awful to use and I hate reading other people's RxJS code. Maybe Angular is the reason it feels so awful to use. Maybe, on it's own, it is actually ok.*
 
 ## `$` prefix
 
