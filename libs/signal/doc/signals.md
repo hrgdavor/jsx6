@@ -29,11 +29,15 @@ const $sum = $S(sum, $a, $b)
 
 **Manual** composition is easier to implement and arguably easier to reason about. It will be the initial implementation (and likely the only one here).
 
-**Manual** composition usage is very similar to `printf` in regard that firs parameter is a template to produce a value (in this case, the template is a function) and rest parameters are the signals that are used by that function to produce new value. The composer function (in our case `$S`) only needs to:
+**Manual** composition usage is very similar to `printf` in regard that firs parameter is a template to produce a value (in this case, the template is a function) and rest parameters are the signals that are used by that function to produce new value. 
+
+**Manual composer** function (in our case `$S`) only needs to:
 
 - create a new signal
 - take initial value of all dependent signals
 - pass the values to template function to produce the derived value
 - listen for changes on all dependent signals and produce new derived value on change
 
-Without using compiler tricks like Svelte, an **auto-magic** signal composer needs to setup a trap, then call the function and catch access to any signal during the call, and subscribe to changes. This may sound simple to implement to some developers, but I personally imagine it being difficult to implement well, and also debug if something goes wrong. 
+**Auto-magic composer** needs to setup a trap, then call the function and catch access to any signal during the call, and subscribe to changes. This may sound simple to implement to some developers, but I personally imagine it being difficult to implement well, and also debug if something goes wrong. 
+
+**Auto-magic compiled** can be done better using compiler like Svelte, or babel/SWC plugin, but I am strictly avoiding compiler customizations in favour of compile speed delivered for for example by `esbuild`. A compromise could be made to create a SWC plugin that can convert some nicer syntax to above mentioned manual syntax. In that case I would still prefer to limit processing only to some files (example: `*.signals.js`) to only do slow compiling those files. It could be the case SWC is speedy enough to not notice a difference from esbuild, then a SWC plugin to convert code would be a nice benefit without a noticeable downside.
