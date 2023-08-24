@@ -20,9 +20,9 @@ Just to compare thy syntax, let us imagine we have two signals with numbers `$a,
 // automagic is more readable
 const $sum = $S(()=>$a() + $b())
 
-// manual composition is similar to printf
+// manual composition is less readable and similar to printf
 const $sum = $S((a,b)=>a + b, $a, $b)
-// when template func is declared separately readability is comaprable to automagic
+// more readable alternative is with template func declared separately
 const sum = (a,b)=>a + b // this is also nice for reusability
 const $sum = $S(sum, $a, $b)
 ```
