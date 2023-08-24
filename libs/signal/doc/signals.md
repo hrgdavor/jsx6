@@ -14,7 +14,7 @@ Using `$` prefix is intentional to visually mark those variables as something sp
 
 ## Composition using auto-magic VS manual
 
-Just to compare thy syntax, let us imagine we have two signals with numbers `$a,$b` and we want to write a `$sum` signal:
+Just to compare the syntax, let us imagine we have two signals with numbers `$a,$b` and we want to write a `$sum` signal:
 
 ```js
 // automagic is more readable
