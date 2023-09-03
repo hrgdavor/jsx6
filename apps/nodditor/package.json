@@ -44,16 +44,16 @@
   "homepage": "https://hrgdavor.github.io/jsx6/",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "@jsx6/build": "^0.2.0",
-    "@jsx6/jsx-dev-runtime": "^1.6.25",
+    "@jsx6/build": "^0.2.4",
+    "@jsx6/jsx-dev-runtime": "^1.6.26",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "live-server": "^1.2.2",
     "prettier": "~2.7.1",
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@jsx6/jsx6": "^1.6.25",
-    "@jsx6/jsx-runtime": "^1.6.25",
-    "@jsx6/dom-observer": "^1.6.25"
+    "@jsx6/jsx6": "^1.6.26",
+    "@jsx6/jsx-runtime": "^1.6.26",
+    "@jsx6/dom-observer": "^1.6.26"
   }
 }

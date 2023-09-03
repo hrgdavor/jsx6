@@ -494,6 +494,12 @@
       "versionPolicyName": "jsx6"
     },
     {
+      "packageName": "@jsx6/signal-dom",
+      "projectFolder": "libs/signal-dom",
+      "tags": ["signal", "reactive", "dom", "html"],
+      "versionPolicyName": "jsx6"
+    },
+    {
       "packageName": "@jsx6/build",
       "projectFolder": "tools/build",
       "tags": ["build", "watch", "glob", "copy", "mkdir"],

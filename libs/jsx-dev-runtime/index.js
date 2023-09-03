@@ -1,8 +1,9 @@
-import { h, isNode } from '@jsx6/jsx6'
+import { h, isNode, isArray } from '@jsx6/jsx6'
 import { activateJsxInspector } from './src/activateJsxInspector'
 
-function jsxDEV(tag, { children, ...attr }, key, isStatic, source) {
+function jsxDEV(tag, { children = [], ...attr }, key, isStatic, source) {
   try {
+    if (children && !isArray(children)) children = [children]
     let out = h(tag, attr, ...children)
     if (isNode(out)) out._source = source
     return out

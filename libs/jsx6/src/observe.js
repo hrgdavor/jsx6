@@ -2,8 +2,8 @@ import { isFunc, throwErr } from './core.js'
 import { doSubscribeValue } from './makeState.js'
 import { JSX6E13_NOT_OBSERVABLE } from './errorCodes.js'
 
-export const subscribeSymbol = Symbol('subscribe')
-export const triggerSymbol = Symbol('trigger')
+export const subscribeSymbol = Symbol.for('signalSubscribe')
+export const triggerSymbol = Symbol.for('signalTrigger')
 
 export function mapObserver(obj, mapper) {
   // if (obj.isBindingFunc) return obj(mapper)

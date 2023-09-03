@@ -1,20 +1,20 @@
 {
-  "name": "@jsx6/jsx6",
+  "name": "@jsx6/signal-dom",
   "version": "1.6.26",
   "type": "module",
   "sideEffects": false,
-  "description": "JSX and ES6+ UI library",
+  "description": "Update DOM using signals implementation for vanilla JS or JSX",
   "main": "index.js",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
   "exports": {
     ".": {
       "require": "./cjs/index.js",
-      "default": "./dist/index.js"
+      "default": "./index.js"
     }
   },
   "files": [
-    "dist",
+    "index.js",
     "esm",
     "cjs"
   ],
@@ -22,15 +22,18 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "ava",
-    "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
+    "prepublishOnly": "npm run build && npm run build-cjs"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hrgdavor/jsx6.git"
   },
   "keywords": [
-    "UI",
-    "jsx"
+    "DOM",
+    "JSX",
+    "JSXRuntime",
+    "Performance",
+    "HTML"
   ],
   "author": "Davor hrg",
   "license": "MIT",
@@ -43,17 +46,12 @@
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
   },
-  "ava": {
-    "files": [
-      "src/**/*.test.js"
-    ]
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
+  "dependencies": {
+    "@jsx6/signal": "workspace:*"
   },
-  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/README.md",
   "devDependencies": {
-    "ava": "~4.3.3",
     "esbuild": "^0.17.18",
-    "jsdom": "~20.0.1",
-    "@jsx6/jsx-dev-runtime": "^1.6.26",
-    "typescript": "^5.0.4"
+    "ava": "~4.3.3"
   }
 }

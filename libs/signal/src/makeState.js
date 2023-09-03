@@ -1,4 +1,4 @@
-import { runFunc, throwErr, isObj, requireFunc, isFunc, isObjNN, isArray } from './core.js'
+import { runFunc, throwErr, isObj, requireFunc, isFunc, isObjNN } from './core.js'
 import {
   JSX6E4_DIRTY_RECURSION,
   JSX6E5_DIRTY_RUNNER_FUNC,
@@ -126,9 +126,7 @@ function asBinding(func, state, prop, updaters) {
 const addCommonGet = (obj, func) => (obj.toString = obj.toJSON = func)
 
 export function makeState(rawState, returnAll) {
-  let isObjectState = !isArray(rawState) && isObjNN(rawState)
-  // copy into new object because we will mutate it, to avoid sideffects for the caller
-  if (isObjectState) rawState = { ...rawState }
+  let isObjectState = isObjNN(rawState)
 
   const updaters = []
   const perPropUpdaters = new Map()
@@ -231,9 +229,10 @@ export function makeState(rawState, returnAll) {
 
   const set = (_rawState, force) => {
     let changed = false
-    let _isObjectState = !isArray(rawState) && isObjNN(_rawState)
+    let _isObjectState = isObjNN(_rawState)
 
     if (isObjectState != _isObjectState) {
+      // switched type of internal raw data (object vs primitive)
       changed = true
       isObjectState = _isObjectState
       if (!isObjectState) {
@@ -241,9 +240,6 @@ export function makeState(rawState, returnAll) {
         for (const p in rawState) {
           if (perPropUpdaters.has(p)) runInBatch(perPropUpdaterRunner.get(p))
         }
-        rawState = _rawState
-      } else {
-        rawState = { ..._rawState }
       }
     } else if (isObjectState) {
       for (const p in _rawState) {

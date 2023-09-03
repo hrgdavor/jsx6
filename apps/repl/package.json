@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/repl",
-  "version": "1.6.25",
+  "version": "1.6.26",
   "type": "module",
   "description": "JSX6 REPL engine",
   "main": "index.js",
@@ -46,7 +46,7 @@
   "homepage": "https://hrgdavor.github.io/jsx6/",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "@jsx6/build": "^0.2.0",
+    "@jsx6/build": "^0.2.4",
     "@jsx6/jsx-dev-runtime": "workspace:*",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "prettier": "~2.7.1",
@@ -55,7 +55,7 @@
     "@babel/standalone": "~7.18.12"
   },
   "dependencies": {
-    "@jsx6/jsx6": "workspace:*",
+    "@jsx6/jsx6": "^1.6.26",
     "@jsx6/jsx-runtime": "workspace:*",
     "@jsx6/dom-observer": "workspace:*",
     "babel-plugin-syntax-jsx": "~6.18.0",

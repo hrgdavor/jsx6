@@ -7,10 +7,10 @@ importers:
 
   ../../apps/nodditor:
     specifiers:
-      '@jsx6/build': ^0.2.0
-      '@jsx6/dom-observer': ^1.6.22
-      '@jsx6/jsx-dev-runtime': workspace:*
-      '@jsx6/jsx-runtime': workspace:*
+      '@jsx6/build': ^0.2.4
+      '@jsx6/dom-observer': ^1.6.25
+      '@jsx6/jsx-dev-runtime': ^1.6.25
+      '@jsx6/jsx-runtime': ^1.6.25
       '@jsx6/jsx6': workspace:*
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       esbuild: ^0.17.18
@@ -18,12 +18,12 @@ importers:
       prettier: ~2.7.1
       typescript: ^5.0.4
     dependencies:
-      '@jsx6/dom-observer': 1.6.22
-      '@jsx6/jsx-runtime': link:../../libs/jsx-runtime
+      '@jsx6/dom-observer': 1.6.25
+      '@jsx6/jsx-runtime': 1.6.25
       '@jsx6/jsx6': link:../../libs/jsx6
     devDependencies:
-      '@jsx6/build': 0.2.0
-      '@jsx6/jsx-dev-runtime': link:../../libs/jsx-dev-runtime
+      '@jsx6/build': 0.2.4
+      '@jsx6/jsx-dev-runtime': 1.6.25
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
       esbuild: 0.17.18
       live-server: 1.2.2
@@ -33,7 +33,7 @@ importers:
   ../../apps/repl:
     specifiers:
       '@babel/standalone': ~7.18.12
-      '@jsx6/build': ^0.2.0
+      '@jsx6/build': ^0.2.4
       '@jsx6/dom-observer': workspace:*
       '@jsx6/editor-monaco': workspace:^0.34.100
       '@jsx6/jsx-dev-runtime': workspace:*
@@ -59,7 +59,7 @@ importers:
       perfect-scrollbar: 1.5.5
     devDependencies:
       '@babel/standalone': 7.18.12
-      '@jsx6/build': 0.2.0
+      '@jsx6/build': 0.2.4
       '@jsx6/editor-monaco': link:../../libs/editor-monaco
       '@jsx6/jsx-dev-runtime': link:../../libs/jsx-dev-runtime
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
@@ -105,26 +105,44 @@ importers:
 
   ../../libs/jsx-runtime:
     specifiers:
-      '@jsx6/jsx6': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
-    dependencies:
-      '@jsx6/jsx6': link:../jsx6
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
 
   ../../libs/jsx6:
     specifiers:
+      '@jsx6/jsx-dev-runtime': ^1.6.25
       ava: ~4.3.3
       esbuild: ^0.17.18
       jsdom: ~20.0.1
       typescript: ^5.0.4
     devDependencies:
+      '@jsx6/jsx-dev-runtime': 1.6.25
       ava: 4.3.3
       esbuild: 0.17.18
       jsdom: 20.0.1
       typescript: 5.0.4
+
+  ../../libs/signal:
+    specifiers:
+      ava: ~4.3.3
+      esbuild: ^0.17.18
+    devDependencies:
+      ava: 4.3.3
+      esbuild: 0.17.18
+
+  ../../libs/signal-dom:
+    specifiers:
+      '@jsx6/signal': workspace:*
+      ava: ~4.3.3
+      esbuild: ^0.17.18
+    dependencies:
+      '@jsx6/signal': link:../signal
+    devDependencies:
+      ava: 4.3.3
+      esbuild: 0.17.18
 
   ../../tools/build:
     specifiers:
@@ -606,15 +624,30 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.14
     dev: true
 
-  /@jsx6/build/0.2.0:
-    resolution: {integrity: sha512-Xq1p3aX7KA8FiTSsMhS8bFqdCRzY73suUsAyQPH2MeTZiaSJuYPY1+xyhny0GefEhP7Yd3n09BT63di6sQwNOg==}
+  /@jsx6/build/0.2.4:
+    resolution: {integrity: sha512-0K7NmE7jqhVzkqR3VTqkKJmx/2hUnj7/yAQWbM8EeJwKUpcF5086HdWkXhGVYDH9f6b+/E8N6ADB+1ngfSZRSw==}
     dependencies:
       glob: 8.0.3
     dev: true
 
-  /@jsx6/dom-observer/1.6.22:
-    resolution: {integrity: sha512-6Y3Em65mE23KTS2levd7L7Y1mo2PfQhHF/BQaevff7Fmg8qawsyr9wgPVRCKHZVgbsQUTL88IzXKw0AsDU0/CA==}
+  /@jsx6/dom-observer/1.6.25:
+    resolution: {integrity: sha512-1xyXF42cWlJ6bmYVyXmku9Di/zKvO3bDom/cTiwtEK15wACucFx5YUL1FllVV0tdSkn7FDszjdreO70CYV/TWw==}
     dev: false
+
+  /@jsx6/jsx-dev-runtime/1.6.25:
+    resolution: {integrity: sha512-BWA6GdOauiHobV69cF7eeIPMUcN0NmK9hdiyxbrbKsYzR5G/j1tximm/8vysMoqLa3hyX46GDbvxiaj9Zr8ZVQ==}
+    dependencies:
+      '@jsx6/jsx6': 1.6.25
+    dev: true
+
+  /@jsx6/jsx-runtime/1.6.25:
+    resolution: {integrity: sha512-mbBMzxrd1ue6nPoB+U5Gaxov1JMnQh/vZU8RHtOjbAvkqG1pRPkKhgnkPKP8sYj1x//WBgi3XpJVSEyaJQKtuQ==}
+    dependencies:
+      '@jsx6/jsx6': 1.6.25
+    dev: false
+
+  /@jsx6/jsx6/1.6.25:
+    resolution: {integrity: sha512-y2I2eUYIeMJyj79k6UF0yX7Nx74hQcRTh9HndLlAl5I8b7q+V6MoyK5k22s1YLzKuj/AaIOyAtHpuPQhQWf+GA==}
 
   /@nodelib/fs.scandir/2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}

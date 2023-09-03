@@ -76,7 +76,7 @@ const scope = (window.APP = {})
 //     </>
 //   )),
 // )
-
+const $loopValue = makeState([])
 class TestWcNoDeclare extends HTMLElement {
   constructor(...args) {
     super()
@@ -96,6 +96,7 @@ addToBody(
       {console.log('scope', getScope())}
       <AComponent p="comp1" />
       Hello world.{T`test`} ...{ThePromise}
+      (<Loop value={$loopValue} item={({ $v }) => <div>{$v}</div>} />)
       <Loop p="loop" title={T`test`} item={AComponent} x-if={window.testState} />
       <Loop
         p="loop2"
@@ -113,12 +114,14 @@ addToBody(
     </>
   )),
 )
-console.log('scope', scope)
+console.log('scope', scope, 'Loop', Loop)
 scope.loop?.setValue([{ name: 'jozo' }, { name: 'mirko' }])
 scope.loop2?.setValue([{ name: 'jozo2' }, { name: 'mirko2' }])
 
 console.log(scope)
 console.log('scope.loop.getValue', scope.loop?.getValue())
 console.log('scope.loop2.getValue', scope.loop2?.getValue())
+
+setTimeout(() => $loopValue(['boink']), 1000)
 
 //*/

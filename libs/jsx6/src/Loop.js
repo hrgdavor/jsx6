@@ -2,6 +2,8 @@ import { throwErr } from './core.js'
 import { makeState } from './makeState.js'
 import { JSX6E12_ITEM_NOT_FOUND } from './errorCodes.js'
 import { domWithScope, factories, forInsert, h, insert } from './jsx2dom.js'
+import { tryObserve } from './observe.js'
+import { getValue } from './getValue.js'
 
 const _remove = item => {
   const el = item.el
@@ -13,9 +15,9 @@ export class Loop {
   allItems = []
   count = 0
 
-  constructor({ p, item, tpl, ...itemAttr } = {}) {
+  constructor({ p, item, tpl, value, ...itemAttr } = {}) {
     this.itemAttr = itemAttr
-
+    tryObserve(value, v => this.setValue(v), true)
     this.item = item
     this.tplFunc = tpl
 
@@ -63,7 +65,7 @@ export class Loop {
       comp = new this.item(attr, [])
       this.insert(comp)
     } else {
-      attr.value = attr.$v = makeState({ ...newData })
+      attr.value = attr.$v = makeState(newData)
       const valueProxy = attr.$v
       comp = {
         setValue: valueProxy,
@@ -155,7 +157,6 @@ export class Loop {
   }
 
   splice(index, deleteCount) {
-    console.log('splice', index, deleteCount)
     var toAdd = Array.prototype.splice.call(arguments, 2)
 
     // items not used and hidden for reuse later
