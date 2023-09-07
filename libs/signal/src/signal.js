@@ -1,4 +1,4 @@
-import { subscribeSymbol, triggerSymbol } from './observe'
+import { subscribeSymbol, triggerSymbol } from './observe.js'
 
 export const ValueSymbol = Symbol.for('signalValue')
 
