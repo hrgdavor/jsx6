@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/repl",
-  "version": "1.6.27",
+  "version": "1.6.29",
   "type": "module",
   "description": "JSX6 REPL engine",
   "main": "index.js",

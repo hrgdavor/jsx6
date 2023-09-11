@@ -8,7 +8,7 @@ function readJson(file) {
 const readPackage = folder => readJson(folder + '/package.json')
 
 function replaceVersion(package, version, str) {
-  var reg = new RegExp('"' + package + '"[ : "]*([^"]+)"')
+  var reg = new RegExp('"' + package + '"[ : "]+([^"]+)"')
   return str.replace(reg, `"${package}": "${version}"`)
 }
 
