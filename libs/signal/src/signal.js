@@ -7,29 +7,34 @@ export function signal(value) {
 }
 
 export function prepareSignal(value) {
-  const listeners = []
+  const listeners = new Set()
+
+  function setValue(v) {
+    if (v === value) return
+    value = v
+    return true
+  }
 
   const $signal = (...args) => {
     // getter
     if (args.length === 0) return value
 
     // setter
-    const [v] = args
-    if (v === value) return
-    value = v
-    fireChanged()
+    if (setValue(args[0])) {
+      fireChanged()
+      return true
+    }
   }
 
   Object.defineProperty($signal, ValueSymbol, { get: $signal }) // allows getting velue in Chrome dev tools
 
   const fireChanged = () => {
-    if (listeners.length) {
-      listeners.forEach(u => u(value))
-    }
+    for (let listener of listeners) listener(value)
   }
 
-  $signal[subscribeSymbol] = u => listeners.push(u)
+  $signal[subscribeSymbol] = u => listeners.add(u)
   $signal[triggerSymbol] = fireChanged
+  $signal[Symbol.toPrimitive] = () => value
 
-  return { $signal, fireChanged, listeners }
+  return { $signal, fireChanged, listeners, setValue }
 }

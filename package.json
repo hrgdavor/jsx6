@@ -2,7 +2,7 @@
   "scripts": {
     "ver": "node verSwitch.js && rush update ",
     "ver:dev": "node verSwitch.js w && rush update ",
-    "publish": "cd libs/jsx6 && npm publish && cd ../dom-observer && npm publish && cd ../../apps/repl && npm publish && cd ../../libs/jsx-runtime && npm publish && cd ../../libs/jsx-dev-runtime && npm publish"
+    "publish": "npm run ver && cd libs/jsx6 && npm publish && cd ../dom-observer && npm publish && cd ../../apps/repl && npm publish && cd ../../libs/jsx-runtime && npm publish && cd ../../libs/jsx-dev-runtime && npm publish"
   },
   "dependencies": {}
 }

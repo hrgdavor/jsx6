@@ -1,9 +1,9 @@
 {
-  "name": "@jsx6/jsx-dev-runtime",
+  "name": "@jsx6/signal-state",
   "version": "1.6.29",
   "type": "module",
   "sideEffects": false,
-  "description": "JSX dev runtime for jsx6",
+  "description": "Generate proxy for mustiple signals on demand",
   "main": "index.js",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
@@ -14,7 +14,6 @@
     }
   },
   "files": [
-    "src",
     "index.js",
     "esm",
     "cjs"
@@ -30,11 +29,10 @@
     "url": "git+https://github.com/hrgdavor/jsx6.git"
   },
   "keywords": [
-    "DOM",
-    "JSX",
-    "JSXRuntime",
-    "Performance",
-    "HTML"
+    "signal",
+    "state",
+    "proxy",
+    "object"
   ],
   "author": "Davor hrg",
   "license": "MIT",
@@ -47,9 +45,9 @@
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
   },
-  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/jsx-dev-runtime/README.md",
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@jsx6/jsx6": "^1.6.29"
+    "@jsx6/signal": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",

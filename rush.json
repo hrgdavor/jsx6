@@ -496,7 +496,13 @@
     {
       "packageName": "@jsx6/signal-dom",
       "projectFolder": "libs/signal-dom",
-      "tags": ["signal", "reactive", "dom", "html"],
+      "tags": ["signal", "reactive", "dom", "html", "signal"],
+      "versionPolicyName": "jsx6"
+    },
+    {
+      "packageName": "@jsx6/signal-state",
+      "projectFolder": "libs/signal-state",
+      "tags": ["signal", "reactive", "state", "signal", "html"],
       "versionPolicyName": "jsx6"
     },
     {
