@@ -8,22 +8,22 @@ importers:
   ../../apps/nodditor:
     specifiers:
       '@jsx6/build': ^0.2.4
-      '@jsx6/dom-observer': ^1.6.25
-      '@jsx6/jsx-dev-runtime': ^1.6.25
-      '@jsx6/jsx-runtime': ^1.6.25
-      '@jsx6/jsx6': workspace:*
+      '@jsx6/dom-observer': ^1.6.29
+      '@jsx6/jsx-dev-runtime': ^1.6.29
+      '@jsx6/jsx-runtime': ^1.6.29
+      '@jsx6/jsx6': ^1.6.29
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       esbuild: ^0.17.18
       live-server: ^1.2.2
       prettier: ~2.7.1
       typescript: ^5.0.4
     dependencies:
-      '@jsx6/dom-observer': 1.6.25
-      '@jsx6/jsx-runtime': 1.6.25
-      '@jsx6/jsx6': link:../../libs/jsx6
+      '@jsx6/dom-observer': 1.6.29
+      '@jsx6/jsx-runtime': 1.6.29
+      '@jsx6/jsx6': 1.6.29
     devDependencies:
       '@jsx6/build': 0.2.4
-      '@jsx6/jsx-dev-runtime': 1.6.25
+      '@jsx6/jsx-dev-runtime': 1.6.29
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
       esbuild: 0.17.18
       live-server: 1.2.2
@@ -38,7 +38,7 @@ importers:
       '@jsx6/editor-monaco': workspace:^0.34.100
       '@jsx6/jsx-dev-runtime': workspace:*
       '@jsx6/jsx-runtime': workspace:*
-      '@jsx6/jsx6': workspace:*
+      '@jsx6/jsx6': ^1.6.29
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       babel-plugin-jsx-simple: ~1.6.0
       babel-plugin-syntax-jsx: ~6.18.0
@@ -51,7 +51,7 @@ importers:
     dependencies:
       '@jsx6/dom-observer': link:../../libs/dom-observer
       '@jsx6/jsx-runtime': link:../../libs/jsx-runtime
-      '@jsx6/jsx6': link:../../libs/jsx6
+      '@jsx6/jsx6': 1.6.29
       babel-plugin-jsx-simple: 1.6.0
       babel-plugin-syntax-jsx: 6.18.0
       markdown-it: 13.0.1
@@ -94,11 +94,11 @@ importers:
 
   ../../libs/jsx-dev-runtime:
     specifiers:
-      '@jsx6/jsx6': workspace:*
+      '@jsx6/jsx6': ^1.6.29
       ava: ~4.3.3
       esbuild: ^0.17.18
     dependencies:
-      '@jsx6/jsx6': link:../jsx6
+      '@jsx6/jsx6': 1.6.29
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
@@ -113,13 +113,13 @@ importers:
 
   ../../libs/jsx6:
     specifiers:
-      '@jsx6/jsx-dev-runtime': ^1.6.25
+      '@jsx6/jsx-dev-runtime': ^1.6.29
       ava: ~4.3.3
       esbuild: ^0.17.18
       jsdom: ~20.0.1
       typescript: ^5.0.4
     devDependencies:
-      '@jsx6/jsx-dev-runtime': 1.6.25
+      '@jsx6/jsx-dev-runtime': 1.6.29
       ava: 4.3.3
       esbuild: 0.17.18
       jsdom: 20.0.1
@@ -630,24 +630,24 @@ packages:
       glob: 8.0.3
     dev: true
 
-  /@jsx6/dom-observer/1.6.25:
-    resolution: {integrity: sha512-1xyXF42cWlJ6bmYVyXmku9Di/zKvO3bDom/cTiwtEK15wACucFx5YUL1FllVV0tdSkn7FDszjdreO70CYV/TWw==}
+  /@jsx6/dom-observer/1.6.29:
+    resolution: {integrity: sha512-3ryMJZtkU8m4smxu51dUz5sSaZJMMCt06k36u+24tUdtmRdkrG68Ve6jf49dTInpO/VBESVhsCMPNlafochGsA==}
     dev: false
 
-  /@jsx6/jsx-dev-runtime/1.6.25:
-    resolution: {integrity: sha512-BWA6GdOauiHobV69cF7eeIPMUcN0NmK9hdiyxbrbKsYzR5G/j1tximm/8vysMoqLa3hyX46GDbvxiaj9Zr8ZVQ==}
+  /@jsx6/jsx-dev-runtime/1.6.29:
+    resolution: {integrity: sha512-+3I716PivPohFaigTPgtXr32DF+fBCb8CUTyhOHkyZUTQrGFuir6EhYoRpZhePe/uEfW6qxAwGLrxWzlXKkp0Q==}
     dependencies:
-      '@jsx6/jsx6': 1.6.25
+      '@jsx6/jsx6': 1.6.29
     dev: true
 
-  /@jsx6/jsx-runtime/1.6.25:
-    resolution: {integrity: sha512-mbBMzxrd1ue6nPoB+U5Gaxov1JMnQh/vZU8RHtOjbAvkqG1pRPkKhgnkPKP8sYj1x//WBgi3XpJVSEyaJQKtuQ==}
+  /@jsx6/jsx-runtime/1.6.29:
+    resolution: {integrity: sha512-+AdTZwN5yHX2d3+TWCzxOTyjBQOwJGhsAGm+MMFkWkBNa8jpWFdwbxOLkRQGnJkWkaxY0sAJh62fvp1d/fy/7w==}
     dependencies:
-      '@jsx6/jsx6': 1.6.25
+      '@jsx6/jsx6': 1.6.29
     dev: false
 
-  /@jsx6/jsx6/1.6.25:
-    resolution: {integrity: sha512-y2I2eUYIeMJyj79k6UF0yX7Nx74hQcRTh9HndLlAl5I8b7q+V6MoyK5k22s1YLzKuj/AaIOyAtHpuPQhQWf+GA==}
+  /@jsx6/jsx6/1.6.29:
+    resolution: {integrity: sha512-FnpnILvFma4DcJR50gq1+cfVvXYoF/RVFCUkXeXwoXb7g/WTkz9zaTX03utFpm2LSLcQRgGqov4klQmzUz4b7g==}
 
   /@nodelib/fs.scandir/2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
