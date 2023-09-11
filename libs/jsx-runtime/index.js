@@ -1,11 +1,11 @@
-import { h } from '@jsx6/jsx6'
+import { toDom } from '@jsx6/jsx6'
 
-function jsx(tag, { children = [], ...attr }) {
-  return h(tag, attr, ...children)
+function jsx(tag, { children, ...attr }) {
+  if (tag === Fragment) return children
+  return toDom(tag, attr, children)
 }
-// it will be called via jsx function, and there we extract children from first arg and
-// provide as second arg
-// example: jsx(Fragment, {children:[]})
-var Fragment = (attr, ...children) => children
+
+// will not be called, we intercept the reference and return children in jsxDEV
+var Fragment = (attr, children) => children
 
 export { jsx, jsx as jsxs, Fragment }

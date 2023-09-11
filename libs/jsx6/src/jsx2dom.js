@@ -20,26 +20,24 @@ export const getScope = () => SCOPE
  *
  * @param {String|Function} tag
  * @param {Object} attr
- * @param  {...any} children
+ * @param  Array<any>} children
  * @returns {Element}
  */
 export function h(tag, attr, ...children) {
+  // in old jsx, attr is null when no attributes are provided
+  return toDom(tag, attr || {}, children)
+}
+
+export function toDom(tag, attr, children) {
   if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
 
   if (isStr(tag)) {
     const out = factories.Element(tag)
     insertAttr(attr, out, SCOPE)
-    children.forEach(c => insert(out, c))
+    insert(out, children)
     return out
   } else {
     if (isFunc(tag)) {
-      // declaring default value for attr in receiving function does not help because jsx tranformer would give us null here
-      // const MyFuncComponent = ({title='',...attr}={}, children)=>....
-      // so we will clean the value here  to avoid runtime errors and users need not worry
-      // const MyFuncComponent = ({title='',...attr}, children)=>......
-      // leaving attr == null might have some benefit in easier knowing when there were no attributes
-      // but the downsides are far greater in usability for most cases
-      attr = attr || {}
       const { p } = attr
 
       // SCOPE is used to set properties where tags have `p` attribute

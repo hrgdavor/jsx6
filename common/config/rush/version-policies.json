@@ -102,7 +102,7 @@
   {
     "policyName": "jsx6",
     "definitionName": "lockStepVersion",
-    "version": "1.6.27",
+    "version": "1.6.29",
     "nextBump": "patch",
     "mainProject": "@jsx6/jsx6"
   },
