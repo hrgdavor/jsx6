@@ -3,7 +3,6 @@ const { readFileSync, writeFileSync } = require('fs')
 function readJson(file) {
   let json = readFileSync(file).toString()
   return eval('(' + json + ')')
-  // return JSON.parse(json)
 }
 const readPackage = folder => readJson(folder + '/package.json')
 
@@ -15,6 +14,7 @@ function replaceVersion(package, version, str) {
 function replaceallVersions(version, folder) {
   let file = folder + '/package.json'
   let json = readFileSync(file).toString()
+  let old = json
   for (let p in map) {
     json = replaceVersion(p, version, json)
   }
@@ -30,6 +30,8 @@ rush.projects.forEach(({ versionPolicyName, packageName, projectFolder }) => {
 })
 map['@jsx6/nodditor'] = { packageName: '@jsx6/nodditor', projectFolder: 'apps/nodditor' }
 map['@jsx6/repl'] = { packageName: '@jsx6/repl', projectFolder: 'apps/repl' }
+delete map['@jsx6/signal-dom']
+delete map['@jsx6/signal']
 
 let version = process.argv[2] === 'w' ? 'workspace:*' : '^' + readPackage('libs/jsx6').version
 
