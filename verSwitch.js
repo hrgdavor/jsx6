@@ -18,6 +18,7 @@ function replaceallVersions(version, folder) {
   for (let p in map) {
     json = replaceVersion(p, version, json)
   }
+  if (json != old) console.log('CHANGED ' + file)
   writeFileSync(file, json)
 }
 
