@@ -105,8 +105,11 @@ importers:
 
   ../../libs/jsx-runtime:
     specifiers:
+      '@jsx6/jsx6': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
+    dependencies:
+      '@jsx6/jsx6': link:../jsx6
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
