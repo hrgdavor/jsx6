@@ -47,7 +47,7 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@jsx6/signal": "workspace:*"
+    "@jsx6/signal": "^1.6.29"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",

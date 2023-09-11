@@ -32,8 +32,6 @@ rush.projects.forEach(({ versionPolicyName, packageName, projectFolder }) => {
 map['@jsx6/nodditor'] = { packageName: '@jsx6/nodditor', projectFolder: 'apps/nodditor' }
 map['@jsx6/repl'] = { packageName: '@jsx6/repl', projectFolder: 'apps/repl' }
 delete map['@jsx6/signal-dom']
-delete map['@jsx6/signal-state']
-delete map['@jsx6/signal']
 
 let version = process.argv[2] === 'w' ? 'workspace:*' : '^' + readPackage('libs/jsx6').version
 
