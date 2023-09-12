@@ -1,7 +1,3 @@
-/**
- * @typedef {Function} Signal
- */
-
 import { observe, observeNow, triggerSymbol, subscribeSymbol } from './src/observe.js'
 import { prepareSignal, signal } from './src/signal.js'
 
@@ -11,8 +7,8 @@ export const signalValue = $signal => (typeof $signal === 'function' ? $signal()
  *
  * If called with 2 or more parameters creates a new signal that is combination of one or more signals.
  * First parameter is function that creates the derived value whenever any of the the signals change
- * @param {function|any} template inital value when creating a signal or template function when making derived signal
- * @param  {...Signal} signals
+ * @param {Function|any} template inital value when creating a signal or template function when making derived signal
+ * @param  {...Function} signals
  * @returns
  */
 export function $S(template, ...signals) {
@@ -34,8 +30,8 @@ export function $S(template, ...signals) {
  * creates a new signal that is combination of one or more signals.
  * First parameter is function that creates the derived value whenever any of the the signals change.
  * Function will be called with current value of each signal, order matching order of signals
- * @param {function} filter function making derived signal from values
- * @param  {...Signal} signals
+ * @param {Function} filter function making derived signal from values
+ * @param  {...Function} signals
  * @returns
  */
 export function $F(filter, ...signals) {

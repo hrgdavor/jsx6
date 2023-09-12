@@ -1,11 +1,35 @@
+/**
+ *  @template T
+ *  @typedef {function():T|boolean} Signal
+ *
+ * @typedef {Object} SignalDef
+ * @prop {function(T):T} $signal
+ * @prop {function():void} fireChanged
+ * @prop {Array<Function>} listeners
+ * @prop {function(T):boolean} setValue
+ *
+ */
+
 import { subscribeSymbol, triggerSymbol } from './observe.js'
 
 export const ValueSymbol = Symbol.for('signalValue')
 
+/**
+ * @template T
+ * @param {T|undefined} value
+ * @returns {function():T|boolean} signal
+ */
 export function signal(value) {
   return prepareSignal(value).$signal
 }
 
+/**
+ * @function
+ * @template T
+ *
+ * @param {T} value
+ * @returns {SignalDef<T>}
+ */
 export function prepareSignal(value) {
   const listeners = new Set()
 

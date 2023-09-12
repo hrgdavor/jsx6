@@ -1,8 +1,20 @@
+// sample typedoc one might want to use to define state for better autocomplete
+/**
+ *
+ * @typedef {Object} TestStateValue
+ * @prop {number} x
+ * @prop {number} y
+ *
+ * @typedef {Object} TestState
+ * @prop {function(number):number} x
+ * @prop {function(number):number} y
+ */
 import test from 'ava'
 import { $State, updateValue } from './index.js'
 import { $F, $S, observe, subscribeSymbol } from '@jsx6/signal'
 
 test('basics', t => {
+  /** @type {TestState} */
   let $s = $State()
 
   t.deepEqual($s(), {})
@@ -13,7 +25,9 @@ test('basics', t => {
 
   $s.y = 2
   t.is($s.y(), 2)
-  t.deepEqual($s(), { x: 1, y: 2 })
+  /**@type{TestStateValue} */
+  let value = $s()
+  t.deepEqual(value, { x: 1, y: 2 })
 
   let $sum1 = $S(() => $s.x() + $s.y(), $s.y, $s.y)
   t.is($sum1(), 3)
