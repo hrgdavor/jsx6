@@ -3,15 +3,21 @@
 import {
   $S,
   Jsx6,
+  JsxW,
   Loop,
   T,
+  addClass,
   addToBody,
+  define,
   domWithScope,
   getScope,
+  getValue,
   insertAttr,
+  linkForm,
   makeState,
   provideErrTranslations,
   runInBatch,
+  setValue,
   tryObserve,
 } from '@jsx6/jsx6'
 
@@ -77,23 +83,51 @@ const scope = (window.APP = {})
 //   )),
 // )
 const $loopValue = makeState([])
-class TestWcNoDeclare extends HTMLElement {
-  constructor(...args) {
-    super()
-    insertAttr(args[0], this)
-    console.log('args', args)
-    this.textContent = 'TestWcNoDeclare'
+class UserEditor extends JsxW {
+  static {
+    define('myapp-admin-usereditor', this)
+  }
+  getValue() {
+    return getValue(this.form)
+  }
+  setValue(v) {
+    setValue(this.form, v)
+  }
+  tpl(attr) {
+    super.tpl(attr)
+    let out = (
+      <>
+        <h1>UserEditor3</h1>
+        <label>name</label>
+        <input p="form.name" />
+      </>
+    )
+    return out
   }
 }
-customElements.define('word-count', TestWcNoDeclare)
+
+function UserEditor3({ attr }, children) {
+  let form = getScope()
+  let out = (
+    <div {...addClass(attr, 'UserEditor3')}>
+      <h1>UserEditor3</h1>
+      <label>name</label>
+      <input p="name" />
+    </div>
+  )
+  linkForm(out, form)
+  return out
+}
+
 window.testState = makeState(true)
 addToBody(
   domWithScope(scope, h => (
     <>
-      {<TestWcNoDeclare class="test" />}
+      <JsxW>test1111</JsxW>
+      {<UserEditor p="editor" class="test" />}
+      <UserEditor3 p="editor3">test22222</UserEditor3>
       <div>array:{[<span>1</span>]}</div>
       <IconNote />
-      {console.log('scope', getScope())}
       <AComponent p="comp1" />
       Hello world.{T`test`} ...{ThePromise}
       (<Loop value={$loopValue} item={({ $v }) => <div>{$v}</div>} />)
@@ -115,6 +149,8 @@ addToBody(
   )),
 )
 console.log('scope', scope, 'Loop', Loop)
+scope.editor.setValue({ name: 'test value 1' })
+scope.editor3.setValue({ name: 'test value 3' })
 scope.loop?.setValue([{ name: 'jozo' }, { name: 'mirko' }])
 scope.loop2?.setValue([{ name: 'jozo2' }, { name: 'mirko2' }])
 

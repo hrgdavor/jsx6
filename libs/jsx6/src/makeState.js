@@ -12,7 +12,7 @@ let hasDirty = false
 let isRunning = false
 let anim = func => func()
 
-export const extendValueSymbol = Symbol('addValue')
+export const mergeValueSymbol = Symbol('addValue')
 
 if (typeof document !== 'undefined') {
   anim = window.requestAnimationFrame
@@ -265,13 +265,13 @@ export function makeState(rawState, returnAll) {
     if (changed) _addDirty()
   }
 
-  specialProps.set(extendValueSymbol, extend)
+  specialProps.set(mergeValueSymbol, extend)
   specialProps.set(subscribeSymbol, subscribe)
   specialProps.set(triggerSymbol, _addDirty)
 
   return returnAll ? [bindingsProxy, state] : bindingsProxy
 }
 
-export function extendValue(obj, value) {
-  obj[extendValueSymbol]?.(value)
+export function mergeValue(obj, value) {
+  obj[mergeValueSymbol]?.(value)
 }

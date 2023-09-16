@@ -107,3 +107,18 @@ export const runFuncNoArg = f => {
  * @returns {String} code: 'JSX6E' + c
  */
 const errCode = c => 'JSX6E' + c
+
+/**
+ * add a static block inside your class:
+  ```js
+  class MyCustomElement extends HTMLElement {
+    static { define('my-custom-element', this) } 
+  }
+ ```
+ *
+ * @param {string} tag custom element tag name
+ * @param {Class} customElement
+ */
+export function define(tag, customElement) {
+  customElements.define(tag, customElement)
+}

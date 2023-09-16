@@ -7,7 +7,7 @@ import { toDomNode } from './toDomNode.js'
  * @param {String|Array<String>} add class names
  */
 export function addClass(node, add) {
-  node = toDomNode(node)
+  node = toDomNode(node) || {}
   let cl = node.classList
   if (cl) {
     if (add.includes(' ')) add = add.split(' ')
@@ -17,4 +17,5 @@ export function addClass(node, add) {
     cl = node['class'] || ''
     node['class'] = cl ? cl + ' ' + add : add
   }
+  return node
 }

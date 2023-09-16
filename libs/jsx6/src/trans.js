@@ -1,5 +1,5 @@
 import { doSubscribeValue, runInBatch } from './makeState.js'
-import { addTranslations, t, TRANS } from './core.js'
+import { addTranslations, runFunc, runFuncNoArg, t, TRANS } from './core.js'
 import { subscribeSymbol, triggerSymbol } from './observe.js'
 import { $S } from './combineState.js'
 
@@ -29,7 +29,7 @@ export function fireTranslationsChange() {
 $translationsSignal[subscribeSymbol] = observeTranslations
 $translationsSignal[triggerSymbol] = fireTranslationsChange
 
-const translationDirtyRunner = () => translationUpdaters.forEach(f => f())
+const translationDirtyRunner = () => translationUpdaters.forEach(runFuncNoArg)
 
 export function T(code) {
   const out = () => t(code)

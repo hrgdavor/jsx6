@@ -1,4 +1,4 @@
-import { addClass, extendValue, setAttribute } from '@jsx6/jsx6'
+import { addClass, setAttribute } from '@jsx6/jsx6'
 
 import { EditableTitle } from '../EditableTitle.js'
 

@@ -15,16 +15,6 @@ export class Jsx6 {
     }
     return this._$s
   }
-  set $s(state) {
-    if (!this._$s) {
-      this._$s = makeState(state)
-    } else {
-      this._$s(state)
-    }
-  }
-  getValue() {
-    return this.$v()
-  }
   /*  Lazy initialize value proxy object*/
   get $v() {
     if (!this.__$v) {
@@ -32,24 +22,20 @@ export class Jsx6 {
     }
     return this.__$v
   }
+  getValue() {
+    return this.$v()
+  }
   setValue(v) {
     this.$v(v)
   }
-  set $v(v) {
-    if (!this.__$v) {
-      this.__$v = makeState(v)
-    } else {
-      this.__$v(v)
-    }
+  mergeValue(v) {
+    mergeValue(this.$v, v)
   }
   setParent(parent) {
     if (parent === window) console.error('window as parent ', this)
     this.parent = parent
   }
   /**
-   * @param h - jsx factory
-   * @param state - state object
-   * @param $ - state binding proxy
    * @param self - reference to this
    */
   tpl(attr = {}) {

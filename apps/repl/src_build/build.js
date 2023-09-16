@@ -33,7 +33,7 @@ await buildScript('./src', outDir, 'demistify.jsx', { watch, ...devOptions })
 await buildScript('./src', outDir, 'random.tricks.jsx', { watch, ...devOptions })
 
 /**************************** LIVE SERVER  *************/
-
+console.log('liveServer', liveServer)
 if (dev) liveServer.start({ root: outDir, port, open: false })
 else console.log('*************        BUILD SUCCESS        ***********')
 //*/

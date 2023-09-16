@@ -16,7 +16,7 @@ import { $S } from './combineState.js'
 let SCOPE
 export const getScope = () => SCOPE
 
-/** Short but pretty usable support function for JSX.
+/** Short but pretty usable support function for old JSX before jsx-runtime.
  *
  * @param {String|Function} tag
  * @param {Object} attr
@@ -47,11 +47,10 @@ export function toDom(tag, attr, children) {
       const parent = SCOPE
       try {
         let out
+        SCOPE = {}
         if (tag.prototype) {
-          SCOPE = undefined
           out = new tag(attr, children, parent)
         } else {
-          SCOPE = {}
           out = tag(attr, children, SCOPE, parent)
         }
         if (p) setPropGroup(parent, out, p)

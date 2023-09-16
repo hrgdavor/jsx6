@@ -63,14 +63,17 @@ export function signal2Attribute(node, attr, $signal) {
   }
   attrUpdater.node = node
   attrUpdater.attr = attr
-  attrUpdater.func = func
   observeNow($signal, () => runInBatch(attrUpdater))
   return attrUpdater
 }
 
-export function signal2Element($signal) {
-  const out = document.createTextNode()
-  observe($signal, () => {})
+export function signal2Text(node, $signal) {
+  const textUpdater = () => {
+    node.textContent = $signal()
+  }
+  textUpdater.node = node
+  observeNow($signal, () => runInBatch(textUpdater))
+  return textUpdater
 }
 
 /**
