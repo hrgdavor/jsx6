@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx-dev-runtime",
-  "version": "1.6.29",
+  "version": "1.7.0",
   "type": "module",
   "sideEffects": false,
   "description": "JSX dev runtime for jsx6",
@@ -49,7 +49,7 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/jsx-dev-runtime/README.md",
   "dependencies": {
-    "@jsx6/jsx6": "^1.6.29"
+    "@jsx6/jsx6": "^1.7.0"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
