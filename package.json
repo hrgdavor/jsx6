@@ -3,11 +3,11 @@
     "bump": "rush version --bump && rush publish --apply",
     "ver": "node verSwitch.js && rush update ",
     "ver:dev": "node verSwitch.js w && rush update ",
-    "pub1": "npm run ver && cd libs/jsx6 && npm publish && cd ../dom-observer && npm publish",
-    "pub2": "cd libs/jsx-runtime && npm publish && cd ../jsx-dev-runtime && npm publish && cd ../signal && npm publish ",
+    "pub1": "npm run ver:dev && cd libs/signal && npm publish && cd ../dom-observer && npm publish",
+    "pub2": "cd libs/jsx6 && npm publish",
     "pub3": "cd libs/signal-state && npm publish && cd ../signal-dom && npm publish && cd ../signal-clock && npm publish",
-    "pub4": "cd apps/repl && npm publish",
-    "publish": "npm run pub1 && npm run pub2 && npm run pub3 && npm run pub4"
+    "pub4": "cd libs/jsx-runtime && npm publish && cd ../jsx-dev-runtime && npm publish ",
+    "pub": "npm run pub1 && npm run pub2 && npm run pub3 && npm run pub4"
   },
   "dependencies": {}
 }

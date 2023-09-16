@@ -22,7 +22,7 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "ava",
-    "prepublishOnly": "npm run build && npm run build-cjs"
+    "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs"
   },
   "repository": {
     "type": "git",
@@ -48,7 +48,7 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@jsx6/signal": "^1.7.0"
+    "@jsx6/signal": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
