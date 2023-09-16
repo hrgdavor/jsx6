@@ -39,7 +39,7 @@ rush.projects.forEach(({ versionPolicyName, packageName, projectFolder }) => {
 map['@jsx6/nodditor'] = { packageName: '@jsx6/nodditor', projectFolder: 'apps/nodditor' }
 map['@jsx6/repl'] = { packageName: '@jsx6/repl', projectFolder: 'apps/repl' }
 
-let version = process.argv[2] === 'w' ? 'workspace:*' : '^' + readPackage(basePath + 'libs/jsx6').version
+let version = process.argv[2] === 'w' ? 'workspace:*' : readPackage(basePath + 'libs/jsx6').version
 
 if (process.argv[2] === 'p') {
   let pkg = readPackage('./')
