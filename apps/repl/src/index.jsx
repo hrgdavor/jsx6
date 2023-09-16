@@ -2,6 +2,7 @@
 // https://github.com/stacktracejs/error-stack-parser
 import {
   $S,
+  $State,
   Jsx6,
   JsxW,
   Loop,
@@ -14,7 +15,6 @@ import {
   getValue,
   insertAttr,
   linkForm,
-  makeState,
   provideErrTranslations,
   runInBatch,
   setValue,
@@ -26,7 +26,7 @@ import './main.css'
 
 provideErrTranslations()
 
-const num = makeState(0)
+const num = $S(0)
 console.log('num() = ', num())
 // tryObserve(num,v => console.log('num changed to ', v))
 // console.log('num + 1 = ', num + 1)
@@ -36,7 +36,7 @@ console.log('num() = ', num())
 //   console.log('num + 1 = ', num + 1, 'after updating num=', num())
 // })
 
-const objState = makeState({ x: 1 })
+const objState = $State({ x: 1 })
 objState.set({ get: 'GETTTT' })
 console.log('objState() = ', objState())
 // console.log('objState.x + 1 = ', objState.x + 1)
@@ -46,7 +46,7 @@ console.log('objState() = ', objState())
 // console.log('JSON.stringify(objState())', JSON.stringify(objState()))
 
 function NotAComponent(attr) {
-  const [state] = makeState({ count: 1, offset: 3 }, true)
+  const state = $State({ count: 1, offset: 3 }, true)
   const out = (
     <b {...attr} name={name} onclick={evt => console.log('click', evt, state.count++, this)}>
       NotAComponent{state.count} / <i>{state(s => s.count + s.offset)}</i>
@@ -82,7 +82,7 @@ const scope = (window.APP = {})
 //     </>
 //   )),
 // )
-const $loopValue = makeState([])
+const $loopValue = $S([])
 class UserEditor extends JsxW {
   static {
     define('myapp-admin-usereditor', this)
@@ -119,7 +119,7 @@ function UserEditor3({ attr }, children) {
   return out
 }
 
-window.testState = makeState(true)
+window.testState = $S(true)
 addToBody(
   domWithScope(scope, h => (
     <>

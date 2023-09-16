@@ -1,9 +1,14 @@
 import { throwErr } from './core.js'
-import { makeState } from './makeState.js'
+// import { makeState } from './makeState.js'
 import { JSX6E12_ITEM_NOT_FOUND } from './errorCodes.js'
 import { domWithScope, factories, forInsert, h, insert } from './jsx2dom.js'
-import { tryObserve } from './observe.js'
+// import { tryObserve } from './observe.js'
 import { getValue } from './getValue.js'
+
+import { $F, observeNow, signal } from '@jsx6/signal'
+import { $State } from '@jsx6/signal-state'
+const tryObserve = observeNow
+const makeState = v => (v !== null && typeof v === 'object' ? $State(v) : signal(v))
 
 const _remove = item => {
   const el = item.el

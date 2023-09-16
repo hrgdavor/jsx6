@@ -1,9 +1,9 @@
 {
-  "name": "@jsx6/signal-state",
+  "name": "@jsx6/signal-clock",
   "version": "1.6.29",
   "type": "module",
   "sideEffects": false,
-  "description": "Generate proxy for mustiple signals on demand",
+  "description": "Generate signal for current time to synchronize update of time related values",
   "main": "index.js",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
@@ -29,10 +29,11 @@
     "url": "git+https://github.com/hrgdavor/jsx6.git"
   },
   "keywords": [
-    "signal",
-    "state",
-    "proxy",
-    "object"
+    "DOM",
+    "JSX",
+    "JSXRuntime",
+    "Performance",
+    "HTML"
   ],
   "author": "Davor hrg",
   "license": "MIT",

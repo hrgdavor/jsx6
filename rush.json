@@ -494,15 +494,21 @@
       "versionPolicyName": "jsx6"
     },
     {
+      "packageName": "@jsx6/signal-clock",
+      "projectFolder": "libs/signal-clock",
+      "tags": ["signal", "reactive", "seconds", "clock"],
+      "versionPolicyName": "jsx6"
+    },
+    {
       "packageName": "@jsx6/signal-dom",
       "projectFolder": "libs/signal-dom",
-      "tags": ["signal", "reactive", "dom", "html", "signal"],
+      "tags": ["signal", "reactive", "dom", "html"],
       "versionPolicyName": "jsx6"
     },
     {
       "packageName": "@jsx6/signal-state",
       "projectFolder": "libs/signal-state",
-      "tags": ["signal", "reactive", "state", "signal", "html"],
+      "tags": ["signal", "reactive", "state", "html"],
       "versionPolicyName": "jsx6"
     },
     {

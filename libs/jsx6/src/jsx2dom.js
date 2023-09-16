@@ -9,10 +9,14 @@ import {
   JSX6E2_UNSUPPORTED_TAG,
 } from './errorCodes.js'
 import { toDomNode } from './toDomNode.js'
-import { tryObserve } from './observe.js'
 import { remove } from './remove.js'
-import { $S } from './combineState.js'
 
+// import { tryObserve } from './observe.js'
+// import { $S } from './combineState.js'
+
+import { $F, observeNow } from '@jsx6/signal'
+const tryObserve = observeNow
+const $S = $F
 let SCOPE
 export const getScope = () => SCOPE
 

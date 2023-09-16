@@ -10,7 +10,7 @@
   "exports": {
     ".": {
       "require": "./cjs/index.js",
-      "default": "./dist/index.js"
+      "default": "./index.js"
     }
   },
   "files": [
@@ -55,5 +55,9 @@
     "jsdom": "~20.0.1",
     "@jsx6/jsx-dev-runtime": "^1.6.29",
     "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@jsx6/signal": "^1.6.29",
+    "@jsx6/signal-state": "^1.6.29"
   }
 }

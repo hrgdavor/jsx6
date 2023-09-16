@@ -35,7 +35,7 @@ map['@jsx6/repl'] = { packageName: '@jsx6/repl', projectFolder: 'apps/repl' }
 let version = process.argv[2] === 'w' ? 'workspace:*' : '^' + readPackage('libs/jsx6').version
 
 for (let p in map) {
-  if (p === '@jsx6/jsx6') continue
+  //  if (p === '@jsx6/jsx6') continue
   let { projectFolder } = map[p]
   replaceallVersions(version, projectFolder)
 }

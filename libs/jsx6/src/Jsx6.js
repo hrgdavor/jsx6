@@ -1,4 +1,5 @@
-import { makeState, domWithScope, insert } from '@jsx6/jsx6'
+import { domWithScope, insert } from '@jsx6/jsx6'
+import { $State } from '@jsx6/signal-state'
 
 export class Jsx6 {
   isJsx6 = true
@@ -11,14 +12,14 @@ export class Jsx6 {
   /*  Lazy initialize state proxy object*/
   get $s() {
     if (!this._$s) {
-      this._$s = makeState({})
+      this._$s = $State({})
     }
     return this._$s
   }
   /*  Lazy initialize value proxy object*/
   get $v() {
     if (!this.__$v) {
-      this.__$v = makeState({})
+      this.__$v = $State({})
     }
     return this.__$v
   }

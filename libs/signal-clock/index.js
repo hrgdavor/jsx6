@@ -1,15 +1,12 @@
-import { $S } from './combineState.js'
-import { makeState } from './makeState.js'
-import { tryObserve } from './observe.js'
-import { isFunc, isStr } from './core.js'
+import { $F, observeNow, observe, signal } from '@jsx6/signal'
 
 let clockSignal
 let clockSignalSeconds
 let requestAnimationFrame = globalThis.requestAnimationFrame || (f => setTimeout(() => f(), 10))
 
 function initClockSignal() {
-  clockSignal = makeState(Date.now())
-  clockSignalSeconds = makeState(toSeconds(clockSignal()))
+  clockSignal = signal(Date.now())
+  clockSignalSeconds = signal(toSeconds(clockSignal()))
   function callNext() {
     let now = Date.now()
     let nows = toSeconds(now)
@@ -30,7 +27,7 @@ function initClockSignal() {
 export function toMs(time) {
   if (time instanceof Number) return time
   if (time instanceof Date) return time.getTime()
-  if (isStr(time)) return new Date(time).getTime()
+  if (typeof time === 'string') return new Date(time).getTime()
   return time ? time : 0
 }
 
@@ -52,13 +49,13 @@ export function withClockTime(time, callback) {
   let c = clockSignal
   let cs = clockSignalSeconds
   try {
-    if (isFunc(time)) {
-      clockSignal = $S(toMs, time)
-      clockSignalSeconds = $S(toSeconds, time)
+    if (typeof time == 'function') {
+      clockSignal = $F(toMs, time)
+      clockSignalSeconds = $F(toSeconds, time)
     } else {
       time = toMs(time)
-      clockSignal = makeState(time)
-      clockSignalSeconds = makeState(toSeconds(time))
+      clockSignal = signal(time)
+      clockSignalSeconds = signal(toSeconds(time))
     }
     callback()
   } finally {
@@ -96,19 +93,19 @@ export const $DurationSignalSeconds = (formatter, signal) => $DurationSignal(for
  * with wathing the base value. Formatter will get duration in seconds.
  *
  * @param {Function} formatter convert duration in seconds to something else (usually string)
- * @param {Function} signal base value to calculate duration from (if zero, duration is also zero)
+ * @param {Function} $signal base value to calculate duration from (if zero, duration is also zero)
  * @returns
  */
-export function $DurationSignal(formatter, signal, seconds = false) {
+export function $DurationSignal(formatter, $signal, seconds = false) {
   let zeroValue = formatter(0) // use what formatter will make for zero as initial value
-  let out = makeState(zeroValue)
+  let out = signal(zeroValue)
   let clock = seconds ? getClockSignalSeconds() : getClockSignal()
   // observe the signals to update the value
-  tryObserve(clock, update, true) // avoid triggerring update twice
-  tryObserve(signal, update)
+  observe(clock, update) // avoid triggerring update twice
+  observeNow($signal, update)
 
   function update() {
-    let signalValue = signal()
+    let signalValue = $signal()
     out(signalValue ? formatter(clock() - signalValue) : zeroValue)
   }
   return out

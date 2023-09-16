@@ -1,10 +1,16 @@
 import test from 'ava'
-import { makeState, setAnimFunction } from './makeState.js'
+// import { makeState, setAnimFunction } from './makeState.js'
 import { addTranslations } from './core.js'
 import { $T, addTranslationsAndNotify } from './trans.js'
 
+import { $F, observeNow, signal } from '@jsx6/signal'
+import { $State } from '@jsx6/signal-state'
+const tryObserve = observeNow
+const $S = $F
+const makeState = v => (v !== null && typeof v === 'object' ? $State(v) : signal(v))
+
 // call immediately to update state values without async (simpler testing)
-setAnimFunction(f => f())
+// setAnimFunction(f => f())
 
 test('T', t => {
   addTranslations({ name: 'Name' })

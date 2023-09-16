@@ -1,16 +1,13 @@
 import test from 'ava'
-import { makeState, setAnimFunction } from './makeState.js'
-import { $DurationSignal, $DurationSignalSeconds, toSeconds, withClockTime } from './clockSignal.js'
+import { $DurationSignal, $DurationSignalSeconds, toSeconds, withClockTime } from './index.js'
 
-// call immediately to update state values without async (simpler testing)
-setAnimFunction(f => f())
+import { $S, observeNow, signal } from '@jsx6/signal'
 
 test('duration', async t => {
   return new Promise((resolve, reject) => {
-    setAnimFunction(f => setTimeout(() => f(), 10))
     let now = Date.now()
-    let from = makeState(now - 73000)
-    let $from2 = makeState(0)
+    let from = signal(now - 73000)
+    let $from2 = signal(0)
     // this tests was made to verify tht previous impl of duration that lazy loaded clock
     // was problematic for testing, becase clock would initialize after withClockTime scope
     // and $DurationSignal would get a regular clock instead of what we passed in withClockTime
@@ -21,10 +18,10 @@ test('duration', async t => {
       t.is(0, $durms())
       setTimeout(() => {
         $from2(now - 3)
+        console.log('now', now, $from2(), $durms())
         t.is(3, $durms())
         resolve()
       }, 30)
     })
-    setAnimFunction(f => f())
   })
 })

@@ -83,6 +83,6 @@ export function $State(initial) {
   return statePproxy
 }
 
-export function updateValue($state, nv = {}) {
+export function mergeValue($state, nv = {}) {
   return $state[updateValueSymbol]?.(nv)
 }

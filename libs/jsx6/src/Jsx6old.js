@@ -1,7 +1,8 @@
-import { makeState } from './makeState.js'
 import { domWithScope, insert } from './jsx2dom.js'
 import { insertAttr, h } from './jsx2dom.js'
 import { addClass } from './addClass.js'
+
+import { $State } from '@jsx6/signal-state'
 
 /**
  * @class
@@ -34,14 +35,14 @@ export class Jsx6old {
   /*  Lazy initialize state proxy object*/
   get $s() {
     if (!this._$s) {
-      this._$s = makeState({})
+      this._$s = $State({})
     }
     return this._$s
   }
 
   set $s(state) {
     if (!this._$s) {
-      this._$s = makeState(state)
+      this._$s = $State(state)
     } else {
       this._$s(state)
     }
@@ -54,7 +55,7 @@ export class Jsx6old {
   /*  Lazy initialize value proxy object*/
   get $v() {
     if (!this.__$v) {
-      this.__$v = makeState({})
+      this.__$v = $State({})
     }
     return this.__$v
   }
@@ -64,7 +65,7 @@ export class Jsx6old {
   }
   set $v(v) {
     if (!this.__$v) {
-      this.__$v = makeState(v)
+      this.__$v = $State(v)
     } else {
       this.__$v(v)
     }

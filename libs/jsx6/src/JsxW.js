@@ -1,6 +1,6 @@
 import { define } from './core'
 import { domWithScope, insert, insertAttr } from './jsx2dom'
-import { mergeValue, makeState } from './makeState'
+import { mergeValue, $State } from '@jsx6/signal-state'
 
 /**
  * Template for a web component.
@@ -43,14 +43,14 @@ export class JsxW extends HTMLElement {
   /*  Lazy initialize state proxy object*/
   get $s() {
     if (!this._$s) {
-      this._$s = makeState({})
+      this._$s = $State({})
     }
     return this._$s
   }
   /*  Lazy initialize value proxy object*/
   get $v() {
     if (!this.__$v) {
-      this.__$v = makeState({})
+      this.__$v = $State({})
     }
     return this.__$v
   }
@@ -62,12 +62,5 @@ export class JsxW extends HTMLElement {
   }
   mergeValue(v) {
     mergeValue(this.$v, v)
-  }
-  set $v(v) {
-    if (!this.__$v) {
-      this.__$v = makeState(v)
-    } else {
-      this.__$v(v)
-    }
   }
 }

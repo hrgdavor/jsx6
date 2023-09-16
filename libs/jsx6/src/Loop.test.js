@@ -1,5 +1,5 @@
 import test from 'ava'
-import { makeState, setAnimFunction } from './makeState.js'
+import { setAnimFunction } from './makeState.js'
 import { domWithScope, h } from './jsx2dom.js'
 import { Loop } from './Loop.js'
 

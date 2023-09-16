@@ -62,7 +62,7 @@ const callbackForTemplateString = (arr, signals) => () => {
   for (let i = 1; i < arr.length; i++) {
     out.push(signalValue(signals[i - 1]), arr[i])
   }
-  return out
+  return out.join('')
 }
 
 export const $NOT = $signal => $F(v => !v, $signal)

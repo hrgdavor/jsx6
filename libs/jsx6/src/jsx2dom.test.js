@@ -1,7 +1,13 @@
 import test from 'ava'
-import { makeState, setAnimFunction } from './makeState.js'
-import { $S } from './combineState.js'
+import { setAnimFunction } from './makeState.js'
+// import { $S } from './combineState.js'
 import { h } from './jsx2dom.js'
+
+import { $F, observeNow, signal } from '@jsx6/signal'
+import { $State } from '@jsx6/signal-state'
+const tryObserve = observeNow
+const $S = $F
+const makeState = v => (v !== null && typeof v === 'object' ? $State(v) : signal(v))
 
 import { JSDOM } from 'jsdom'
 
