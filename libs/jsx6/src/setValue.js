@@ -6,6 +6,7 @@ export function setValue(obj, value) {
   if (isFunc(obj.setValue)) return obj.setValue(value)
   if (isFunc(obj)) return setValue(obj(), value)
   if (obj instanceof window.Element) {
+    if (value === undefined || value === null) value = ''
     if (obj.tagName === 'INPUT' && obj.type === 'checkbox') {
       obj.checked = value
     } else {

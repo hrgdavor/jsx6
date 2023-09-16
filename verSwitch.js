@@ -33,7 +33,7 @@ map['@jsx6/nodditor'] = { packageName: '@jsx6/nodditor', projectFolder: 'apps/no
 map['@jsx6/repl'] = { packageName: '@jsx6/repl', projectFolder: 'apps/repl' }
 delete map['@jsx6/signal-dom']
 
-let version = process.argv[2] === 'w' ? 'workspace:*' : '^' + readPackage('libs/jsx6').version
+let version = process.argv[2] === 'w' ? 'workspace:*' : readPackage('libs/jsx6').version
 
 for (let p in map) {
   if (p === '@jsx6/jsx6') continue

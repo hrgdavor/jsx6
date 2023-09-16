@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.6.29",
+  "version": "1.6.31",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",
@@ -53,7 +53,7 @@
     "ava": "~4.3.3",
     "esbuild": "^0.17.18",
     "jsdom": "~20.0.1",
-    "@jsx6/jsx-dev-runtime": "^1.6.29",
+    "@jsx6/jsx-dev-runtime": "1.6.31",
     "typescript": "^5.0.4"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal-state",
-  "version": "1.6.29",
+  "version": "1.6.31",
   "type": "module",
   "sideEffects": false,
   "description": "Generate proxy for mustiple signals on demand",
@@ -47,7 +47,7 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@jsx6/signal": "^1.6.29"
+    "@jsx6/signal": "1.6.31"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
