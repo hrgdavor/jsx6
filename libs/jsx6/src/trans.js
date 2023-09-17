@@ -1,15 +1,7 @@
+import { $F, subscribeSymbol, triggerSymbol } from '@jsx6/signal'
+
 import { runInBatch } from './makeState.js'
 import { addTranslations, runFunc, runFuncNoArg, t, TRANS } from './core.js'
-// import { subscribeSymbol, triggerSymbol } from './observe.js'
-// import { $S } from './combineState.js'
-
-import { subscribeSymbol, triggerSymbol } from '@jsx6/signal'
-
-import { $F, observeNow, signal } from '@jsx6/signal'
-import { $State } from '@jsx6/signal-state'
-const tryObserve = observeNow
-const $S = $F
-const makeState = v => (v !== null && typeof v === 'object' ? $State(v) : signal(v))
 
 /**  @type {Array<Function>} */
 const translationUpdaters = []
@@ -45,4 +37,4 @@ export function T(code) {
   return out
 }
 
-export const $T = $code => $S(t, $code, $translationsSignal)
+export const $T = $code => $F(t, $code, $translationsSignal)

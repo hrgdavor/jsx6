@@ -1,26 +1,21 @@
 import {
-  $Or,
-  $S,
   Jsx6,
-  Jsx6old,
   addClass,
   classIf,
-  debounceMicro,
   findParent,
   fireCustom,
   getAttr,
   hSvg,
   insert,
-  isArray,
   isNode,
   listen,
-  observe,
   remove,
   setAttribute,
   setSelected,
   setVisible,
   toDomNode,
 } from '@jsx6/jsx6'
+import { $Or, observeNow } from '@jsx6/signal'
 
 import { ConnectLine } from './ConnectLine.js'
 import { LineInteraction } from './LineInteraction.js'
@@ -284,7 +279,7 @@ export class NodeEditor extends Jsx6 {
     // create a signal tht tells if editor has focus to work with blocks or lines
     // used to decide if delete will try to delete blocks or lines and for other needs
     this.$focusOrSelecting = $Or($s.isDown, $s.hasFocus)
-    observe(this.$focusOrSelecting, f => classIf(el, 'focused', f))
+    observeNow(this.$focusOrSelecting, f => classIf(el, 'focused', f))
     let lx = 0
     let ly = 0
     let domNode

@@ -1,8 +1,6 @@
 // https://github.com/stacktracejs/stacktrace-gps
 // https://github.com/stacktracejs/error-stack-parser
 import {
-  $S,
-  $State,
   Jsx6,
   JsxW,
   Loop,
@@ -13,15 +11,11 @@ import {
   domWithScope,
   getScope,
   getValue,
-  insertAttr,
   linkForm,
   provideErrTranslations,
-  runInBatch,
   setValue,
-  tryObserve,
 } from '@jsx6/jsx6'
-
-import {$S} from '@jsx6/signal'
+import { $S, $State } from '@jsx6/signal'
 
 import IconNote from './icons/icon-note'
 import './main.css'

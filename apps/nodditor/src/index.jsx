@@ -1,9 +1,10 @@
-import { forEachProp, insert, makeState, provideErrTranslations } from '@jsx6/jsx6'
+import { forEachProp, insert, provideErrTranslations } from '@jsx6/jsx6'
 
 import { ConnectLine } from './ConnectLine.js'
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
+import { $State } from '@jsx6/signal'
 
 provideErrTranslations()
 
@@ -34,7 +35,7 @@ function deleteBlocks() {
 }
 
 /** @type {any} */
-let $s = makeState({ hasEdit: true })
+let $s = $State({ hasEdit: true })
 let menu = (
   <div class="fx ne-menu" sty:le="padding: 4px; border: solid 1px gray">
     <div class="ne-bt ne-delete" onclick={deleteBlocks}>

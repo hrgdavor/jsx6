@@ -91,11 +91,11 @@ export const $AnyValue = (...signals) =>
     }
   }, ...signals)
 
-export const $Or = ($sa, $sb) => $S(() => $sa() || $sb(), $sa, $sb)
-export const $OrB = ($sa, $sb) => $S(() => !!($sa() || $sb()), $sa, $sb)
+export const $Or = ($sa, $sb) => $F((a, b) => a || b, $sa, $sb)
+export const $OrB = ($sa, $sb) => $F((a, b) => !!(a || b), $sa, $sb)
 
-export const $And = ($sa, $sb) => $S(() => $sa() && $sb(), $sa, $sb)
-export const $AndB = ($sa, $sb) => $S(() => !!($sa() && $sb()), $sa, $sb)
+export const $And = ($sa, $sb) => $F((a, b) => a && b, $sa, $sb)
+export const $AndB = ($sa, $sb) => $F((a, b) => !!(a && b), $sa, $sb)
 
 export const $Map = (map, $signal) => $F(v => map[v] || v, $signal)
 

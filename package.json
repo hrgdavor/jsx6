@@ -1,5 +1,7 @@
 {
   "scripts": {
+    "test1": "cd libs/jsx6 && npm run test ",
+    "test": "cd libs/signal && npm run test && cd ../signal-clock && npm run test",
     "bump": "rush version --bump && rush publish --apply",
     "ver": "node verSwitch.js && rush update ",
     "ver:dev": "node verSwitch.js w && rush update ",
