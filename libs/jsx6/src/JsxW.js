@@ -1,6 +1,6 @@
 import { define } from './core'
 import { domWithScope, insert, insertAttr } from './jsx2dom'
-import { mergeValue, $State } from '@jsx6/signal-state'
+import { mergeValue, $State } from '@jsx6/signal'
 
 /**
  * Template for a web component.

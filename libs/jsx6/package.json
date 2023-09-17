@@ -1,20 +1,24 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",
   "main": "index.js",
+  "types": "dist/index.d.ts",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./cjs/index.js",
       "default": "./index.js"
     }
   },
   "files": [
+    "index.js",
     "dist",
+    "src",
     "esm",
     "cjs"
   ],
@@ -51,13 +55,13 @@
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/README.md",
   "devDependencies": {
     "ava": "~4.3.3",
+    "@jsx6/build": "^0.2.4",
     "esbuild": "^0.17.18",
     "jsdom": "~20.0.1",
-    "@jsx6/jsx-dev-runtime": "1.7.1",
+    "@jsx6/jsx-dev-runtime": "workspace:*",
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@jsx6/signal": "1.7.1",
-    "@jsx6/signal-state": "1.7.1"
+    "@jsx6/signal": "workspace:*"
   }
 }

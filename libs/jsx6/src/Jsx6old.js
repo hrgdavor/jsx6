@@ -2,7 +2,7 @@ import { domWithScope, insert } from './jsx2dom.js'
 import { insertAttr, h } from './jsx2dom.js'
 import { addClass } from './addClass.js'
 
-import { $State } from '@jsx6/signal-state'
+import { $State } from '@jsx6/signal'
 
 /**
  * @class

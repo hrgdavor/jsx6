@@ -506,12 +506,6 @@
       "versionPolicyName": "jsx6"
     },
     {
-      "packageName": "@jsx6/signal-state",
-      "projectFolder": "libs/signal-state",
-      "tags": ["signal", "reactive", "state", "html"],
-      "versionPolicyName": "jsx6"
-    },
-    {
       "packageName": "@jsx6/build",
       "projectFolder": "tools/build",
       "tags": ["build", "watch", "glob", "copy", "mkdir"],
@@ -527,7 +521,7 @@
       "packageName": "@jsx6/dom-observer",
       "projectFolder": "libs/dom-observer",
       "tags": ["DOM", "IntersectionObserver", "ResizeObserver", "Performance", "HTML"],
-      "versionPolicyName": "jsx6"
+      "versionPolicyName": "individual"
     },
     {
       "packageName": "@jsx6/repl",

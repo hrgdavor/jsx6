@@ -100,3 +100,4 @@ export const $AndB = ($sa, $sb) => $S(() => !!($sa() && $sb()), $sa, $sb)
 export const $Map = (map, $signal) => $F(v => map[v] || v, $signal)
 
 export { observe, observeNow, signal, prepareSignal, triggerSymbol, subscribeSymbol }
+export * from './src/state.js'

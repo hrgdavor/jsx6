@@ -34,11 +34,12 @@ importers:
     specifiers:
       '@babel/standalone': ~7.18.12
       '@jsx6/build': ^0.2.4
-      '@jsx6/dom-observer': workspace:*
+      '@jsx6/dom-observer': 2.0.0
       '@jsx6/editor-monaco': workspace:^0.34.100
       '@jsx6/jsx-dev-runtime': workspace:*
       '@jsx6/jsx-runtime': workspace:*
       '@jsx6/jsx6': workspace:*
+      '@jsx6/signal': workspace:*
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       babel-plugin-jsx-simple: ~1.6.0
       babel-plugin-syntax-jsx: ~6.18.0
@@ -49,9 +50,10 @@ importers:
       perfect-scrollbar: ~1.5.5
       prettier: ~2.7.1
     dependencies:
-      '@jsx6/dom-observer': link:../../libs/dom-observer
+      '@jsx6/dom-observer': 2.0.0
       '@jsx6/jsx-runtime': link:../../libs/jsx-runtime
       '@jsx6/jsx6': link:../../libs/jsx6
+      '@jsx6/signal': link:../../libs/signal
       babel-plugin-jsx-simple: 1.6.0
       babel-plugin-syntax-jsx: 6.18.0
       markdown-it: 13.0.1
@@ -71,9 +73,11 @@ importers:
     specifiers:
       ava: ~4.3.3
       esbuild: ^0.17.18
+      typescript: ^5.0.4
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
+      typescript: 5.0.4
 
   ../../libs/editor-monaco:
     specifiers:
@@ -116,17 +120,17 @@ importers:
 
   ../../libs/jsx6:
     specifiers:
+      '@jsx6/build': ^0.2.4
       '@jsx6/jsx-dev-runtime': workspace:*
       '@jsx6/signal': workspace:*
-      '@jsx6/signal-state': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
       jsdom: ~20.0.1
       typescript: ^5.0.4
     dependencies:
       '@jsx6/signal': link:../signal
-      '@jsx6/signal-state': link:../signal-state
     devDependencies:
+      '@jsx6/build': 0.2.4
       '@jsx6/jsx-dev-runtime': link:../jsx-dev-runtime
       ava: 4.3.3
       esbuild: 0.17.18
@@ -137,33 +141,26 @@ importers:
     specifiers:
       ava: ~4.3.3
       esbuild: ^0.17.18
+      typescript: ^5.0.4
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
+      typescript: 5.0.4
 
   ../../libs/signal-clock:
     specifiers:
       '@jsx6/signal': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
+      typescript: ^5.0.4
     dependencies:
       '@jsx6/signal': link:../signal
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
+      typescript: 5.0.4
 
   ../../libs/signal-dom:
-    specifiers:
-      '@jsx6/signal': workspace:*
-      ava: ~4.3.3
-      esbuild: ^0.17.18
-    dependencies:
-      '@jsx6/signal': link:../signal
-    devDependencies:
-      ava: 4.3.3
-      esbuild: 0.17.18
-
-  ../../libs/signal-state:
     specifiers:
       '@jsx6/signal': workspace:*
       ava: ~4.3.3
@@ -659,6 +656,10 @@ packages:
     dependencies:
       glob: 8.0.3
     dev: true
+
+  /@jsx6/dom-observer/2.0.0:
+    resolution: {integrity: sha512-nFYfwwUYpZOOuKMz4vBI17Rddqg7UWXq8lnORhFngkctnnSJ0H/+Kd3NOj/UZc8Ai+CAYeYg4kpNVCWgpMReSw==}
+    dev: false
 
   /@nodelib/fs.scandir/2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}

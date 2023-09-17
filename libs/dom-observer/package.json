@@ -1,20 +1,23 @@
 {
   "name": "@jsx6/dom-observer",
-  "version": "1.7.1",
+  "version": "2.0.0",
   "type": "module",
   "sideEffects": false,
   "description": "Performance for multiple ResizeObserver and IntersectionObserver",
   "main": "index.js",
+  "types": "dist/index.d.ts",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./cjs/index.js",
       "default": "./index.js"
     }
   },
   "files": [
     "index.js",
+    "dist",
     "src",
     "esm",
     "cjs"
@@ -23,7 +26,7 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "ava",
-    "prepublishOnly": "npm run build && npm run build-cjs"
+    "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
   },
   "repository": {
     "type": "git",
@@ -50,6 +53,7 @@
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/dom-observer/README.md",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "ava": "~4.3.3"
+    "ava": "~4.3.3",
+    "typescript": "^5.0.4"
   }
 }

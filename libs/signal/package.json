@@ -1,20 +1,24 @@
 {
   "name": "@jsx6/signal",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "type": "module",
   "sideEffects": false,
   "description": "signal implementation for vanilla JS or JSX",
   "main": "index.js",
+  "types": "dist/index.d.ts",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./cjs/index.js",
       "default": "./index.js"
     }
   },
   "files": [
     "index.js",
+    "dist",
+    "src",
     "esm",
     "cjs"
   ],
@@ -22,7 +26,7 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "npx ava",
-    "prepublishOnly": "npm run build && npm run build-cjs"
+    "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
   },
   "repository": {
     "type": "git",
@@ -50,6 +54,7 @@
   "dependencies": {},
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "ava": "~4.3.3"
+    "ava": "~4.3.3",
+    "typescript": "^5.0.4"
   }
 }

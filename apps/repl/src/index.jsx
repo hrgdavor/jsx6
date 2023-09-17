@@ -21,6 +21,8 @@ import {
   tryObserve,
 } from '@jsx6/jsx6'
 
+import {$S} from '@jsx6/signal'
+
 import IconNote from './icons/icon-note'
 import './main.css'
 

@@ -10,8 +10,9 @@
  * @prop {function(number):number} y
  */
 import test from 'ava'
-import { $State, updateValue } from './index.js'
-import { $F, $S, observe, subscribeSymbol } from '@jsx6/signal'
+import { $State, mergeValue } from './state.js'
+import { $F, $S } from '../index.js'
+import { observe } from './observe.js'
 
 test('basics', t => {
   /** @type {TestState} */
@@ -78,12 +79,12 @@ test('setValue', t => {
   t.is($s({ y: 1 }), false)
 })
 
-test('updateValue', t => {
+test('mergeValue', t => {
   let $s = $State({ x: 1 })
 
-  t.is(updateValue($s, { y: 1 }), true)
+  t.is(mergeValue($s, { y: 1 }), true)
   t.deepEqual($s(), { y: 1, x: 1 })
 
   // set same value again, no changes will happen, and taht is reported
-  t.is(updateValue($s, { y: 1 }), false)
+  t.is(mergeValue($s, { y: 1 }), false)
 })

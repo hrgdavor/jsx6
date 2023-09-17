@@ -3,8 +3,7 @@ import test from 'ava'
 import { addTranslations } from './core.js'
 import { $T, addTranslationsAndNotify } from './trans.js'
 
-import { $F, observeNow, signal } from '@jsx6/signal'
-import { $State } from '@jsx6/signal-state'
+import { $State, $F, observeNow, signal } from '@jsx6/signal'
 const tryObserve = observeNow
 const $S = $F
 const makeState = v => (v !== null && typeof v === 'object' ? $State(v) : signal(v))

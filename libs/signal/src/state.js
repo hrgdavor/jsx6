@@ -1,6 +1,7 @@
-import { prepareSignal, subscribeSymbol, triggerSymbol } from '@jsx6/signal'
+import { subscribeSymbol, triggerSymbol } from './observe.js'
+import { prepareSignal } from './signal.js'
 
-export const updateValueSymbol = Symbol.for('signalUpdateValue')
+export const mergeValueSymbol = Symbol.for('signalMergeValue')
 
 export function $State(initial) {
   let internals = {}
@@ -65,7 +66,7 @@ export function $State(initial) {
   specialProps.set(triggerSymbol, fireChanged)
   // if we try to serialize the state, user need not worry, value goes into json
   specialProps.set('toJSON', getValue)
-  specialProps.set(updateValueSymbol, updateValue)
+  specialProps.set(mergeValueSymbol, updateValue)
   // allows for tricks like $s.count++
   specialProps.set(Symbol.toPrimitive, getValue)
 
@@ -84,5 +85,5 @@ export function $State(initial) {
 }
 
 export function mergeValue($state, nv = {}) {
-  return $state[updateValueSymbol]?.(nv)
+  return $state[mergeValueSymbol]?.(nv)
 }

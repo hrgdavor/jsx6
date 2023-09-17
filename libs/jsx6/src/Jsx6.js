@@ -1,5 +1,5 @@
 import { domWithScope, insert } from '@jsx6/jsx6'
-import { $State } from '@jsx6/signal-state'
+import { $State } from '@jsx6/signal'
 
 export class Jsx6 {
   isJsx6 = true
