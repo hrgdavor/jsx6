@@ -2,7 +2,9 @@
   "compilerOptions": {
     "jsx": "preserve",
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
+    "emitDeclarationOnly": true,
+    "skipLibCheck": true,
     "target": "ESNext",
     "outDir": "dist",
     "rootDir": ".",
