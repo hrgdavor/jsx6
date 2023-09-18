@@ -1,6 +1,5 @@
 import { $F, subscribeSymbol, triggerSymbol } from '@jsx6/signal'
 
-import { runInBatch } from './makeState.js'
 import { addTranslations, runFunc, runFuncNoArg, t, TRANS } from './core.js'
 
 /**  @type {Array<Function>} */
@@ -23,13 +22,11 @@ export function addTranslationsAndNotify(t) {
 }
 
 export function fireTranslationsChange() {
-  runInBatch(translationDirtyRunner)
+  translationUpdaters.forEach(runFuncNoArg)
 }
 
 $translationsSignal[subscribeSymbol] = observeTranslations
 $translationsSignal[triggerSymbol] = fireTranslationsChange
-
-const translationDirtyRunner = () => translationUpdaters.forEach(runFuncNoArg)
 
 export function T(code) {
   const out = () => t(code)

@@ -1,3 +1,8 @@
+## tests
+
+node builtin tests from node V18+ V16.17+ ( V18.0.0, V16.17.0)
+https://github.com/paulmillr/chokidar dep
+
 ## jsx-runtime
 
 https://github.com/reactjs/rfcs/blob/createlement-rfc/text/0000-create-element-changes.md

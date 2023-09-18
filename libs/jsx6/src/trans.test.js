@@ -1,28 +1,23 @@
-import test from 'ava'
-// import { makeState, setAnimFunction } from './makeState.js'
+import { test } from 'node:test'
+import { strict as assert } from 'node:assert'
 import { addTranslations } from './core.js'
 import { $T, addTranslationsAndNotify } from './trans.js'
 
-import { $State, $F, observeNow, signal } from '@jsx6/signal'
-const tryObserve = observeNow
-const $S = $F
-const makeState = v => (v !== null && typeof v === 'object' ? $State(v) : signal(v))
+import { signal } from '@jsx6/signal'
 
 // call immediately to update state values without async (simpler testing)
 // setAnimFunction(f => f())
 
 test('T', t => {
   addTranslations({ name: 'Name' })
-  const $s = makeState('name')
+  const $s = signal('name')
   const $translated = $T($s)
-  console.log('after init', $translated())
-  t.is('name', $s())
-  t.is('Name', $translated())
+  assert.equal('name', $s())
+  assert.equal('Name', $translated())
 
   addTranslationsAndNotify({ name: 'Name2', first: 'First' })
-  console.log('after trans', $translated())
-  t.is('Name2', $translated())
+  assert.equal('Name2', $translated())
 
   $s('first')
-  t.is('First', $translated())
+  assert.equal('First', $translated())
 })

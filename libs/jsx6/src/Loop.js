@@ -1,11 +1,8 @@
 import { throwErr } from './core.js'
 import { JSX6E12_ITEM_NOT_FOUND } from './errorCodes.js'
 import { domWithScope, factories, forInsert, h, insert } from './jsx2dom.js'
-import { getValue } from './getValue.js'
 
 import { $State, observeNow, signal } from '@jsx6/signal'
-const tryObserve = observeNow
-const makeState = v => (v !== null && typeof v === 'object' ? $State(v) : signal(v))
 
 const _remove = item => {
   const el = item.el
@@ -17,9 +14,10 @@ export class Loop {
   allItems = []
   count = 0
 
-  constructor({ p, item, tpl, value, ...itemAttr } = {}) {
+  constructor({ p, item, tpl, value, primitive, ...itemAttr } = {}) {
     this.itemAttr = itemAttr
-    tryObserve(value, v => this.setValue(v), true)
+    this.isPrimitive = !!primitive
+    observeNow(value, v => this.setValue(v), true)
     this.item = item
     this.tplFunc = tpl
 
@@ -67,7 +65,7 @@ export class Loop {
       comp = new this.item(attr, [])
       this.insert(comp)
     } else {
-      attr.value = attr.$v = makeState(newData)
+      attr.value = attr.$v = this.isPrimitive ? signal(newData) : $State(newData)
       const valueProxy = attr.$v
       comp = {
         setValue: valueProxy,

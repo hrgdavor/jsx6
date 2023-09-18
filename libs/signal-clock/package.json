@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal-clock",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "type": "module",
   "sideEffects": false,
   "description": "Generate signal for current time to synchronize update of time related values",
@@ -24,7 +24,7 @@
   "scripts": {
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
-    "test": "ava",
+    "test": "node --test",
     "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs && npx tsc"
   },
   "repository": {
@@ -51,11 +51,10 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@jsx6/signal": "1.7.4"
+    "@jsx6/signal": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "ava": "~4.3.3",
     "typescript": "^5.0.4"
   }
 }

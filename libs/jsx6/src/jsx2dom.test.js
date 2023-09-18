@@ -1,13 +1,8 @@
-import test from 'ava'
-import { setAnimFunction } from './makeState.js'
-// import { $S } from './combineState.js'
+import { test } from 'node:test'
+import { strict as assert } from 'node:assert'
 import { h } from './jsx2dom.js'
 
-import { $State, $F, observeNow, signal } from '@jsx6/signal'
-
-const tryObserve = observeNow
-const $S = $F
-const makeState = v => (v !== null && typeof v === 'object' ? $State(v) : signal(v))
+import { $State, $F } from '@jsx6/signal'
 
 import { JSDOM } from 'jsdom'
 
@@ -16,17 +11,14 @@ test.before(() => {
   global.document = dom.window.document // add the globals needed for the unit tests in this suite.
 })
 
-// call immediately to update state values without async (simpler testing)
-setAnimFunction(f => f())
-
 test('simple', t => {
   let div = h('DIV', null, 'test')
 
-  t.is(div.innerHTML, 'test')
+  assert.equal(div.innerHTML, 'test')
 })
 
 test('updatable', t => {
-  const $state = makeState({ count: 1 })
+  const $state = $State({ count: 1 })
   const generator = state => {
     if (state.count === 1) {
       return 'one'
@@ -35,12 +27,12 @@ test('updatable', t => {
     }
   }
 
-  let div = h('DIV', null, $S(generator, $state))
-  t.is(div.innerHTML, 'one')
+  let div = h('DIV', null, $F(generator, $state))
+  assert.equal(div.innerHTML, 'one')
 
   $state.count = 2
-  t.is(div.innerHTML, '<b>number: 2</b>')
+  assert.equal(div.innerHTML, '<b>number: 2</b>')
 
   $state.count = 1
-  t.is(div.innerHTML, 'one')
+  assert.equal(div.innerHTML, 'one')
 })

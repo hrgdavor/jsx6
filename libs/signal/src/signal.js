@@ -13,7 +13,7 @@
 import { subscribeSymbol, triggerSymbol } from './observe.js'
 
 export const ValueSymbol = Symbol.for('signalValue')
-
+const noOp = function () {}
 /**
  * @template T
  * @param {T|undefined} value
@@ -23,6 +23,30 @@ export function signal(value) {
   return prepareSignal(value).$signal
 }
 
+export function staticSignal(obj) {
+  let $signal = () => obj
+  $signal[subscribeSymbol] = noOp
+  $signal[triggerSymbol] = noOp
+  $signal[Symbol.toPrimitive] = $signal
+  return $signal
+}
+
+export function asSignal(obj) {
+  if (obj?.[subscribeSymbol]) return obj
+  let bindingSub
+  if (obj) {
+    bindingSub = obj.then || obj.subscribe
+  }
+  if (bindingSub) {
+    let { $signal, listeners } = prepareSignal()
+    bindingSub.call(obj, v => {
+      $signal(v)
+      listeners.clear()
+    })
+  } else {
+    return staticSignal(obj)
+  }
+}
 /**
  * @function
  * @template T
@@ -32,6 +56,7 @@ export function signal(value) {
  */
 export function prepareSignal(value) {
   const listeners = new Set()
+  const batchListeners = new Set()
 
   function setValue(v) {
     if (v === value) return
@@ -60,5 +85,5 @@ export function prepareSignal(value) {
   $signal[triggerSymbol] = fireChanged
   $signal[Symbol.toPrimitive] = () => value
 
-  return { $signal, fireChanged, listeners, setValue }
+  return { $signal, fireChanged, listeners, batchListeners, setValue }
 }

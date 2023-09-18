@@ -1,5 +1,5 @@
 import { observeResize } from '@jsx6/dom-observer'
-import { Jsx6old, addToBody, classIf, insert } from '@jsx6/jsx6'
+import { Jsx6, addToBody, classIf, getScope, insert } from '@jsx6/jsx6'
 import { parse, stringify } from 'mulmd'
 import PerfectScrollbar from 'perfect-scrollbar'
 
@@ -19,7 +19,7 @@ const langMap = { js: 'typescript', jsx: 'typescript' }
 const myColorize = (code, lang) => colorize(code, langMap[lang] || lang)
 const suffix = (val, suf) => (val !== undefined ? val + suf : '')
 
-export class TutorialRunner extends Jsx6old {
+export class TutorialRunner extends Jsx6 {
   defCodeRunner = function () {}
   codeRunner
   runnerMap = {}
@@ -30,22 +30,6 @@ export class TutorialRunner extends Jsx6old {
 
   registerRunner(code, runner) {
     this.runnerMap[code] = runner
-  }
-
-  init() {
-    this.compiled.editor.updateOptions({ readOnly: true })
-    syncScroll(this.editor.editor, this.compiled.editor)
-
-    this.editor.editor.getModel().onDidChangeContent(event => {
-      queueCodeChange(this.iframe, this.editor, { otherEditor: this.compiled, codeRunner: this.codeRunner })
-    })
-
-    const ps = (this.mdArea.scroller = new PerfectScrollbar(this.mdArea, {
-      wheelSpeed: 2,
-      wheelPropagation: true,
-      minScrollbarLength: 20,
-    }))
-    observeResize(this.mdArea, evt => ps.update())
   }
 
   showMd(md, keepChapter) {
@@ -128,7 +112,7 @@ export class TutorialRunner extends Jsx6old {
     }, 1)
   }
 
-  tpl() {
+  tpl(attr = {}) {
     const { $s } = this
     $s.menuHidden = true
     const nextChapterClick = () => this.showChapter(0, 1)
@@ -182,7 +166,7 @@ export class TutorialRunner extends Jsx6old {
     addToBody((this.menuItems = <button class="tutorial-menu-pop pad05 fxs fxfc"></button>))
 
     const tplLayout = (
-      <>
+      <div {...attr}>
         <div class="fx1 c-main owh">
           {/* ---------------- left side  ----------------------- */}
           <div class="c-left fxs1 fxfc owh">
@@ -220,8 +204,22 @@ export class TutorialRunner extends Jsx6old {
           </div>
           {/* END ---- right side ----- */}
         </div>
-      </>
+      </div>
     )
+
+    this.compiled.editor.updateOptions({ readOnly: true })
+    syncScroll(this.editor.editor, this.compiled.editor)
+
+    this.editor.editor.getModel().onDidChangeContent(event => {
+      queueCodeChange(this.iframe, this.editor, { otherEditor: this.compiled, codeRunner: this.codeRunner })
+    })
+    const ps = (this.mdArea.scroller = new PerfectScrollbar(this.mdArea, {
+      wheelSpeed: 2,
+      wheelPropagation: true,
+      minScrollbarLength: 20,
+    }))
+    observeResize(this.mdArea, evt => ps.update())
+
     return tplLayout
   }
 }

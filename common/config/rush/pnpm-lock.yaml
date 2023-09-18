@@ -8,24 +8,24 @@ importers:
   ../../apps/nodditor:
     specifiers:
       '@jsx6/build': ^0.2.4
-      '@jsx6/dom-observer': workspace:*
-      '@jsx6/jsx-dev-runtime': 1.7.4
-      '@jsx6/jsx-runtime': 1.7.4
-      '@jsx6/jsx6': 1.7.4
-      '@jsx6/signal': 1.7.4
+      '@jsx6/dom-observer': 2.0.0
+      '@jsx6/jsx-dev-runtime': workspace:*
+      '@jsx6/jsx-runtime': workspace:*
+      '@jsx6/jsx6': workspace:*
+      '@jsx6/signal': workspace:*
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       esbuild: ^0.17.18
       live-server: ^1.2.2
       prettier: ~2.7.1
       typescript: ^5.0.4
     dependencies:
-      '@jsx6/dom-observer': link:../../libs/dom-observer
-      '@jsx6/jsx-runtime': 1.7.4
-      '@jsx6/jsx6': 1.7.4
-      '@jsx6/signal': 1.7.4
+      '@jsx6/dom-observer': 2.0.0
+      '@jsx6/jsx-runtime': link:../../libs/jsx-runtime
+      '@jsx6/jsx6': link:../../libs/jsx6
+      '@jsx6/signal': link:../../libs/signal
     devDependencies:
       '@jsx6/build': 0.2.4
-      '@jsx6/jsx-dev-runtime': 1.7.4
+      '@jsx6/jsx-dev-runtime': link:../../libs/jsx-dev-runtime
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
       esbuild: 0.17.18
       live-server: 1.2.2
@@ -38,10 +38,10 @@ importers:
       '@jsx6/build': ^0.2.4
       '@jsx6/dom-observer': 2.0.0
       '@jsx6/editor-monaco': workspace:^0.34.100
-      '@jsx6/jsx-dev-runtime': 1.7.4
-      '@jsx6/jsx-runtime': 1.7.4
-      '@jsx6/jsx6': 1.7.4
-      '@jsx6/signal': 1.7.4
+      '@jsx6/jsx-dev-runtime': workspace:*
+      '@jsx6/jsx-runtime': workspace:*
+      '@jsx6/jsx6': workspace:*
+      '@jsx6/signal': workspace:*
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       babel-plugin-jsx-simple: ~1.6.0
       babel-plugin-syntax-jsx: ~6.18.0
@@ -53,9 +53,9 @@ importers:
       prettier: ~2.7.1
     dependencies:
       '@jsx6/dom-observer': 2.0.0
-      '@jsx6/jsx-runtime': 1.7.4
-      '@jsx6/jsx6': 1.7.4
-      '@jsx6/signal': 1.7.4
+      '@jsx6/jsx-runtime': link:../../libs/jsx-runtime
+      '@jsx6/jsx6': link:../../libs/jsx6
+      '@jsx6/signal': link:../../libs/signal
       babel-plugin-jsx-simple: 1.6.0
       babel-plugin-syntax-jsx: 6.18.0
       markdown-it: 13.0.1
@@ -65,7 +65,7 @@ importers:
       '@babel/standalone': 7.18.12
       '@jsx6/build': 0.2.4
       '@jsx6/editor-monaco': link:../../libs/editor-monaco
-      '@jsx6/jsx-dev-runtime': 1.7.4
+      '@jsx6/jsx-dev-runtime': link:../../libs/jsx-dev-runtime
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
       esbuild: 0.17.18
       live-server: 1.2.2
@@ -100,22 +100,22 @@ importers:
 
   ../../libs/jsx-dev-runtime:
     specifiers:
-      '@jsx6/jsx6': 1.7.4
+      '@jsx6/jsx6': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
     dependencies:
-      '@jsx6/jsx6': 1.7.4
+      '@jsx6/jsx6': link:../jsx6
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
 
   ../../libs/jsx-runtime:
     specifiers:
-      '@jsx6/jsx6': 1.7.4
+      '@jsx6/jsx6': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
     dependencies:
-      '@jsx6/jsx6': 1.7.4
+      '@jsx6/jsx6': link:../jsx6
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
@@ -123,17 +123,17 @@ importers:
   ../../libs/jsx6:
     specifiers:
       '@jsx6/build': ^0.2.4
-      '@jsx6/jsx-dev-runtime': 1.7.4
-      '@jsx6/signal': 1.7.4
+      '@jsx6/jsx-dev-runtime': workspace:*
+      '@jsx6/signal': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
       jsdom: ~20.0.1
       typescript: ^5.0.4
     dependencies:
-      '@jsx6/signal': 1.7.4
+      '@jsx6/signal': link:../signal
     devDependencies:
       '@jsx6/build': 0.2.4
-      '@jsx6/jsx-dev-runtime': 1.7.4
+      '@jsx6/jsx-dev-runtime': link:../jsx-dev-runtime
       ava: 4.3.3
       esbuild: 0.17.18
       jsdom: 20.0.1
@@ -141,9 +141,12 @@ importers:
 
   ../../libs/signal:
     specifiers:
+      '@types/node': latest
       ava: ~4.3.3
       esbuild: ^0.17.18
       typescript: ^5.0.4
+    dependencies:
+      '@types/node': 20.6.2
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
@@ -151,12 +154,12 @@ importers:
 
   ../../libs/signal-clock:
     specifiers:
-      '@jsx6/signal': 1.7.4
+      '@jsx6/signal': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
       typescript: ^5.0.4
     dependencies:
-      '@jsx6/signal': 1.7.4
+      '@jsx6/signal': link:../signal
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
@@ -164,11 +167,11 @@ importers:
 
   ../../libs/signal-dom:
     specifiers:
-      '@jsx6/signal': 1.7.4
+      '@jsx6/signal': workspace:*
       ava: ~4.3.3
       esbuild: ^0.17.18
     dependencies:
-      '@jsx6/signal': 1.7.4
+      '@jsx6/signal': link:../signal
     devDependencies:
       ava: 4.3.3
       esbuild: 0.17.18
@@ -176,7 +179,7 @@ importers:
   ../../tools/build:
     specifiers:
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
-      '@types/node': ^18.15.10
+      '@types/node': latest
       esbuild: ^0.17.18
       glob: ^8.0.3
       minimatch: ^5.0.1
@@ -186,7 +189,7 @@ importers:
       glob: 8.0.3
     devDependencies:
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
-      '@types/node': 18.15.10
+      '@types/node': 20.6.2
       esbuild: 0.17.18
       minimatch: 5.1.0
       prettier: 2.7.1
@@ -663,26 +666,6 @@ packages:
     resolution: {integrity: sha512-nFYfwwUYpZOOuKMz4vBI17Rddqg7UWXq8lnORhFngkctnnSJ0H/+Kd3NOj/UZc8Ai+CAYeYg4kpNVCWgpMReSw==}
     dev: false
 
-  /@jsx6/jsx-dev-runtime/1.7.4:
-    resolution: {integrity: sha512-ydCkN+2Zm5Jcym89/1nGjLNFZw65LU7qTQHcY05cRJwq0tg69bK6a8376CF3/UQxYYe2yFbqi39Ou9X3mc+G6g==}
-    dependencies:
-      '@jsx6/jsx6': 1.7.4
-    dev: true
-
-  /@jsx6/jsx-runtime/1.7.4:
-    resolution: {integrity: sha512-YTny2wWmrYnUw3ENVr0eECYEbmxx6Mu5NvnPwwqFGc7ddkrvIg03oJRETRxk5Xe0xJZMVcdcscLYZFNSMf9v0A==}
-    dependencies:
-      '@jsx6/jsx6': 1.7.4
-    dev: false
-
-  /@jsx6/jsx6/1.7.4:
-    resolution: {integrity: sha512-6sAcgm7afljgPicujksZtCePlJOkX/tg8491GHA4kSAMMYbRXXFgtbAyeHpMtWVMZJML5cQhcLeGcYdIfIfOiQ==}
-    dependencies:
-      '@jsx6/signal': 1.7.4
-
-  /@jsx6/signal/1.7.4:
-    resolution: {integrity: sha512-JVtYSa472RxUzUcwc05Q2gwfYzdcthrDV8POan68B9Al9OuZBI/SYmit65cQUAhaxRcn1/Vl1fvIouJXQnj5pw==}
-
   /@nodelib/fs.scandir/2.1.5:
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
     engines: {node: '>= 8'}
@@ -739,6 +722,9 @@ packages:
   /@types/node/18.15.10:
     resolution: {integrity: sha512-9avDaQJczATcXgfmMAW3MIWArOO7A+m90vuCFLr8AotWf8igO/mRoYukrk2cqZVtv38tHs33retzHEilM7FpeQ==}
     dev: true
+
+  /@types/node/20.6.2:
+    resolution: {integrity: sha512-Y+/1vGBHV/cYk6OI1Na/LHzwnlNCAfU3ZNGrc1LdRe/LAIbdDPTTv/HU3M7yXN448aTVDq3eKRm2cg7iKLb8gw==}
 
   /@vitest/expect/0.29.3:
     resolution: {integrity: sha512-z/0JqBqqrdtrT/wzxNrWC76EpkOHdl+SvuNGxWulLaoluygntYyG5wJul5u/rQs5875zfFz/F+JaDf90SkLUIg==}

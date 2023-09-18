@@ -15,7 +15,7 @@ import {
   provideErrTranslations,
   setValue,
 } from '@jsx6/jsx6'
-import { $S, $State } from '@jsx6/signal'
+import { $F, $S, $State, signal } from '@jsx6/signal'
 
 import IconNote from './icons/icon-note'
 import './main.css'
@@ -24,13 +24,6 @@ provideErrTranslations()
 
 const num = $S(0)
 console.log('num() = ', num())
-// tryObserve(num,v => console.log('num changed to ', v))
-// console.log('num + 1 = ', num + 1)
-// runInBatch(() => {
-//   console.log('num + 1 = ', num + 1, 'before updating num=', num())
-//   num().set(2)
-//   console.log('num + 1 = ', num + 1, 'after updating num=', num())
-// })
 
 const objState = $State({ x: 1 })
 objState.set({ get: 'GETTTT' })
@@ -114,8 +107,8 @@ function UserEditor3({ attr }, children) {
   linkForm(out, form)
   return out
 }
-
-window.testState = $S(true)
+let $sharedValue = signal('')
+window.testState = signal(true)
 addToBody(
   domWithScope(scope, h => (
     <>
@@ -126,14 +119,17 @@ addToBody(
       <IconNote />
       <AComponent p="comp1" />
       Hello world.{T`test`} ...{ThePromise}
-      (<Loop value={$loopValue} item={({ $v }) => <div>{$v}</div>} />)
+      (<Loop primitive value={$loopValue} item={({ $v }) => <div>{$v}</div>} />)
       <Loop p="loop" title={T`test`} item={AComponent} x-if={window.testState} />
+      <div>
+        shared value <input x-value={$sharedValue} />-<input x-value={$sharedValue} />
+        and here: {$sharedValue}
+      </div>
       <Loop
         p="loop2"
         item={({ $v }, c, _scope, loop) => (
           <div>
-            {console.log('loop', loop)}
-            TPL:<b onclick={e => scope.loop2.removeItem(_scope)}>{$S(name => name + '----', $v.name)}</b>
+            TPL:<b onclick={e => scope.loop2.removeItem(_scope)}>{$F(name => name + '----', $v.name)}</b>
           </div>
         )}
       />

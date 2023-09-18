@@ -1,6 +1,11 @@
 # Change Log - @jsx6/nodditor
 
-This log was last generated on Mon, 05 Jun 2023 13:26:00 GMT and should not be manually modified.
+This log was last generated on Sun, 17 Sep 2023 14:41:08 GMT and should not be manually modified.
+
+## 1.0.29
+Sun, 17 Sep 2023 14:41:08 GMT
+
+_Version update only_
 
 ## 1.0.27
 Mon, 05 Jun 2023 13:26:00 GMT

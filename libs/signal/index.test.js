@@ -1,4 +1,5 @@
-import test from 'ava'
+import { test } from 'node:test'
+import { strict as assert } from 'node:assert'
 import {
   $And,
   $Any,
@@ -19,12 +20,12 @@ import {
 test('basics', t => {
   const $sig = $S(1)
 
-  t.is($sig instanceof Function, true)
+  assert.equal($sig instanceof Function, true)
 
-  t.is($sig(), 1)
+  assert.equal($sig(), 1)
 
   $sig(2)
-  t.is($sig(), 2)
+  assert.equal($sig(), 2)
 })
 
 test('combine', t => {
@@ -34,12 +35,12 @@ test('combine', t => {
   if (0) $sum = $sig1 + $sig2
   const $sum = $S(() => $sig1() + $sig2(), $sig1, $sig2)
 
-  t.is($sig1(), 1)
-  t.is($sig2(), 2)
-  t.is($sum(), 3)
+  assert.equal($sig1(), 1)
+  assert.equal($sig2(), 2)
+  assert.equal($sum(), 3)
 
   $sig1(2)
-  t.is($sum(), 4)
+  assert.equal($sum(), 4)
 })
 
 test('utils', t => {
@@ -48,37 +49,37 @@ test('utils', t => {
   const $sig2 = $S(2)
   const $siga = $S('a')
 
-  t.is($NOT($sig0)(), true)
-  t.is($NOT($sig1)(), false)
+  assert.equal($NOT($sig0)(), true)
+  assert.equal($NOT($sig1)(), false)
 
-  t.is($IS($sig0)(), false)
-  t.is($IS($sig1)(), true)
+  assert.equal($IS($sig0)(), false)
+  assert.equal($IS($sig1)(), true)
 
-  t.is($EQStrict(1, $sig1)(), true)
-  t.is($EQStrict('1', $sig1)(), false)
+  assert.equal($EQStrict(1, $sig1)(), true)
+  assert.equal($EQStrict('1', $sig1)(), false)
 
-  t.is($NEQStrict(1, $sig1)(), false)
-  t.is($NEQStrict('1', $sig1)(), true)
+  assert.equal($NEQStrict(1, $sig1)(), false)
+  assert.equal($NEQStrict('1', $sig1)(), true)
 
-  t.is($EQ(1, $sig1)(), true)
-  t.is($EQ('1', $sig1)(), true)
+  assert.equal($EQ(1, $sig1)(), true)
+  assert.equal($EQ('1', $sig1)(), true)
 
-  t.is($NEQ(1, $sig1)(), false)
-  t.is($NEQ('1', $sig1)(), false)
+  assert.equal($NEQ(1, $sig1)(), false)
+  assert.equal($NEQ('1', $sig1)(), false)
 
-  t.is($If($sig1, 'a', 'b')(), 'a')
-  t.is($If($sig0, 'a', 'b')(), 'b')
+  assert.equal($If($sig1, 'a', 'b')(), 'a')
+  assert.equal($If($sig0, 'a', 'b')(), 'b')
 
-  t.is($Any($sig0, $sig1, $sig2)(), true)
+  assert.equal($Any($sig0, $sig1, $sig2)(), true)
 
-  t.is($AnyValue($sig0, $sig1, $sig2)(), 1)
+  assert.equal($AnyValue($sig0, $sig1, $sig2)(), 1)
 
-  t.is($Or($sig0, $sig1)(), 1)
-  t.is($Or($sig0, $sig0)(), 0)
+  assert.equal($Or($sig0, $sig1)(), 1)
+  assert.equal($Or($sig0, $sig0)(), 0)
 
-  t.is($And($sig0, $sig1)(), 0)
-  t.is($And($sig1, $sig1)(), 1)
+  assert.equal($And($sig0, $sig1)(), 0)
+  assert.equal($And($sig1, $sig1)(), 1)
 
   let map = { a: 12 }
-  t.is($Map(map, $siga)(), 12)
+  assert.equal($Map(map, $siga)(), 12)
 })

@@ -1,4 +1,5 @@
-import test from 'ava'
+import { test } from 'node:test'
+import { strict as assert } from 'node:assert'
 import { $DurationSignal, $DurationSignalSeconds, toSeconds, withClockTime } from './index.js'
 
 import { $S, observeNow, signal } from '@jsx6/signal'
@@ -13,13 +14,13 @@ test('duration', async t => {
     // and $DurationSignal would get a regular clock instead of what we passed in withClockTime
     withClockTime(now, () => {
       let $dur = $DurationSignal(toSeconds, from)
-      t.is(73, $dur())
+      assert.equal(73, $dur())
       let $durms = $DurationSignal(f => f, $from2)
-      t.is(0, $durms())
+      assert.equal(0, $durms())
       setTimeout(() => {
         $from2(now - 3)
         console.log('now', now, $from2(), $durms())
-        t.is(3, $durms())
+        assert.equal(3, $durms())
         resolve()
       }, 30)
     })

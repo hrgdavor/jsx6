@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",
@@ -25,7 +25,7 @@
   "scripts": {
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
-    "test": "ava",
+    "test": "node --test",
     "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs && npx tsc"
   },
   "repository": {
@@ -47,21 +47,15 @@
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
   },
-  "ava": {
-    "files": [
-      "src/**/*.test.js"
-    ]
-  },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/README.md",
   "devDependencies": {
-    "ava": "~4.3.3",
     "@jsx6/build": "^0.2.4",
     "esbuild": "^0.17.18",
     "jsdom": "~20.0.1",
-    "@jsx6/jsx-dev-runtime": "1.7.4",
+    "@jsx6/jsx-dev-runtime": "workspace:*",
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@jsx6/signal": "1.7.4"
+    "@jsx6/signal": "workspace:*"
   }
 }

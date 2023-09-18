@@ -1,5 +1,5 @@
-import { observe, observeNow, triggerSymbol, subscribeSymbol } from './src/observe.js'
-import { prepareSignal, signal } from './src/signal.js'
+import { observe, observeNow, observeValue, triggerSymbol, subscribeSymbol } from './src/observe.js'
+import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
 
 export const signalValue = $signal => (typeof $signal === 'function' ? $signal() : $signal)
 /**
@@ -20,8 +20,8 @@ export function $S(template, ...signals) {
   }
 
   const { $signal } = prepareSignal(template())
-
-  signals.forEach(b => observe(b, () => $signal(template())))
+  const updater = () => $signal(template())
+  signals.forEach(b => observe(b, updater))
 
   return $signal
 }
@@ -38,12 +38,13 @@ export function $F(filter, ...signals) {
   if (signals.length > 1) {
     const calculate = () => filter(...signals.map(signalValue))
     const { $signal } = prepareSignal(calculate())
-    signals.forEach(b => observe(b, () => $signal(calculate())))
+    const updater = () => $signal(calculate())
+    signals.forEach(b => observe(b, updater))
     return $signal
   } else {
     const $first = signals[0]
-    const { $signal } = prepareSignal(filter($first()))
-    observe($first, () => $signal(filter($first())))
+    const { $signal } = prepareSignal(filter(signalValue($first)))
+    observe($first, () => $signal(filter(signalValue($first))))
     return $signal
   }
 }
@@ -99,5 +100,15 @@ export const $AndB = ($sa, $sb) => $F((a, b) => !!(a && b), $sa, $sb)
 
 export const $Map = (map, $signal) => $F(v => map[v] || v, $signal)
 
-export { observe, observeNow, signal, prepareSignal, triggerSymbol, subscribeSymbol }
+export {
+  observe,
+  observeNow,
+  observeValue,
+  signal,
+  prepareSignal,
+  triggerSymbol,
+  subscribeSymbol,
+  asSignal,
+  staticSignal,
+}
 export * from './src/state.js'

@@ -43,7 +43,7 @@
   "homepage": "https://hrgdavor.github.io/jsx6/",
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
-    "@types/node": "^18.15.10",
+    "@types/node": "latest",
     "esbuild": "^0.17.18",
     "prettier": "~2.7.1",
     "minimatch": "^5.0.1",

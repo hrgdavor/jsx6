@@ -1,4 +1,4 @@
-import { isStr, isFunc, isObj, throwErr, Group, isNode, NOT } from './core.js'
+import { isStr, isFunc, isObj, throwErr, Group, isNode, NOT, isArray, requireFunc } from './core.js'
 import { setAttribute } from './setAttribute.js'
 
 import {
@@ -11,14 +11,38 @@ import {
 import { toDomNode } from './toDomNode.js'
 import { remove } from './remove.js'
 
-// import { tryObserve } from './observe.js'
-// import { $S } from './combineState.js'
-
-import { $F, observeNow } from '@jsx6/signal'
-const tryObserve = observeNow
-const $S = $F
+import { observeValue, $NOT, asSignal } from '@jsx6/signal'
+import { observe, signal, signalValue } from '../../signal/dist/index.js'
+import { outputFilterSymbol, setValue } from './setValue.js'
+import { getValue, inputFilterSymbol } from './getValue.js'
 let SCOPE
 export const getScope = () => SCOPE
+
+const directives = {}
+export function addDirective(key, directive) {
+  directives[key] = directive
+}
+export const getDirective = key => directives[key]
+
+addDirective('x-if', (el, a, $signal, self) => {
+  let updater = () => setAttribute(el, 'hidden', !$signal())
+  updater(observeValue($signal, updater))
+})
+
+addDirective('x-value', (el, a, $signal, self) => {
+  let updater = v => setValue(el, v)
+  updater(observeValue($signal, updater))
+  el.addEventListener('input', e => $signal(getValue(el)))
+})
+
+addDirective('x-filter', (el, a, filters, self) => {
+  if (isArray(filters)) {
+    el[inputFilterSymbol] = requireFunc(filters[0])
+    el[outputFilterSymbol] = requireFunc(filters[1])
+  } else {
+    el[inputFilterSymbol] = requireFunc(filters)
+  }
+})
 
 /** Short but pretty usable support function for old JSX before jsx-runtime.
  *
@@ -118,10 +142,11 @@ export function nodeFromObservable(obj) {
       updateTextNode(textNode, factories.TextValue(r))
     }
   }
-  if (obj && tryObserve(obj, updater)) return out
+  updater(observeValue(obj, updater))
+  return out
 }
 
-function updateTextNode(node, text) {
+export function updateTextNode(node, text) {
   if (node.textContent !== text) node.textContent = text
 }
 
@@ -179,54 +204,13 @@ const TextValue = v => {
   return v
 }
 
-/*
-need to update
- - attrib
- - node - only text for now
-need to refresh the value
- - call the function to recalc
- - add the updater as listener for changes (state change, etc)
- - default is change handler of the parent component
-*/
-export const makeUpdater = (parent, before, attr, func) => factories.Updater(parent, before, attr, func)
-
-function Updater(parent, before, attr, obj) {
-  let updater
-  if (obj.makeUpdater) {
-    updater = obj.makeUpdater(parent, before, attr, obj)
-  } else {
-    if (attr) {
-      updater = factories.AttrUpdater(parent, attr, obj)
-    } else {
-      updater = factories.NodeUpdater(parent, obj)
-    }
-
-    if (!tryObserve(obj, updater)) {
-      throwErr(JSX6E13_NOT_OBSERVABLE, 'attribute:', attr, ',value:', obj, ',parent:', parent)
-    }
-  }
-}
-
-export const makeNodeUpdater = (node, func) => factories.NodeUpdater(node, func)
-const NodeUpdater = (node, func) => {
-  const out = () => {
-    const newValue = factories.TextValue(func())
-    if (node.textContent !== newValue) node.textContent = newValue
-  }
-  out.node = node
-  return out
-}
-
-export const makeAttrUpdater = (node, attr, func) => factories.AttrUpdater(node, attr, func)
-
-const AttrUpdater = (node, attr, func) => {
+export const makeAttrUpdater = (node, attr, func) => {
   const out = () => {
     setAttribute(node, attr, func())
   }
   out.node = node
   out.attr = attr
   out.func = func
-  out() // set initial value for the attribute
   return out
 }
 
@@ -243,6 +227,7 @@ export function insertAttr(attr, out, self, component) {
       } else {
         throwErr(JSX6E9_LISTENER_MUST_BE_FUNC, attr)
       }
+      value = undefined
     } else if (a === 'key') {
       out.loopKey = value
       if (!out.$key) {
@@ -254,28 +239,17 @@ export function insertAttr(attr, out, self, component) {
         }
         component.loopKey = value
       }
-    } else if (isFunc(value)) {
-      if (a[0] === 'x' && a[1] === '-') {
-        let code = a.substring(2)
-        if (code == 'if') {
-          a = 'hidden'
-          value = $S(NOT, value)
-        }
-      }
-      factories.Updater(out, null, a, value)
-    } else {
-      if (a[0] === 'x' && a[1] === '-') {
-        let code = a.substring(2)
-        if (code == 'if') {
-          a = 'hidden'
-          value = !value
-        }
-      }
-      if (a === 'p') {
-        setPropGroup(self, component || out, value)
-      }
-      if (out.setAttribute) {
-        setAttribute(out, a, a === 'p' && value instanceof Array ? value.join('.') : value)
+    } else if (a[0] === 'x') {
+      directives[a]?.(out, a, value, self)
+    } else if (a === 'p') {
+      setPropGroup(self, component || out, value)
+    }
+
+    if (value !== undefined) {
+      if (isFunc(value)) {
+        makeAttrUpdater(out, a, value)
+      } else if (out.setAttribute) {
+        setAttribute(out, a, value)
       }
     }
   }
@@ -345,9 +319,6 @@ export const addToBody = n => insert(document.body, n)
 export const addToHead = n => insert(document.head, n)
 
 export let factories = {
-  AttrUpdater,
-  NodeUpdater,
-  Updater,
   TextValue,
   Text: t => document.createTextNode(t),
   Svg: t => (t ? document.createElementNS('http://www.w3.org/2000/svg', t) : throwErr(JSX6E1_NULL_TAG)),
