@@ -125,7 +125,6 @@ importers:
       '@jsx6/build': ^0.2.4
       '@jsx6/jsx-dev-runtime': workspace:*
       '@jsx6/signal': workspace:*
-      ava: ~4.3.3
       esbuild: ^0.17.18
       jsdom: ~20.0.1
       typescript: ^5.0.4
@@ -134,7 +133,6 @@ importers:
     devDependencies:
       '@jsx6/build': 0.2.4
       '@jsx6/jsx-dev-runtime': link:../jsx-dev-runtime
-      ava: 4.3.3
       esbuild: 0.17.18
       jsdom: 20.0.1
       typescript: 5.0.4
@@ -142,26 +140,22 @@ importers:
   ../../libs/signal:
     specifiers:
       '@types/node': latest
-      ava: ~4.3.3
       esbuild: ^0.17.18
       typescript: ^5.0.4
     dependencies:
       '@types/node': 20.6.2
     devDependencies:
-      ava: 4.3.3
       esbuild: 0.17.18
       typescript: 5.0.4
 
   ../../libs/signal-clock:
     specifiers:
       '@jsx6/signal': workspace:*
-      ava: ~4.3.3
       esbuild: ^0.17.18
       typescript: ^5.0.4
     dependencies:
       '@jsx6/signal': link:../signal
     devDependencies:
-      ava: 4.3.3
       esbuild: 0.17.18
       typescript: 5.0.4
 

@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal-dom",
-  "version": "1.7.5",
+  "version": "1.7.7",
   "type": "module",
   "sideEffects": false,
   "description": "Update DOM using signals implementation for vanilla JS or JSX",

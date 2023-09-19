@@ -3,6 +3,7 @@
 import {
   Jsx6,
   JsxW,
+  JsxWS,
   Loop,
   T,
   addClass,
@@ -72,7 +73,7 @@ const scope = (window.APP = {})
 //   )),
 // )
 const $loopValue = $S([])
-class UserEditor extends JsxW {
+class UserEditor extends JsxWS {
   static {
     define('myapp-admin-usereditor', this)
   }
@@ -82,12 +83,14 @@ class UserEditor extends JsxW {
   setValue(v) {
     setValue(this.form, v)
   }
-  tpl(attr) {
-    super.tpl(attr)
+  tpl(attr, children) {
+    super.tpl(attr, children)
     let out = (
       <>
-        <h1>UserEditor3</h1>
-        <label>name</label>
+        <h1>
+          UserEditor: <slot name=""></slot>
+        </h1>
+        <label class="red">name</label>
         <input p="form.name" />
       </>
     )
@@ -113,7 +116,11 @@ addToBody(
   domWithScope(scope, h => (
     <>
       <JsxW>test1111</JsxW>
-      {<UserEditor p="editor" class="test" />}
+      {
+        <UserEditor p="editor" class="test">
+          BLA<b class="red">ding</b>
+        </UserEditor>
+      }
       <UserEditor3 p="editor3">test22222</UserEditor3>
       <div>array:{[<span>1</span>]}</div>
       <IconNote />

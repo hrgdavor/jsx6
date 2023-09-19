@@ -13,36 +13,11 @@ import { remove } from './remove.js'
 
 import { observeValue, $NOT, asSignal } from '@jsx6/signal'
 import { observe, signal, signalValue } from '../../signal/dist/index.js'
-import { outputFilterSymbol, setValue } from './setValue.js'
-import { getValue, inputFilterSymbol } from './getValue.js'
+import { setValueFilterSymbol, setValue } from './setValue.js'
+import { getValue, getValueFilterSymbol } from './getValue.js'
+import { directives } from './directives.js'
 let SCOPE
 export const getScope = () => SCOPE
-
-const directives = {}
-export function addDirective(key, directive) {
-  directives[key] = directive
-}
-export const getDirective = key => directives[key]
-
-addDirective('x-if', (el, a, $signal, self) => {
-  let updater = () => setAttribute(el, 'hidden', !$signal())
-  updater(observeValue($signal, updater))
-})
-
-addDirective('x-value', (el, a, $signal, self) => {
-  let updater = v => setValue(el, v)
-  updater(observeValue($signal, updater))
-  el.addEventListener('input', e => $signal(getValue(el)))
-})
-
-addDirective('x-filter', (el, a, filters, self) => {
-  if (isArray(filters)) {
-    el[inputFilterSymbol] = requireFunc(filters[0])
-    el[outputFilterSymbol] = requireFunc(filters[1])
-  } else {
-    el[inputFilterSymbol] = requireFunc(filters)
-  }
-})
 
 /** Short but pretty usable support function for old JSX before jsx-runtime.
  *

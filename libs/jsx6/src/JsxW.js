@@ -1,9 +1,11 @@
 import { define } from './core'
+import { getValue } from './getValue.js'
 import { domWithScope, insert, insertAttr } from './jsx2dom'
 import { mergeValue, $State } from '@jsx6/signal'
+import { setValue } from './setValue.js'
 
 /**
- * Template for a web component.
+ * Template for a web component. If creating with shadowRoot mode:'open' is forced.
  * 
  * You can register the component automatically by using define utility. 
  * Just add a static block inside your class:
@@ -30,21 +32,22 @@ export class JsxW extends HTMLElement {
     define('jsx6-wc', this)
   }
 
-  constructor(attr, children, parent) {
+  constructor(attr, children, parent, shadow, shadowOptions) {
     super()
-    domWithScope(this, () => insert(this, this.tpl(attr, children, parent)))
+    if (shadow) this.attachShadow({ ...shadowOptions, mode: 'open' })
+    domWithScope(this, () => insert(this.shadowRoot || this, this.tpl(attr, children, parent)))
   }
 
   tpl(attr, children) {
     insertAttr(attr, this)
     insert(this, children)
   }
-
+  initState(values = {}) {
+    return (this._$s = $State(values))
+  }
   /*  Lazy initialize state proxy object*/
   get $s() {
-    if (!this._$s) {
-      this._$s = $State({})
-    }
+    if (!this._$s) return this.initState()
     return this._$s
   }
   /*  Lazy initialize value proxy object*/
@@ -55,12 +58,24 @@ export class JsxW extends HTMLElement {
     return this.__$v
   }
   getValue() {
-    return this.$v()
+    return this.form ? getValue(this.form) : this.$v()
   }
   setValue(v) {
-    this.$v(v)
+    this.form ? setValue(this.form) : this.$v(v)
   }
   mergeValue(v) {
     mergeValue(this.$v, v)
+  }
+}
+
+/** web component with shadowRoot by default. mode:'open' is forced.
+ *
+ */
+export class JsxWS extends JsxW {
+  static {
+    define('jsx6-wcs', this)
+  }
+  constructor(attr, children, parent, shadowOptions) {
+    super(attr, children, parent, true, shadowOptions)
   }
 }

@@ -1,10 +1,10 @@
-import { isFunc, isObj } from './core.js'
+import { isFunc, isNode, isObj } from './core.js'
 import { mapProp } from './mapProp.js'
 
-export const inputFilterSymbol = Symbol.for('inputValueFilter')
+export const getValueFilterSymbol = Symbol.for('getValueFilterSymbol')
 
-export function applyInputFilter(value, source) {
-  let filter = source[inputFilterSymbol]
+export function applyGetValueFilter(value, source) {
+  let filter = source[getValueFilterSymbol]
   return filter ? filter(value) : value
 }
 
@@ -17,7 +17,7 @@ export function getValue(obj) {
     value = obj.getValue()
   } else if (isFunc(obj)) {
     value = getValue(obj())
-  } else if (obj instanceof window.Element) {
+  } else if (isNode(obj)) {
     if (obj.tagName === 'INPUT' && obj.type === 'checkbox') {
       value = obj.checked
     }
@@ -25,5 +25,5 @@ export function getValue(obj) {
     if (isObj(obj)) return mapProp(obj, getValue)
   }
 
-  return applyInputFilter(value)
+  return applyGetValueFilter(value, obj)
 }
