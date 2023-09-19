@@ -11,10 +11,7 @@ import {
 import { toDomNode } from './toDomNode.js'
 import { remove } from './remove.js'
 
-import { observeValue, $NOT, asSignal } from '@jsx6/signal'
-import { observe, signal, signalValue } from '../../signal/dist/index.js'
-import { setValueFilterSymbol, setValue } from './setValue.js'
-import { getValue, getValueFilterSymbol } from './getValue.js'
+import { observeNow } from '@jsx6/signal'
 import { directives } from './directives.js'
 let SCOPE
 export const getScope = () => SCOPE
@@ -117,7 +114,7 @@ export function nodeFromObservable(obj) {
       updateTextNode(textNode, factories.TextValue(r))
     }
   }
-  updater(observeValue(obj, updater))
+  observeNow(obj, updater)
   return out
 }
 
@@ -192,7 +189,6 @@ export const makeAttrUpdater = (node, attr, func) => {
 export function insertAttr(attr, out, self, component) {
   if (!attr) return
   if (!self) self = SCOPE
-
   for (let a in attr) {
     let value = attr[a]
 
@@ -215,14 +211,19 @@ export function insertAttr(attr, out, self, component) {
         component.loopKey = value
       }
     } else if (a[0] === 'x') {
-      directives[a]?.(out, a, value, self)
+      let directive = directives[a]
+      if (directive) {
+        directive(out, a, value, self)
+        value = null
+      }
     } else if (a === 'p') {
       setPropGroup(self, component || out, value)
     }
 
     if (value !== undefined) {
       if (isFunc(value)) {
-        makeAttrUpdater(out, a, value)
+        let updater = makeAttrUpdater(out, a, value)
+        observeNow(value, updater)
       } else if (out.setAttribute) {
         setAttribute(out, a, value)
       }

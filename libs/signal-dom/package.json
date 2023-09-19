@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal-dom",
-  "version": "1.7.7",
+  "version": "1.7.9",
   "type": "module",
   "sideEffects": false,
   "description": "Update DOM using signals implementation for vanilla JS or JSX",
@@ -48,7 +48,7 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@jsx6/signal": "workspace:*"
+    "@jsx6/signal": "1.7.9"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
