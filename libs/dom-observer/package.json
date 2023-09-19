@@ -25,7 +25,7 @@
   "scripts": {
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
-    "test": "ava",
+    "test": "node --test",
     "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
   },
   "repository": {
@@ -53,7 +53,6 @@
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/dom-observer/README.md",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "ava": "~4.3.3",
     "typescript": "^5.0.4"
   }
 }
