@@ -100,7 +100,7 @@ export class Jsx6old {
 
   insertAttr(attr) {
     // can not add attributes to text node
-    if (this.el.tagName) insertAttr(attr, this.el, this, this)
+    if (this.el.tagName) insertAttr(attr, this.el, this, this, true)
   }
 
   created() {}

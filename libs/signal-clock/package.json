@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal-clock",
-  "version": "1.7.9",
+  "version": "1.7.12",
   "type": "module",
   "sideEffects": false,
   "description": "Generate signal for current time to synchronize update of time related values",
@@ -51,7 +51,7 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@jsx6/signal": "1.7.9"
+    "@jsx6/signal": "1.7.12"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",

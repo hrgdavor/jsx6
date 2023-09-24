@@ -30,12 +30,14 @@ export function h(tag, attr, ...children) {
 
 export function toDom(tag, attr, children) {
   if (!tag) return children // supoprt for jsx fragment (esbuild: --jsx-fragment=null)
+  let oncreate = attr?.oncreate
+  if (oncreate) delete attr.oncreate
+  let out
 
   if (isStr(tag)) {
-    const out = factories.Element(tag)
+    out = factories.Element(tag)
     insertAttr(attr, out, SCOPE)
     insert(out, children)
-    return out
   } else {
     if (isFunc(tag)) {
       const { p } = attr
@@ -46,7 +48,6 @@ export function toDom(tag, attr, children) {
       // that does not define own scope
       const parent = SCOPE
       try {
-        let out
         SCOPE = {}
         if (tag.prototype) {
           out = new tag(attr, children, parent)
@@ -54,21 +55,28 @@ export function toDom(tag, attr, children) {
           out = tag(attr, children, SCOPE, parent)
         }
         if (p) setPropGroup(parent, out, p)
-        return out
       } finally {
         SCOPE = parent
       }
     } else if (isNode(tag)) {
       // if the value is already a HTML element, we just return it, no need for processing
-      return tag
+      out = tag
     } else if (isObj(tag)) {
-      return nodeFromObservable(tag) || throwErr(JSX6E2_UNSUPPORTED_TAG, tag)
+      out = nodeFromObservable(tag) || throwErr(JSX6E2_UNSUPPORTED_TAG, tag)
     } else {
       // not sure what else to enable if tag is type of object
       // this may be expanded in the future to allow more capabilities
       throwErr(JSX6E2_UNSUPPORTED_TAG, tag)
     }
   }
+  if (oncreate) {
+    if (isArray(oncreate)) {
+      oncreate.forEach(f => f(out, SCOPE))
+    } else {
+      oncreate(out, SCOPE)
+    }
+  }
+  return out
 }
 
 export const hSvg = (tag, attr, ...children) => {

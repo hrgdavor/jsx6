@@ -7,7 +7,7 @@ import { $State, $F } from '@jsx6/signal'
 import { JSDOM } from 'jsdom'
 
 test.before(() => {
-  const dom = new JSDOM('<div id="my-element-id" />') // insert any html needed for the unit test suite here
+  const dom = new JSDOM('') // insert any html needed for the unit test suite here
   global.document = dom.window.document // add the globals needed for the unit tests in this suite.
 })
 
@@ -35,4 +35,16 @@ test('updatable', t => {
 
   $state.count = 1
   assert.equal(div.innerHTML, 'one')
+})
+
+test('oncreate', t => {
+  let mix1 = el => (el.innerHTML = 'test2')
+  let div = h('DIV', { oncreate: mix1 }, 'test')
+
+  assert.equal(div.innerHTML, 'test2')
+
+  let mix2 = el => (el.innerHTML += 'test3')
+  div = h('DIV', { oncreate: [mix1, mix2] }, 'test')
+
+  assert.equal(div.innerHTML, 'test2test3')
 })

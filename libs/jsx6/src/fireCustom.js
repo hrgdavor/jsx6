@@ -39,7 +39,19 @@ export const listen = (el, name, callback, options) => {
     el.removeEventListener(name, callback, options)
   }
 }
+/**
+ * fireCustom on document. works only in browser because it uses document
+ * @param {string} name
+ * @param {object} detail
+ * @returns
+ */
+export const fireGlobal = (name, detail) => fireCustom(document, name, detail)
 
-export const fireGlobal = (name, detail) => fireCustom(self, name, detail)
-
-export const listenGlobal = (name, callback, options) => listenCustom(self, name, callback, options)
+/**
+ * listenCustom on document. works only in browser because it uses document
+ * @param {string} name
+ * @param {function} callback
+ * @param {object} options
+ * @returns {Function} that removes the listener upon call
+ */
+export const listenGlobal = (name, callback, options) => listenCustom(document, name, callback, options)

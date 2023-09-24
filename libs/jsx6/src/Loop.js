@@ -71,7 +71,8 @@ export class Loop {
         setValue: valueProxy,
         getValue: valueProxy,
       }
-      comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp)))
+      let el = (comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp))))
+      el.getValue = el.setValue = valueProxy
       this.insert(comp.el)
     }
     comp.el.loopComp = this

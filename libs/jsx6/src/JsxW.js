@@ -39,7 +39,7 @@ export class JsxW extends HTMLElement {
   }
 
   tpl(attr, children) {
-    insertAttr(attr, this)
+    insertAttr(attr, this, this, this, true)
     insert(this, children)
   }
   initState(values = {}) {
