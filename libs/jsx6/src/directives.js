@@ -16,6 +16,11 @@ addDirective('x-if', (el, a, $signal, self) => {
   observeNow($signal, updater)
 })
 
+addDirective('x-else', (el, a, $signal, self) => {
+  let updater = v => setAttribute(el, 'hidden', !!v)
+  observeNow($signal, updater)
+})
+
 addDirective('x-value', (el, a, $signal, self) => {
   let updater = v => setValue(el, v)
   observeNow($signal, updater)

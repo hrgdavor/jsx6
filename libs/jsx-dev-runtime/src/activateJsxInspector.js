@@ -1,9 +1,19 @@
 export function activateJsxInspector() {
   let body = document.body
   body.addEventListener('contextmenu', e => {
+    if (!e.ctrlKey && !e.shiftKey) return
+    let target = e.target
+    addJsxSrcAttribute(target.getRootNode())
+    addJsxSrcAttribute(findShadowRoot(target))
     if (!e.ctrlKey) return
-    addJsxSrcAttribute(e.target.getRootNode())
-    addJsxSrcAttribute(findShadowRoot(e.target))
+    while (target && !target.hasAttribute('_src')) target = target.parentNode
+    if (target) {
+      let root = globalThis.JSX_SRC_ROOT
+      if (root) {
+        window.open('vscode://file/' + root + '/' + target.getAttribute('_src'))
+      }
+      console.log('target', target)
+    }
   })
 }
 

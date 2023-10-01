@@ -1,22 +1,20 @@
-# JSX6  (apps only, no SSR).
+# JSX6  (apps only, no SSR, no web, no SEO).
 
-Almost vanilla JS, focused on building applications by leveraging JSX and signals.
+For building SPA applications by leveraging JSX and signals. Not meant to hide or abstract the DOM, but actually have DOM smoothly integrated with the JS code.
 
-A JSX library without a special compiler that changes DOM precisely and reactively.
-
-- Only needs support for JSX in bundlers.
-- Implements signals as functions and JavaScript Proxies for state(colelction of signals) to avoid the need for compiling.
-
-- Can be built by pure(full-speed) [esbuid](https://esbuild.github.io/) without any plugins. 
-
-- Supports observables and promises out of the box 
-
+- almost without a special requirements for bundler (Only needs support for JSX) 
+- changes DOM precisely and reactively
+- Implements signals as functions
+- uses JavaScript Proxies for state(colelction of signals) 
+- no need for special compiler for signals to work
+- can be built by pure(full-speed no plugins) [esbuid](https://esbuild.github.io/)
+- supports observables and promises out of the box 
 - if there is a popular standalone signals lib will consider integrating 
 
 
 ## WILL NOT
 
-even attempt to support SSR(Server Side Rendering) or make compromises for using in websites. This is strictly for JS applications that are not crawled by search engines. Supporting or even slightly considering SSR can only bring ugly compromises that I luckily never personally needed in my JavaScript apps.
+even attempt to support SSR(Server Side Rendering) or make compromises for using this lib in websites. This is strictly for JS applications that are not crawled by search engines. Supporting or even slightly considering SSR can only bring ugly compromises that I luckily never personally needed in my JavaScript apps.
 
 ## Useful standalone parts of JSX6
 

@@ -127,12 +127,11 @@ export class NodeEditor extends Jsx6 {
     this.blockMap.set(id, blockData)
     this.nodeMap.set(blockData.el, blockData)
     this.setPos(blockData, pos)
-    this.initConnectorTracking(blockData)
+    this.recheckConnectors(blockData)
     return blockData
   }
 
-  initConnectorTracking(id) {
-    let blockData = this.getBlockData(id)
+  recheckConnectors(blockData) {
     let { resizeSet } = findConnector(blockData)
     updateObserver(resizeSet, blockData.resizeSet, this.observer)
   }
@@ -260,6 +259,7 @@ export class NodeEditor extends Jsx6 {
         }
       })
       blocksChanged.forEach(block => {
+        this.recheckConnectors(block)
         block.connectorMap.forEach(con => {
           let tmp = con.pos
           recalcPos(con)
