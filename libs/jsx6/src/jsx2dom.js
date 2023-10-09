@@ -7,14 +7,20 @@ import {
   JSX6E13_NOT_OBSERVABLE,
   JSX6E1_NULL_TAG,
   JSX6E2_UNSUPPORTED_TAG,
+  JSX6E15_MULTIPLE_VERSIONS,
 } from './errorCodes.js'
 import { toDomNode } from './toDomNode.js'
 import { remove } from './remove.js'
 
 import { observeNow } from '@jsx6/signal'
 import { directives } from './directives.js'
+
+let maker = Symbol.for('jsx2dom_scope')
+if (globalThis[maker]) LockManager.warn(errorMessage(JSX6E15_MULTIPLE_VERSIONS))
+globalThis[maker] = {}
 let SCOPE
 export const getScope = () => SCOPE
+const setScope = s => (SCOPE = s)
 
 /** Short but pretty usable support function for old JSX before jsx-runtime.
  *
@@ -36,7 +42,7 @@ export function toDom(tag, attr, children) {
 
   if (isStr(tag)) {
     out = factories.Element(tag)
-    insertAttr(attr, out, SCOPE)
+    insertAttr(attr, out)
     insert(out, children)
   } else {
     if (isFunc(tag)) {
@@ -46,17 +52,18 @@ export function toDom(tag, attr, children) {
       // we must remove it while inside a child component execution to avoid accidental
       // overwrite of parent's properties by tags with `p` attribute inside child component
       // that does not define own scope
-      const parent = SCOPE
+      const parent = getScope()
+      let innerScope = {}
       try {
-        SCOPE = {}
+        setScope(innerScope)
         if (tag.prototype) {
           out = new tag(attr, children, parent)
         } else {
-          out = tag(attr, children, SCOPE, parent)
+          out = tag(attr, children, innerScope, parent)
         }
         if (p) setPropGroup(parent, out, p)
       } finally {
-        SCOPE = parent
+        setScope(parent)
       }
     } else if (isNode(tag)) {
       // if the value is already a HTML element, we just return it, no need for processing
@@ -71,9 +78,9 @@ export function toDom(tag, attr, children) {
   }
   if (oncreate) {
     if (isArray(oncreate)) {
-      oncreate.forEach(f => f(out, SCOPE))
+      oncreate.forEach(f => f(out, getScope()))
     } else {
-      oncreate(out, SCOPE)
+      oncreate(out, getScope())
     }
   }
   return out
@@ -81,7 +88,7 @@ export function toDom(tag, attr, children) {
 
 export const hSvg = (tag, attr, ...children) => {
   const out = factories.Svg(tag)
-  insertAttr(attr, out, SCOPE)
+  insertAttr(attr, out)
   children.forEach(c => insert(out, c))
   return out
 }
@@ -142,12 +149,12 @@ export function updateTextNode(node, text) {
  * @returns
  */
 export function domWithScope(scope, f) {
-  const old = SCOPE
+  const old = getScope()
   try {
-    SCOPE = scope
+    setScope(scope)
     return f(h)
   } finally {
-    SCOPE = old
+    setScope(old)
   }
 }
 export function domToProps(f) {
@@ -196,7 +203,7 @@ export const makeAttrUpdater = (node, attr, func) => {
 
 export function insertAttr(attr, out, self, component) {
   if (!attr) return
-  if (!self) self = SCOPE
+  if (!self) self = getScope()
   for (let a in attr) {
     let value = attr[a]
 

@@ -21,6 +21,21 @@ addDirective('x-else', (el, a, $signal, self) => {
   observeNow($signal, updater)
 })
 
+addDirective('x-enabled', (el, a, $signal, self) => {
+  let updater = v => setAttribute(el, 'disabled', !v)
+  observeNow($signal, updater)
+})
+
+addDirective('x-disabled', (el, a, $signal, self) => {
+  let updater = v => setAttribute(el, 'disabled', !!v)
+  observeNow($signal, updater)
+})
+
+addDirective('x-readonly', (el, a, $signal, self) => {
+  let updater = v => setAttribute(el, 'readonly', !!v)
+  observeNow($signal, updater)
+})
+
 addDirective('x-value', (el, a, $signal, self) => {
   let updater = v => setValue(el, v)
   observeNow($signal, updater)

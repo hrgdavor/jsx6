@@ -1,23 +1,28 @@
 {
   "name": "@jsx6/nodditor",
-  "version": "1.0.30",
+  "version": "1.0.32",
   "type": "module",
   "description": "JSX6 blocky nodes code editor",
   "main": "index.js",
+  "types": "dist/index.d.ts",
   "unpkg": "cjs/index.js",
-  "module": "esm/index.js",
+  "module": "./index.js",
   "exports": {
     ".": {
-      "default": "./dist/index.js"
+      "types": "./dist/index.d.ts",
+      "require": "./cjs/index.js",
+      "default": "./index.js"
     }
   },
   "files": [
-    "dist"
+    "index.js",
+    "dist",
+    "src"
   ],
   "scripts": {
     "start": "node src_build/build.js --dev",
     "build": "node src_build/build.js",
-    "prepublishOnly": "npx tsc"
+    "prepublishOnly": "node ../../verSwitch.js p && npx tsc"
   },
   "repository": {
     "type": "git",

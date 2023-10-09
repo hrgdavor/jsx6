@@ -15,4 +15,5 @@ export const JSX6E10_CONTEXT_REQUIRED = 10 //  JSX6E10 Context to assign referen
 export const JSX6E11_STATE_UPDATE_OBJECT_REQ = 11 //  JSX6E11 Update on state object can not be a primitive value
 export const JSX6E12_ITEM_NOT_FOUND = 12 //  JSX6E12 Item not found
 export const JSX6E13_NOT_OBSERVABLE = 13 //  JSX6E13 Object not observable
-export const JSX6E14_NOT_ARRAY = 13 //  JSX6E13 provided value must be an array
+export const JSX6E14_NOT_ARRAY = 14 //  JSX6E14 provided value must be an array
+export const JSX6E15_MULTIPLE_VERSIONS = 15 //  JSX6E15 mutiple versions of jsx6 library

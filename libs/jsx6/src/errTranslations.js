@@ -16,6 +16,9 @@ export const errTranslations = {
   JSX6E11: 'Update on state object can not be a primitive value',
   JSX6E12: 'Item not found',
   JSX6E13: 'Object not observable',
+  JSX6E14: 'provided value must be an array',
+  JSX6E15:
+    'Multiple versions of jsx6 library are present, this will cause issues with JSX scope, please resolve the conflict by fo example running npm dedupe',
 }
 
 export const provideErrTranslations = () => addTranslations(errTranslations)

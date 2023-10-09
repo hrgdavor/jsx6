@@ -61,7 +61,8 @@ export class JsxW extends HTMLElement {
     return this.form ? getValue(this.form) : this.$v()
   }
   setValue(v) {
-    this.form ? setValue(this.form) : this.$v(v)
+    if (this.form) setValue(this.form)
+    else this.$v(v)
   }
   mergeValue(v) {
     mergeValue(this.$v, v)
