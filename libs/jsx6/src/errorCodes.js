@@ -17,3 +17,4 @@ export const JSX6E12_ITEM_NOT_FOUND = 12 //  JSX6E12 Item not found
 export const JSX6E13_NOT_OBSERVABLE = 13 //  JSX6E13 Object not observable
 export const JSX6E14_NOT_ARRAY = 14 //  JSX6E14 provided value must be an array
 export const JSX6E15_MULTIPLE_VERSIONS = 15 //  JSX6E15 mutiple versions of jsx6 library
+export const JSX6E16_CUSTOM_ELEMENT_DEFINED = 16 //  JSX6E16 custom element already defined

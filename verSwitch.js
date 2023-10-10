@@ -44,6 +44,7 @@ let version = process.argv[2] === 'w' ? 'workspace:*' : readPackage(basePath + '
 if (process.argv[2] === 'p') {
   let pkg = readPackage('./')
   console.log('pkg.name', pkg.name)
+  if (pkg.name == '@jsx6/nodditor') version = '*'
   replaceallVersions(version, '.')
 } else {
   for (let p in map) {

@@ -19,6 +19,7 @@ export const errTranslations = {
   JSX6E14: 'provided value must be an array',
   JSX6E15:
     'Multiple versions of jsx6 library are present, this will cause issues with JSX scope, please resolve the conflict by fo example running npm dedupe',
+  JSX6E16: 'custom element already defined',
 }
 
 export const provideErrTranslations = () => addTranslations(errTranslations)

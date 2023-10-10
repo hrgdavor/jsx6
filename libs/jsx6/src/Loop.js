@@ -1,11 +1,12 @@
 import { throwErr } from './core.js'
+import { toDomNode } from './toDomNode.js'
 import { JSX6E12_ITEM_NOT_FOUND } from './errorCodes.js'
 import { domWithScope, factories, forInsert, h, insert } from './jsx2dom.js'
 
 import { $State, observeNow, signal } from '@jsx6/signal'
 
 const _remove = item => {
-  const el = item.el
+  const el = toDomNode(item)
   el.parentNode?.removeChild(el)
 }
 
@@ -49,7 +50,8 @@ export class Loop {
     if (!item) item = this.allItems[i] = this.makeItem(newData, i)
     else item.setValue(newData)
 
-    item.el.loopIndex = i
+    if (item.el) item.el.loopIndex = i
+    else item.loopIndex = i
   }
 
   insert(el, before) {
@@ -73,9 +75,10 @@ export class Loop {
       }
       let el = (comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp))))
       el.getValue = el.setValue = valueProxy
-      this.insert(comp.el)
+      this.insert(comp)
     }
-    comp.el.loopComp = this
+    if (comp.el) comp.el.loopComp = this
+    else comp.loopComp = this
     comp.setValue(newData)
     return comp
   }
@@ -86,7 +89,7 @@ export class Loop {
     if (reindex) {
       var it = this.allItems
       for (var i = 0; i < it.length; i++) {
-        const el = it[i].el
+        const el = toDomNode(it[i])
         el.loopIndex = i
         if (i < count && !el.parentNode) {
           this.insert(el)
@@ -119,7 +122,7 @@ export class Loop {
     var index = this.count
     this.setItem(data, index)
     this.count++
-    this._fixItemList()
+    this._fixItemList(true)
     return this.getItem(index)
   }
 
@@ -137,13 +140,13 @@ export class Loop {
   moveItem(fromIndex, insertBefore) {
     var item = this.allItems.splice(fromIndex, 1)[0]
     if (fromIndex < insertBefore) insertBefore--
-    var elBefore = insertBefore < 0 ? null : (elBefore = this.allItems[insertBefore].el)
+    var elBefore = insertBefore < 0 ? null : (elBefore = todomNode(this.allItems[insertBefore]))
     if (insertBefore < 0) {
       this.allItems.push(item)
     } else {
       this.allItems.splice(insertBefore, 0, item)
     }
-    this.insert(item.el, elBefore)
+    this.insert(toDomNode(item), elBefore)
     this._fixItemList(true)
   }
 
@@ -169,7 +172,7 @@ export class Loop {
         var newItem = countReusable > 0 ? this.allItems.pop() : this.makeItem(toAdd[d], index)
         this.allItems.splice(index, 0, newItem)
         var next = this.allItems[index + 1]
-        this.insert(this.allItems[index].el, next ? next.el : null)
+        this.insert(toDomNode(this.allItems[index]), next ? toDomNode(next) : null)
         countReusable--
       }
       this.setItem(toAdd[d], index)
@@ -181,7 +184,7 @@ export class Loop {
       var removed = this.allItems.splice(index, deleteCount)
       for (var i = 0; i < removed.length; i++) {
         var tmp = removed[i]
-        this.insert(tmp.el, this.itemNextSibling || null)
+        this.insert(toDomNode(tmp), this.itemNextSibling || null)
         this.allItems.push(tmp)
         _remove(tmp)
       }

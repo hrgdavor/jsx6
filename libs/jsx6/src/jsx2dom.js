@@ -1,4 +1,15 @@
-import { isStr, isFunc, isObj, throwErr, Group, isNode, NOT, isArray, requireFunc } from './core.js'
+import {
+  isStr,
+  isFunc,
+  isObj,
+  throwErr,
+  Group,
+  isNode,
+  NOT,
+  isArray,
+  requireFunc,
+  errorMessage,
+} from './core.js'
 import { setAttribute } from './setAttribute.js'
 
 import {
@@ -15,12 +26,12 @@ import { remove } from './remove.js'
 import { observeNow } from '@jsx6/signal'
 import { directives } from './directives.js'
 
-let maker = Symbol.for('jsx2dom_scope')
-if (globalThis[maker]) LockManager.warn(errorMessage(JSX6E15_MULTIPLE_VERSIONS))
-globalThis[maker] = {}
-let SCOPE
-export const getScope = () => SCOPE
-const setScope = s => (SCOPE = s)
+let markerSymbol = Symbol.for('jsx2dom_marker')
+let scopeSymbol = Symbol.for('jsx2dom_scope')
+if (globalThis[markerSymbol]) console.warn(errorMessage(JSX6E15_MULTIPLE_VERSIONS), globalThis[markerSymbol])
+globalThis[markerSymbol] = new Error('marker')
+export const getScope = () => globalThis[scopeSymbol]
+const setScope = s => (globalThis[scopeSymbol] = s)
 
 /** Short but pretty usable support function for old JSX before jsx-runtime.
  *

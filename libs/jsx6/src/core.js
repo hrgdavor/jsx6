@@ -1,4 +1,4 @@
-import { JSX6E7_REQUIRE_FUNC } from './errorCodes.js'
+import { JSX6E16_CUSTOM_ELEMENT_DEFINED, JSX6E7_REQUIRE_FUNC } from './errorCodes.js'
 
 export const TRANS = {}
 
@@ -120,5 +120,9 @@ const errCode = c => 'JSX6E' + c
  * @param {Class} customElement
  */
 export function define(tag, customElement) {
-  customElements.define(tag, customElement)
+  if (customElements.get(tag)) {
+    log.warn(errorMessage(JSX6E16_CUSTOM_ELEMENT_DEFINED), tag, customElements.get(tag), customElement)
+  } else {
+    customElements.define(tag, customElement)
+  }
 }
