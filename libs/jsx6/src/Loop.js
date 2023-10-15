@@ -203,9 +203,7 @@ export const LoopItem = ({ data, i, tpl, item, attr, primitive, loop }) => {
       getState: $s,
       $s,
     }
-    let el = (comp.el = forInsert(
-      domWithScope(comp, () => item({ $v, $s, attr, loop, primitive }, [], comp)),
-    ))
+    let el = (comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp))))
     el.getValue = el.setValue = $v
   }
   return comp
