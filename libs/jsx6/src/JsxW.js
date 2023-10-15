@@ -35,7 +35,7 @@ export class JsxW extends HTMLElement {
   constructor(attr, children, parent, shadow, shadowOptions) {
     super()
     if (shadow) this.attachShadow({ ...shadowOptions, mode: 'open' })
-    domWithScope(this, () => insert(this.shadowRoot || this, this.tpl(attr, children, parent)))
+    domWithScope(this, () => insert(this.shadowRoot || this, this.tpl(attr || {}, children, parent)))
   }
 
   tpl(attr, children) {

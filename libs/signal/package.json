@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal",
-  "version": "1.7.19",
+  "version": "1.7.20",
   "type": "module",
   "sideEffects": false,
   "description": "signal implementation for vanilla JS or JSX",

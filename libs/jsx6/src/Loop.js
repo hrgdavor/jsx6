@@ -4,6 +4,7 @@ import { JSX6E12_ITEM_NOT_FOUND } from './errorCodes.js'
 import { domWithScope, factories, forInsert, h, insert } from './jsx2dom.js'
 
 import { $State, observeNow, signal } from '@jsx6/signal'
+import { setValue } from './setValue.js'
 
 const _remove = item => {
   const el = toDomNode(item)
@@ -15,9 +16,11 @@ export class Loop {
   allItems = []
   count = 0
 
-  constructor({ p, item, tpl, value, primitive, ...itemAttr } = {}) {
+  constructor({ p, item, builder = LoopItem, setter = setValue, tpl, value, primitive, ...itemAttr } = {}) {
     this.itemAttr = itemAttr
     this.isPrimitive = !!primitive
+    this.builder = builder
+    this.setter = setter
     observeNow(value, v => this.setValue(v), true)
     this.item = item
     this.tplFunc = tpl
@@ -48,7 +51,7 @@ export class Loop {
     var item = this.allItems[i]
 
     if (!item) item = this.allItems[i] = this.makeItem(newData, i)
-    else item.setValue(newData)
+    else this.setter(item, newData, i)
 
     if (item.el) item.el.loopIndex = i
     else item.loopIndex = i
@@ -58,28 +61,19 @@ export class Loop {
     insert(this.el.parentNode, el, before || this.el)
   }
 
-  makeItem(newData, i) {
-    let comp
-
-    const item = this.item
-    const attr = { ...this.itemAttr }
-    if (item.prototype) {
-      comp = new this.item(attr, [])
-      this.insert(comp)
-    } else {
-      attr.value = attr.$v = this.isPrimitive ? signal(newData) : $State(newData)
-      const valueProxy = attr.$v
-      comp = {
-        setValue: valueProxy,
-        getValue: valueProxy,
-      }
-      let el = (comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp))))
-      el.getValue = el.setValue = valueProxy
-      this.insert(comp)
-    }
-    if (comp.el) comp.el.loopComp = this
-    else comp.loopComp = this
-    comp.setValue(newData)
+  makeItem(data, i) {
+    const { builder, setter } = this
+    const comp = builder({
+      data,
+      i,
+      loop: this,
+      tpl: this.tpl,
+      item: this.item,
+      primitive: this.isPrimitive,
+      attr: { ...this.itemAttr },
+    })
+    setter(comp, data, i)
+    this.insert(comp)
     return comp
   }
 
@@ -192,4 +186,27 @@ export class Loop {
     this.count = Math.max(this.count - deleteCount, 0)
     this._fixItemList(true)
   }
+}
+
+export const LoopItem = ({ data, i, tpl, item, attr, primitive, loop }) => {
+  let comp
+  if (item.prototype) {
+    comp = new item(attr, [])
+  } else {
+    let $v = (attr.value = attr.$v = primitive ? signal(data) : $State(data))
+    let $s = (attr.$s = $State({}))
+    comp = {
+      setValue: $v,
+      getValue: $v,
+      $v,
+      setState: $s,
+      getState: $s,
+      $s,
+    }
+    let el = (comp.el = forInsert(
+      domWithScope(comp, () => item({ $v, $s, attr, loop, primitive }, [], comp)),
+    ))
+    el.getValue = el.setValue = $v
+  }
+  return comp
 }
