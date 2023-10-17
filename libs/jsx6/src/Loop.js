@@ -67,7 +67,7 @@ export class Loop {
       data,
       i,
       loop: this,
-      tpl: this.tpl,
+      tpl: this.tplFunc,
       item: this.item,
       primitive: this.isPrimitive,
       attr: { ...this.itemAttr },
@@ -203,7 +203,9 @@ export const LoopItem = ({ data, i, tpl, item, attr, primitive, loop }) => {
       getState: $s,
       $s,
     }
-    let el = (comp.el = forInsert(domWithScope(comp, () => item(attr, [], comp))))
+    let el = (comp.el = forInsert(
+      domWithScope(comp, () => item({ $v, value: $v, $s, attr, loop, primitive }, [], comp)),
+    ))
     el.getValue = el.setValue = $v
   }
   return comp
