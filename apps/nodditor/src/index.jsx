@@ -57,6 +57,10 @@ const editor = (window.editor = (
     // @ts-ignore
     class="fxs1 fx1"
     menu={() => menu}
+    onwheel={e => {
+      editor.moveAll(0, e.deltaY * -0.5)
+      console.log(e)
+    }}
     onne-move={onMove}
     onne-move-done={moveDone}
     style="width: 800px; height: 500px; outline: solid 1px black; contain:strict"

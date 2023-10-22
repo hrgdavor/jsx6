@@ -1,32 +1,32 @@
-.NodeEditor {
+jsx6-nodditor {
   position: relative;
 }
 
-.NodeEditor:focus {
+jsx6-nodditor:focus {
   outline: none;
 }
-.NodeEditor svg g:focus {
+jsx6-nodditor svg g:focus {
   outline: rgba(0, 0, 0, 0.1) auto 5px;
 }
-.NodeEditor svg g path:first-child {
+jsx6-nodditor svg g path:first-child {
   stroke: black;
   stroke-width: 2px;
 }
-.NodeEditor svg g path:nth-child(2) {
+jsx6-nodditor svg g path:nth-child(2) {
   stroke-width: 8px;
   stroke: transparent;
 }
-.NodeEditor svg g.selected path:first-child {
+jsx6-nodditor svg g.selected path:first-child {
   stroke: #2ea7a7;
 }
-.NodeEditor svg g.ne-from-sel-block path:first-child {
+jsx6-nodditor svg g.ne-from-sel-block path:first-child {
   stroke: #bfc233;
 }
-.NodeEditor svg g.ne-to-sel-block path:first-child {
+jsx6-nodditor svg g.ne-to-sel-block path:first-child {
   stroke: #2e6ca7;
 }
 
-.NodeEditor .ne-focus-bt {
+jsx6-nodditor .ne-focus-bt {
   top: 0;
   left: 0;
   /* width: 100%; */
@@ -34,7 +34,7 @@
   position: absolute;
   background: #eee;
 }
-.NodeEditor .ne-focus-bt:focus {
+jsx6-nodditor .ne-focus-bt:focus {
   background: #fee;
   outline: solid 1px red;
 }

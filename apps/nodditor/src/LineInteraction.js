@@ -61,7 +61,7 @@ export class LineInteraction {
       if (!isDown) return
       /** @type {DOMRect} */
       //@ts-ignore
-      let rect = this.editor.el.getBoundingClientRect()
+      let rect = this.editor.getBoundingClientRect()
       let lx = rect.x
       let ly = rect.y
       let x = e.clientX

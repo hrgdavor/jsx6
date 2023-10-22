@@ -1,7 +1,9 @@
 import {
   Jsx6,
+  JsxW,
   addClass,
   classIf,
+  define,
   findParent,
   fireCustom,
   getAttr,
@@ -72,7 +74,11 @@ import { updateObserver } from './updateObserver.js'
 /**
  *
  */
-export class NodeEditor extends Jsx6 {
+export class NodeEditor extends JsxW {
+  static {
+    define('jsx6-nodditor', this)
+  }
+
   /** @type {Array<BlockData>} */
   blocks = []
   /** @type {Array<ConnectLine>} */
@@ -237,11 +243,10 @@ export class NodeEditor extends Jsx6 {
   }
 
   tpl({ menu = null, ...attr } = {}) {
-    // @ts-ignore
-    addClass(attr, 'NodeEditor')
+    attr.tabindex = '0'
+    super.tpl(attr)
     this.menuGenerator = menu
     // @ts-ignore
-    attr.tabindex = '0'
     this.lineinteraciton = new LineInteraction(this)
     const handler = arr => {
       /** @type {Set<BlockData>} */
@@ -294,7 +299,7 @@ export class NodeEditor extends Jsx6 {
     this.observer = new ResizeObserver(handler)
 
     this.svgLayer = hSvg('svg', { style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;' })
-    let el = <div {...attr}>{this.svgLayer}</div>
+    let el = this
     // @ts-ignore
     const { $s } = this
     // create a signal tht tells if editor has focus to work with blocks or lines
@@ -328,7 +333,7 @@ export class NodeEditor extends Jsx6 {
         }
         return p.hasAttribute('nid')
       })
-      //      if (!domNode || !hasDrag || hasBlock || insideMenu) return
+      if ((!hasDrag && domNode) || hasBlock || insideMenu) return
 
       if (domNode) {
         nid = getAttr(domNode, 'nid')
@@ -398,7 +403,9 @@ export class NodeEditor extends Jsx6 {
       }
     })
     const keypress = e => {
+      console.log('keypress', e.key)
       if ((e.key === 'Delete' || e.key === 'Backspace') && this.$focusOrSelecting()) {
+        console.log('this.selectedLine', this.selectedLine)
         if (this.selectedLine) {
           this.removeLine(this.selectedLine)
         } else if (this.selectBlocks.length) {
@@ -410,7 +417,7 @@ export class NodeEditor extends Jsx6 {
     listen(el, 'keydown', keypress)
     el.onfocus = e => ($s.hasFocus = true)
     el.onblur = e => ($s.hasFocus = false)
-    return el
+    return this.svgLayer
   }
 
   clear() {
@@ -515,11 +522,6 @@ export class NodeEditor extends Jsx6 {
     this.selectBlocks([])
   }
 
-  focus() {
-    // @ts-ignore
-    this.el.focus()
-  }
-
   /**
    *
    * @param {Element} el
@@ -528,8 +530,7 @@ export class NodeEditor extends Jsx6 {
    */
   fireCustom(el, name, detail = {}) {
     fireCustom(el, name, detail)
-    // @ts-ignore
-    fireCustom(this.el, name, detail)
+    if (el != this) fireCustom(this, name, detail)
   }
 
   fireMoveDone(blockData) {
@@ -538,7 +539,7 @@ export class NodeEditor extends Jsx6 {
     if (menu) {
       menu.style.display = ''
       setTimeout(() => {
-        moveMenu(this.selectedBlocks, menu)
+        if (this.selectedBlocks?.length) moveMenu(this.selectedBlocks, menu)
       })
     }
   }
@@ -547,6 +548,6 @@ export class NodeEditor extends Jsx6 {
     if (!blockData) return
 
     let { pos, id, el } = blockData
-    this.fireCustom(this.el, evtName, { top: pos[1], left: pos[1], nid: id, domNode: el, pos })
+    this.fireCustom(this, evtName, { top: pos[1], left: pos[1], nid: id, domNode: el, pos })
   }
 }
