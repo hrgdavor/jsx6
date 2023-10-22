@@ -203,16 +203,37 @@ export class NodeEditor extends Jsx6 {
     }
   }
 
+  resetView(padx = 30, pady = 30) {
+    let minx
+    let miny = (minx = Number.MAX_SAFE_INTEGER)
+    this.blocks.forEach(blockData => {
+      let [x, y] = blockData.pos
+      minx = Math.min(minx, x)
+      miny = Math.min(miny, y)
+    })
+    this.moveAll(-minx + padx, -miny + padx)
+    this.fireMoveDone()
+  }
+
+  moveAll(dx = 0, dy = 0) {
+    this.blocks.forEach(blockData => {
+      let [x, y] = blockData.pos
+      this._setPos(blockData, [x + dx, y + dy])
+    })
+  }
+
   setPos(nid, pos) {
     let blockData = this.getBlockData(nid)
-    if (blockData) {
-      blockData.pos = pos
-      blockData.connectorMap.forEach(con => {
-        updatePos(con)
-        this.fireCustom(con.el, 'ne-move', { ...con })
-      })
-      blockData.el.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`
-    }
+    if (blockData) this._setPos(blockData, pos)
+  }
+
+  _setPos(blockData, pos) {
+    blockData.pos = pos
+    blockData.connectorMap.forEach(con => {
+      updatePos(con)
+      this.fireCustom(con.el, 'ne-move', { ...con })
+    })
+    blockData.el.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`
   }
 
   tpl({ menu = null, ...attr } = {}) {
@@ -284,6 +305,7 @@ export class NodeEditor extends Jsx6 {
     let ly = 0
     let domNode
     let nid
+    /** @type {BlockData} */
     let blockData
     let ignore
 
@@ -306,14 +328,16 @@ export class NodeEditor extends Jsx6 {
         }
         return p.hasAttribute('nid')
       })
-      if (!domNode || !hasDrag || hasBlock || insideMenu) return
+      //      if (!domNode || !hasDrag || hasBlock || insideMenu) return
 
-      nid = getAttr(domNode, 'nid')
-      blockData = this.getBlockData(nid)
+      if (domNode) {
+        nid = getAttr(domNode, 'nid')
+        blockData = this.getBlockData(nid)
+        domNode.startLeft = blockData.pos[0]
+        domNode.startTop = blockData.pos[1]
+      }
       lx = e.clientX
       ly = e.clientY
-      domNode.startLeft = blockData.pos[0]
-      domNode.startTop = blockData.pos[1]
       $s.isDown = true
     })
 
@@ -326,12 +350,12 @@ export class NodeEditor extends Jsx6 {
       $s.isDown = false
       if ($s.isMoving()) el.releasePointerCapture(e.pointerId)
       $s.isMoving = false
-      let { pos } = blockData
-      this.fireCustom(el, 'ne-move-done', { top: pos[1], left: pos[1], nid, domNode, pos })
+      this.fireMoveDone(blockData)
+
       if ($s.isMoving()) {
         e.preventDefault()
       } else {
-        this.selectBlocks([blockData])
+        if (blockData) this.selectBlocks([blockData])
       }
       blockData = domNode = nid = undefined
       //this.focus()
@@ -347,20 +371,31 @@ export class NodeEditor extends Jsx6 {
         // it is better to capture pointer only on pointer down + first movement
         el.setPointerCapture(e.pointerId)
         $s.isMoving = true
-        this.selectBlocks([blockData])
+        if (blockData) {
+          this.selectBlocks([blockData])
+        } else {
+          let menu = this.currentMenu
+          if (menu) menu.style.display = 'none'
+        }
         window.getSelection().removeAllRanges()
         this.focus()
       }
-      const top = domNode.startTop - ly + e.clientY
-      const left = domNode.startLeft - lx + e.clientX
-      if (_timer) cancelAnimationFrame(_timer)
-      _timer = requestAnimationFrame(() => {
-        if (!blockData) return
-        this.setPos(blockData, [left, top])
-        let menu = this.currentMenu
-        if (menu) moveMenu([blockData], menu)
-        this.fireCustom(el, 'ne-move', { top, left, nid, domNode, pos: blockData.pos })
-      })
+      if (blockData) {
+        const top = domNode.startTop - ly + e.clientY
+        const left = domNode.startLeft - lx + e.clientX
+        if (_timer) cancelAnimationFrame(_timer)
+        _timer = requestAnimationFrame(() => {
+          if (!blockData) return
+          this.setPos(blockData, [left, top])
+          let menu = this.currentMenu
+          if (menu) moveMenu([blockData], menu)
+          this.fireMove(blockData)
+        })
+      } else {
+        this.moveAll(-lx + e.clientX, -ly + e.clientY)
+        lx = e.clientX
+        ly = e.clientY
+      }
     })
     const keypress = e => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && this.$focusOrSelecting()) {
@@ -495,5 +530,23 @@ export class NodeEditor extends Jsx6 {
     fireCustom(el, name, detail)
     // @ts-ignore
     fireCustom(this.el, name, detail)
+  }
+
+  fireMoveDone(blockData) {
+    this.fireMove(blockData, 'ne-move-done')
+    let menu = this.currentMenu
+    if (menu) {
+      menu.style.display = ''
+      setTimeout(() => {
+        moveMenu(this.selectedBlocks, menu)
+      })
+    }
+  }
+
+  fireMove(blockData, evtName = 'ne-move') {
+    if (!blockData) return
+
+    let { pos, id, el } = blockData
+    this.fireCustom(this.el, evtName, { top: pos[1], left: pos[1], nid: id, domNode: el, pos })
   }
 }

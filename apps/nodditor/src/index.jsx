@@ -1,10 +1,10 @@
 import { forEachProp, insert, provideErrTranslations } from '@jsx6/jsx6'
+import { $State } from '@jsx6/signal'
 
 import { ConnectLine } from './ConnectLine.js'
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
-import { $State } from '@jsx6/signal'
 
 provideErrTranslations()
 
@@ -52,18 +52,19 @@ menu.afterAdd = function (blocks) {
 }
 
 /**  @type {NodeEditor} */
-const editor = (
+const editor = (window.editor = (
   <NodeEditor
     // @ts-ignore
     class="fxs1 fx1"
     menu={() => menu}
     onne-move={onMove}
     onne-move-done={moveDone}
-    style="margin-left: 50px"
+    style="width: 800px; height: 500px; outline: solid 1px black; contain:strict"
   />
-)
+))
 
-insert(document.body, editor)
+insert(document.body, <div>{editor}</div>)
+
 setTimeout(() => {
   let positions = localStorage.getItem('ne.positions')
   if (positions) positions = JSON.parse(positions)
