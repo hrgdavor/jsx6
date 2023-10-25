@@ -96,7 +96,7 @@ export class LineInteraction {
         if (connectorData == firstCon || !connectorData) {
           otherCon = null
         }
-        line.setPos2(x - 1 - lx, y - ly)
+        line.setPos2((x - 1 - lx) / this.editor.zoom, (y - ly) / this.editor.zoom)
       }
     }
 

@@ -113,7 +113,7 @@ export class NodeEditor extends JsxW {
     block.setNodeEditor?.(this)
     // @ts-ignore
     rootNode.nodeEditor = this
-    insert(this, rootNode)
+    insert(this.contentArea, rootNode)
     rootNode.style.top = '0'
     rootNode.style.left = '0'
     /** @type {BlockData} */
@@ -256,6 +256,11 @@ export class NodeEditor extends JsxW {
         let { target, contentRect, borderBoxSize } = e
         let boxSize = borderBoxSize[0]
         let size = [boxSize.inlineSize, boxSize.blockSize]
+        if (e.target == this) {
+          this.realWidth = size[0]
+          this.realHeight = size[1]
+          return
+        }
 
         if (target.ncData) {
           /** @type {ConnectorData} */
@@ -297,9 +302,15 @@ export class NodeEditor extends JsxW {
       })
     }
     this.observer = new ResizeObserver(handler)
-
+    this.observer.observe(this)
     this.svgLayer = hSvg('svg', { style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;' })
-    let el = this
+    this.contentArea = (
+      <div style="position:absolute;top:0;left:0;width:100%; height:100%; transform-origin: top left;">
+        {this.svgLayer}
+      </div>
+    )
+    this._zoom = 1
+    let el = this.contentArea
     // @ts-ignore
     const { $s } = this
     // create a signal tht tells if editor has focus to work with blocks or lines
@@ -386,26 +397,24 @@ export class NodeEditor extends JsxW {
         this.focus()
       }
       if (blockData) {
-        const top = domNode.startTop - ly + e.clientY
-        const left = domNode.startLeft - lx + e.clientX
+        const top = domNode.startTop + (-ly + e.clientY) / this._zoom
+        const left = domNode.startLeft + (-lx + e.clientX) / this._zoom
         if (_timer) cancelAnimationFrame(_timer)
         _timer = requestAnimationFrame(() => {
           if (!blockData) return
           this.setPos(blockData, [left, top])
           let menu = this.currentMenu
-          if (menu) moveMenu([blockData], menu)
+          if (menu) moveMenu([blockData], menu, this._zoom)
           this.fireMove(blockData)
         })
       } else {
-        this.moveAll(-lx + e.clientX, -ly + e.clientY)
+        this.moveAll((-lx + e.clientX) / this._zoom, (-ly + e.clientY) / this._zoom)
         lx = e.clientX
         ly = e.clientY
       }
     })
     const keypress = e => {
-      console.log('keypress', e.key)
       if ((e.key === 'Delete' || e.key === 'Backspace') && this.$focusOrSelecting()) {
-        console.log('this.selectedLine', this.selectedLine)
         if (this.selectedLine) {
           this.removeLine(this.selectedLine)
         } else if (this.selectBlocks.length) {
@@ -414,10 +423,57 @@ export class NodeEditor extends JsxW {
         e.preventDefault()
       }
     }
-    listen(el, 'keydown', keypress)
-    el.onfocus = e => ($s.hasFocus = true)
-    el.onblur = e => ($s.hasFocus = false)
-    return this.svgLayer
+    listen(this, 'keydown', keypress)
+    this.onfocus = e => ($s.hasFocus = true)
+    this.onblur = e => ($s.hasFocus = false)
+    return this.contentArea
+  }
+
+  get zoom() {
+    return this._zoom
+  }
+
+  set zoom(zoom) {
+    if (this._zoom == zoom) return
+    this._zoom = zoom
+    this.contentArea.style.transform = `scale(${zoom})`
+    this.udpateSize()
+  }
+
+  udpateSize() {
+    this.contentArea.style.width = this.realWidth / this._zoom + 'px'
+    this.contentArea.style.height = this.realHeight / this._zoom + 'px'
+  }
+
+  changeZoomMouse(zoom, e) {
+    const rect = this.getBoundingClientRect()
+    this.changeZoom(zoom, e.clientX - rect.x, e.clientY - rect.y)
+  }
+  changeZoomCenter(zoom) {
+    this.changeZoom(zoom, this.realWidth / 2, this.realHeight / 2)
+  }
+
+  changeZoom(delta, x = 0, y = 0) {
+    const recenter = !!x
+    let zoom = this._zoom
+    let rect, relx, rely
+    if (recenter) {
+      relx = x / zoom
+      rely = y / zoom
+    }
+
+    let newZoom = this._zoom + delta
+    if (newZoom > 1) newZoom = 1
+    if (newZoom < 0.3) newZoom = 0.3
+    if (newZoom != zoom) {
+      if (recenter) {
+        let relx2 = x / newZoom
+        let rely2 = y / newZoom
+        this.moveAll(relx2 - relx, rely2 - rely)
+        this.fireMoveDone()
+      }
+      this.zoom = newZoom
+    }
   }
 
   clear() {
@@ -483,9 +539,9 @@ export class NodeEditor extends JsxW {
         setVisible(menu, true)
         if (menu != old) {
           menu.style.position = 'absolute'
-          insert(this, menu)
+          insert(this.contentArea, menu)
         }
-        moveMenu(blocks, menu)
+        moveMenu(blocks, menu, this._zoom)
         menu.afterAdd?.(blocks)
       }
     } else {
@@ -539,7 +595,7 @@ export class NodeEditor extends JsxW {
     if (menu) {
       menu.style.display = ''
       setTimeout(() => {
-        if (this.selectedBlocks?.length) moveMenu(this.selectedBlocks, menu)
+        if (this.selectedBlocks?.length) moveMenu(this.selectedBlocks, menu, this._zoom)
       })
     }
   }

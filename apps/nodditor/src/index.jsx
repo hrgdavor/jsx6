@@ -2,6 +2,7 @@ import { forEachProp, insert, provideErrTranslations } from '@jsx6/jsx6'
 import { $State } from '@jsx6/signal'
 
 import { ConnectLine } from './ConnectLine.js'
+import { EditableTitle } from './EditableTitle.js'
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
@@ -58,8 +59,8 @@ const editor = (window.editor = (
     class="fxs1 fx1"
     menu={() => menu}
     onwheel={e => {
-      editor.moveAll(0, e.deltaY * -0.5)
-      console.log(e)
+      editor.changeZoomMouse(e.deltaY > 0 ? -0.1 : 0.1, e)
+      // editor.changeZoomCenter(e.deltaY > 0 ? -0.1 : 0.1)
     }}
     onne-move={onMove}
     onne-move-done={moveDone}
