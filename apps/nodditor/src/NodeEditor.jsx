@@ -22,6 +22,7 @@ import { $Or, observeNow } from '@jsx6/signal'
 import { ConnectLine } from './ConnectLine.js'
 import { LineInteraction } from './LineInteraction.js'
 import { findConnector, recalcPos, updatePos } from './connectorUtil.js'
+import { getBlocksMinXY } from './getBlocksMinXY.js'
 import { finalize, listenUntil } from './listenUntil.js'
 import { moveMenu } from './moveMenu.js'
 import { pairChanged } from './pairUtils.js'
@@ -209,14 +210,18 @@ export class NodeEditor extends JsxW {
     }
   }
 
+  getMinXY() {
+    return getBlocksMinXY(this.blocks)
+  }
+
+  setZoomAndPos(zoom, x, y) {
+    this.zoom = zoom
+    const [minx, miny] = this.getMinXY()
+    this.moveAll(x - minx, y - miny)
+  }
+
   resetView(padx = 30, pady = 30) {
-    let minx
-    let miny = (minx = Number.MAX_SAFE_INTEGER)
-    this.blocks.forEach(blockData => {
-      let [x, y] = blockData.pos
-      minx = Math.min(minx, x)
-      miny = Math.min(miny, y)
-    })
+    const [minx, miny] = this.getMinXY()
     this.moveAll(-minx + padx, -miny + padx)
     this.fireMoveDone()
   }
