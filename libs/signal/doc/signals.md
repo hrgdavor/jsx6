@@ -18,14 +18,14 @@ Just to compare the syntax, let us imagine we have two signals with numbers `$a,
 
 ```js
 // manual composition is less readable and similar to printf
-// manual $F will call the function with signal values
-const $sum = $F((a, b)=>a + b, $a, $b)
 // manual $S will call the function and you need to read signal values in the expression
 const $sum = $S(()=>$a() + $b(), $a, $b)
 
+// manual $F will call the function with signal values
+const $sum = $F((a, b)=>a + b, $a, $b)
 // more readable alternative is with filter func declared separately
 const sum = (a,b)=>a + b // this is also nice for reusability
-const $sum = $S(sum, $a, $b)
+const $sum = $F(sum, $a, $b)
 
 // automagic is more readable, but not implemented in this library
 // you do not need to declare dependencies, they are tracked during execution
@@ -42,6 +42,18 @@ const $sum = $S(()=>$a() + $b())
 - take initial value of all dependent signals
 - pass the values to template function to produce the derived value
 - listen for changes on all dependent signals and produce new derived value on change
+
+**Prettier validation**
+A prettier plugin could be made to help writing signals and catch errors. 
+
+```js
+// if you write
+const $sum = $S(()=>$a() + $b())
+// prettier could fix it by adding: , $a, $b
+const $sum = $S(()=>$a() + $b(), $a, $b)
+```
+
+this  would work well, and would not slow down or complicate the build process. 
 
 **Auto-magic composer** needs to setup a trap, then call the function and catch access to any signal during the call, and subscribe to changes. This may sound simple to implement to some developers, but I personally imagine it being difficult to implement well, and also debug if something goes wrong. 
 
