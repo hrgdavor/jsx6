@@ -17,14 +17,19 @@ Using `$` prefix is intentional to visually mark those variables as something sp
 Just to compare the syntax, let us imagine we have two signals with numbers `$a,$b` and we want to write a `$sum` signal:
 
 ```js
-// automagic is more readable
-const $sum = $S(()=>$a() + $b())
-
 // manual composition is less readable and similar to printf
-const $sum = $S((a,b)=>a + b, $a, $b)
-// more readable alternative is with template func declared separately
+// manual $F will call the function with signal values
+const $sum = $F((a, b)=>a + b, $a, $b)
+// manual $S will call the function and you need to read signal values in the expression
+const $sum = $S(()=>$a() + $b(), $a, $b)
+
+// more readable alternative is with filter func declared separately
 const sum = (a,b)=>a + b // this is also nice for reusability
 const $sum = $S(sum, $a, $b)
+
+// automagic is more readable, but not implemented in this library
+// you do not need to declare dependencies, they are tracked during execution
+const $sum = $S(()=>$a() + $b())
 ```
 
 **Manual** composition is easier to implement and arguably easier to reason about. It will be the initial implementation (and likely the only one here).

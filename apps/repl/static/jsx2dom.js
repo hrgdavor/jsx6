@@ -27,7 +27,7 @@ export function h(tag, attr, ...children) {
         if (aName.startsWith('on') && typeof value === 'function') {
           node.addEventListener(aName.substring(2), value)
         } else {
-          node.setAttribute(aName, value)
+          if (value !== false && value !== null && value !== undefined) node.setAttribute(aName, value)
         }
       }
     }
