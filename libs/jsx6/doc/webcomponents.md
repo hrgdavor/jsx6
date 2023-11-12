@@ -71,7 +71,7 @@ if you allow inserting child nodes inside your web component you can choose to a
 
 # mixins
 
-Static initializer is the perfect place to add a mixin to a compoenent that will affect all instances.
+Static initializer is the perfect place to add a mixin to a component that will affect all instances.
 
 ```js
 function mixinTest(comp){
