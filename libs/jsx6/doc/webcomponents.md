@@ -76,8 +76,16 @@ Static initializer is the perfect place to add a mixin to a component that will 
 ```js
 function mixinTest(comp){
   const prototype = comp.prototype
-  let old = reaplaceMethod(prototype, 'onCreate',function(){
-    old.apply(this)
+  // reaplaceMethod will return reference to original, so you can use it to call it if needed
+  let old = reaplaceMethod(prototype, 'onCreate',function(...args){
+    // you can do stuff before calling the original method
+    console.log('created new instance', this)    
+
+    // call the original method and store result if needed
+    let out = old.apply(this, args)// call the original
+
+// you can manipulate return value or just pass it
+    return out;
   })
 }
 
