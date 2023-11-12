@@ -8,7 +8,7 @@ importers:
   ../../apps/nodditor:
     specifiers:
       '@jsx6/build': ^0.2.4
-      '@jsx6/dom-observer': 2.0.0
+      '@jsx6/dom-observer': ^2.0.0
       '@jsx6/jsx-dev-runtime': workspace:*
       '@jsx6/jsx-runtime': workspace:*
       '@jsx6/jsx6': workspace:*
@@ -36,7 +36,7 @@ importers:
     specifiers:
       '@babel/standalone': ~7.18.12
       '@jsx6/build': ^0.2.4
-      '@jsx6/dom-observer': 2.0.0
+      '@jsx6/dom-observer': ^2.0.0
       '@jsx6/editor-monaco': workspace:^0.34.100
       '@jsx6/jsx-dev-runtime': workspace:*
       '@jsx6/jsx-runtime': workspace:*
@@ -137,7 +137,7 @@ importers:
       esbuild: ^0.17.18
       typescript: ^5.0.4
     dependencies:
-      '@types/node': 20.6.3
+      '@types/node': 20.9.0
     devDependencies:
       esbuild: 0.17.18
       typescript: 5.0.4
@@ -175,7 +175,7 @@ importers:
       glob: 8.0.3
     devDependencies:
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
-      '@types/node': 20.6.3
+      '@types/node': 20.9.0
       esbuild: 0.17.18
       minimatch: 5.1.0
       prettier: 2.7.1
@@ -688,8 +688,10 @@ packages:
     resolution: {integrity: sha512-9avDaQJczATcXgfmMAW3MIWArOO7A+m90vuCFLr8AotWf8igO/mRoYukrk2cqZVtv38tHs33retzHEilM7FpeQ==}
     dev: true
 
-  /@types/node/20.6.3:
-    resolution: {integrity: sha512-HksnYH4Ljr4VQgEy2lTStbCKv/P590tmPe5HqOnv9Gprffgv5WXAY+Y5Gqniu0GGqeTCUdBnzC3QSrzPkBkAMA==}
+  /@types/node/20.9.0:
+    resolution: {integrity: sha512-nekiGu2NDb1BcVofVcEKMIwzlx4NjHlcjhoxxKBNLtz15Y1z7MYf549DFvkHSId02Ax6kGwWntIBPC3l/JZcmw==}
+    dependencies:
+      undici-types: 5.26.5
 
   /@vitest/expect/0.29.3:
     resolution: {integrity: sha512-z/0JqBqqrdtrT/wzxNrWC76EpkOHdl+SvuNGxWulLaoluygntYyG5wJul5u/rQs5875zfFz/F+JaDf90SkLUIg==}
@@ -3094,6 +3096,9 @@ packages:
   /ufo/1.1.1:
     resolution: {integrity: sha512-MvlCc4GHrmZdAllBc0iUDowff36Q9Ndw/UzqmEKyrfSzokTd9ZCy1i+IIk5hrYKkjoYVQyNbrw7/F8XJ2rEwTg==}
     dev: true
+
+  /undici-types/5.26.5:
+    resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
   /union-value/1.0.1:
     resolution: {integrity: sha512-tJfXmxMeWYnczCVs7XAEvIV7ieppALdyepWMkHkwciRpZraG/xwT+s2JN8+pr1+8jCRf80FFzvr+MpQeeoF4Xg==}
