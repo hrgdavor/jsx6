@@ -21,10 +21,13 @@ export class Loop {
     this.isPrimitive = !!primitive
     this.builder = builder
     this.setter = setter
-    observeNow(value, v => this.setValue(v), true)
     this.item = item
     this.tplFunc = tpl
-
+    if (value) {
+      // if declared inside template and has elements, we can not add them observeNow
+      // setTimeout makes sure it will execute after current task, and parent will be created
+      setTimeout(() => observeNow(value, v => this.setValue(v), true), 0)
+    }
     this.el = factories.Text('')
   }
 
