@@ -52,10 +52,10 @@
     "@jsx6/build": "^0.2.4",
     "esbuild": "^0.17.18",
     "jsdom": "~20.0.1",
-    "@jsx6/jsx-dev-runtime": "1.7.24",
+    "@jsx6/jsx-dev-runtime": "workspace:*",
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@jsx6/signal": "1.7.24"
+    "@jsx6/signal": "workspace:*"
   }
 }
