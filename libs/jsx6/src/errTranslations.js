@@ -1,4 +1,4 @@
-import { addTranslations } from './core'
+import { addTranslations } from './core.js'
 
 export const errTranslations = {
   JSX6E1: 'Tag is null',

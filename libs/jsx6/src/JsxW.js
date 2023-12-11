@@ -1,6 +1,6 @@
-import { define } from './core'
+import { define } from './core.js'
 import { getValue } from './getValue.js'
-import { domWithScope, insert, insertAttr } from './jsx2dom'
+import { domWithScope, insert, insertAttr } from './jsx2dom.js'
 import { mergeValue, $State } from '@jsx6/signal'
 import { setValue } from './setValue.js'
 
@@ -35,7 +35,15 @@ export class JsxW extends HTMLElement {
   constructor(attr, children, parent, shadow, shadowOptions) {
     super()
     if (shadow) this.attachShadow({ ...shadowOptions, mode: 'open' })
-    domWithScope(this, () => insert(this.shadowRoot || this, this.tpl(attr || {}, children, parent)))
+    let tpl = domWithScope(this, () => this.tpl(attr || {}, children, parent))
+    if (typeof tpl === 'function') {
+      // lazy loading support
+      this.__init = () => {
+        insert(this.shadowRoot || this, tpl())
+      }
+    } else {
+      insert(this.shadowRoot || this, tpl)
+    }
     this.onCreate()
   }
 
@@ -60,15 +68,30 @@ export class JsxW extends HTMLElement {
     }
     return this.__$v
   }
+
   getValue() {
     return this.form ? getValue(this.form) : this.$v()
   }
+
   setValue(v) {
     if (this.form) setValue(this.form, v)
     else this.$v(v)
   }
+
   mergeValue(v) {
     mergeValue(this.$v, v)
+  }
+
+  mergeState(v) {
+    mergeValue(this.$s, v)
+  }
+
+  /**
+   * https://gomakethings.com/the-handleevent-method-is-the-absolute-best-way-to-handle-events-in-web-components/
+   * @param {*} event
+   */
+  handleEvent(event) {
+    this[`on${event.type}`](event)
   }
 }
 

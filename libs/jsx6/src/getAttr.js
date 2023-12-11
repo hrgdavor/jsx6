@@ -1,5 +1,5 @@
 import { isObj } from './core.js'
-import { mapProp } from './mapProp'
+import { mapProp } from './mapProp.js'
 
 export function getAttr(obj, attr, def = null) {
   if (obj) {

@@ -1,5 +1,5 @@
-import { getValue } from './getValue'
-import { setValue } from './setValue'
+import { getValue } from './getValue.js'
+import { setValue } from './setValue.js'
 
 export function linkForm(comp, form) {
   comp.elements = form

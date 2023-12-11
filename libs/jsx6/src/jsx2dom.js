@@ -111,7 +111,7 @@ export function nodeFromObservable(obj) {
   const updater = r => {
     if (r instanceof Array && r.length === 1) r = r[0]
 
-    const node = toDomNode(r)
+    let node = toDomNode(r)
     const parent = textNode.parentNode
 
     if (parent) {
@@ -123,6 +123,8 @@ export function nodeFromObservable(obj) {
       out.length = 1
       out[0] = textNode
     }
+
+    if (isFunc(node)) node = node(parent)
 
     if (isNode(node)) {
       updateTextNode(textNode, '')

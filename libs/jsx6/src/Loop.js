@@ -27,6 +27,7 @@ export class Loop {
       // if declared inside template and has elements, we can not add them observeNow
       // setTimeout makes sure it will execute after current task, and parent will be created
       setTimeout(() => observeNow(value, v => this.setValue(v), true), 0)
+      //TODO check use Promise.resolve().then(
     }
     this.el = factories.Text('')
   }
@@ -95,6 +96,18 @@ export class Loop {
         }
       }
     }
+  }
+
+  get length() {
+    return this.items.length
+  }
+
+  map(cb) {
+    this.items.map(cb)
+  }
+
+  forEach(cb) {
+    this.items.forEach(cb)
   }
 
   getItems() {

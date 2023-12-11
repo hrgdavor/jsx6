@@ -1,4 +1,4 @@
-import { domWithScope, insert } from '@jsx6/jsx6'
+import { domWithScope, insert, h } from '@jsx6/jsx6'
 import { $State } from '@jsx6/signal'
 
 export class Jsx6 {
@@ -40,7 +40,7 @@ export class Jsx6 {
    * @param self - reference to this
    */
   tpl(attr = {}) {
-    return <div {...attr} />
+    return h('div', attr)
   }
   addEventListener(...args) {
     this.el.addEventListener(...args)
