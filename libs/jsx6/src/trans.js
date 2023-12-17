@@ -30,7 +30,7 @@ $translationsSignal[triggerSymbol] = fireTranslationsChange
 
 export function T(code) {
   const out = () => t(code)
-  out.subscribe = u => translationUpdaters.push(u)
+  out.subscribe = out[subscribeSymbol] = u => translationUpdaters.push(u)
   return out
 }
 

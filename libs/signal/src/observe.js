@@ -17,32 +17,6 @@ export const triggerSymbol = Symbol.for('signalTrigger')
  */
 export const observeNow = ($signal, callback) => observe($signal, callback, true)
 
-export function observeValue(obj, callback, trigger = false) {
-  let bindingSub
-  let value
-  if (obj) {
-    bindingSub = obj[subscribeSymbol]
-    if (bindingSub) {
-      if (callback) {
-        bindingSub(callback)
-      }
-      value = obj()
-    } else {
-      // support for promise(.then) or observable(.subscribe) values
-      bindingSub = obj.then || obj.subscribe
-      if (bindingSub && callback) {
-        bindingSub.call(obj, callback)
-      } else {
-        // not observable or Promise, it is assumed a static value
-        // and will be used as alue if trigger=true
-        value = obj
-      }
-    }
-    if (trigger) callback(value)
-    return value
-  }
-}
-
 /**
  * observe static value or a signal with callback being called immediately.
  * This enables simple one-shot handling of both initial value and subsequent changes.
@@ -78,9 +52,9 @@ export function observe(obj, callback, trigger = false) {
         value = obj
       }
     }
-    if (trigger) callback(value)
-    return !!bindingSub
   }
+  if (trigger) callback(value)
+  return !!bindingSub
 }
 
 /**

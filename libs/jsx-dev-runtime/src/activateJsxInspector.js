@@ -1,12 +1,11 @@
-export function activateJsxInspector() {
-  let body = document.body
-  body.addEventListener('contextmenu', e => {
+export function activateJsxInspector(root = document.body) {
+  root.addEventListener('contextmenu', e => {
     if (!e.ctrlKey && !e.shiftKey) return
     let target = e.target
     addJsxSrcAttribute(target.getRootNode())
     addJsxSrcAttribute(findShadowRoot(target))
     if (!e.ctrlKey) return
-    while (target && !target.hasAttribute('_src')) target = target.parentNode
+    while (target && !target.hasAttribute?.('_src')) target = target.parentNode
     if (target) {
       let root = globalThis.JSX_SRC_ROOT
       if (root) {

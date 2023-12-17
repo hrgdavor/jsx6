@@ -34,7 +34,10 @@ export class JsxW extends HTMLElement {
 
   constructor(attr, children, parent, shadow, shadowOptions) {
     super()
-    if (shadow) this.attachShadow({ ...shadowOptions, mode: 'open' })
+    if (shadow) {
+      this.attachShadow({ ...shadowOptions, mode: 'open' })
+      globalThis.activateJsxInspector?.(root) // support for jsx code jump when jsx-dev
+    }
     let tpl = domWithScope(this, () => this.tpl(attr || {}, children, parent))
     if (typeof tpl === 'function') {
       // lazy loading support

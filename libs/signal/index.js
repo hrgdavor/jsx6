@@ -1,4 +1,4 @@
-import { observe, observeNow, observeValue, triggerSymbol, subscribeSymbol } from './src/observe.js'
+import { observe, observeNow, triggerSymbol, subscribeSymbol } from './src/observe.js'
 import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
 
 export const signalValue = $signal => (typeof $signal === 'function' ? $signal() : $signal)
@@ -100,15 +100,5 @@ export const $AndB = ($sa, $sb) => $F((a, b) => !!(a && b), $sa, $sb)
 
 export const $Map = (map, $signal) => $F(v => map[v] || v, $signal)
 
-export {
-  observe,
-  observeNow,
-  observeValue,
-  signal,
-  prepareSignal,
-  triggerSymbol,
-  subscribeSymbol,
-  asSignal,
-  staticSignal,
-}
+export { observe, observeNow, signal, prepareSignal, triggerSymbol, subscribeSymbol, asSignal, staticSignal }
 export * from './src/state.js'
