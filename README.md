@@ -12,9 +12,13 @@ For building SPA applications by leveraging JSX and signals. Not meant to hide o
 - if there is a popular standalone signals lib will consider integrating 
 
 
-## WILL NOT
+## If you are doing SSR(Server side rendering) GTFO(Get the fuck out) of here
 
-even attempt to support SSR(Server Side Rendering) or make compromises for using this lib in websites. This is strictly for JS applications that are not crawled by search engines. Supporting or even slightly considering SSR can only bring ugly compromises that I luckily never personally needed in my JavaScript apps.
+WILL NOT even consider supporting SSR(Server Side Rendering) and make any compromises for using this lib combined with SSR. 
+
+This lib is strictly for JS APPLICATIOS that are not crawled by search engines. 
+
+I do not want any ugly compromises to suport SSR (that I luckily never personally needed in my JavaScript apps).
 
 ## Useful standalone parts of JSX6
 
