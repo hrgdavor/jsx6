@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { h } from './jsx2dom.js'
+import { domWithScope, getScope, h } from './jsx2dom.js'
 
 import { $State, $F } from '@jsx6/signal'
 
@@ -47,4 +47,13 @@ test('oncreate', t => {
   div = h('DIV', { oncreate: [mix1, mix2] }, 'test')
 
   assert.equal(div.innerHTML, 'test2test3')
+})
+
+test('collectRefs', t => {
+  const scope = {}
+  const out = domWithScope(scope, () => h('div', {}, h('input', { p: 'name' })))
+
+  let { name } = scope
+  // let { name } = getScope()
+  assert.equal(name?.tagName, 'INPUT')
 })
