@@ -2,13 +2,11 @@
 // https://github.com/stacktracejs/error-stack-parser
 import {
   Jsx6,
-  JsxW,
   JsxWS,
   Loop,
   T,
   addClass,
   addToBody,
-  define,
   domWithScope,
   getScope,
   getValue,
@@ -17,6 +15,7 @@ import {
   setValue,
 } from '@jsx6/jsx6'
 import { $F, $S, $State, signal } from '@jsx6/signal'
+import { JsxW, define } from '@jsx6/w'
 
 import IconNote from './icons/icon-note'
 import './main.css'

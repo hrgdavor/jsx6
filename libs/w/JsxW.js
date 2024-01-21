@@ -1,4 +1,3 @@
-//import { define } from './core.js'
 import { getValue } from '../jsx6/src/getValue.js'
 import { domWithScope, insert, insertAttr } from '../jsx6/src/jsx2dom.js'
 import { mergeValue, $State } from '@jsx6/signal'
@@ -10,8 +9,7 @@ import { setValue } from '../jsx6/src/setValue.js'
  * You can register the component automatically by using define utility. 
  * Just add a static block inside your class:
   ```js
-  import { define } from '@jsx6/jsx6'
-  import { JsxW } from '@jsx6/w'
+  import { JsxW, define } from '@jsx6/w'
   class MyCustomElement extends JsxW {
     static { define('my-custom-element', this) } 
   }
@@ -19,8 +17,7 @@ import { setValue } from '../jsx6/src/setValue.js'
  this will automatically register it first time created using jsx.
  If you want to give users control over registration, or it could be used in HTML without JSX
   ```js
-  import { define } from '@jsx6/jsx6'
-  import { JsxW } from '@jsx6/w'
+  import { JsxW, define } from '@jsx6/w'
   class MyCustomElement extends JsxW {
     static define(tag='my-custom-element'){ define(tag, this) } 
   }
@@ -109,5 +106,24 @@ export class JsxWS extends JsxW {
   }
   constructor(attr, children, parent, shadowOptions) {
     super(attr, children, parent, true, shadowOptions)
+  }
+}
+
+/**
+ * add a static block inside your class:
+  ```js
+  class MyCustomElement extends HTMLElement {
+    static { define('my-custom-element', this) } 
+  }
+ ```
+ *
+ * @param {string} tag custom element tag name
+ * @param {Class} customElement
+ */
+export function define(tag, customElement) {
+  if (customElements.get(tag)) {
+    log.warn(errorMessage(JSX6E16_CUSTOM_ELEMENT_DEFINED), tag, customElements.get(tag), customElement)
+  } else {
+    customElements.define(tag, customElement)
   }
 }

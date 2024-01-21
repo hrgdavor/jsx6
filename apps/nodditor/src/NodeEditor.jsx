@@ -1,9 +1,5 @@
 import {
-  Jsx6,
-  JsxW,
-  addClass,
   classIf,
-  define,
   findParent,
   fireCustom,
   getAttr,
@@ -18,6 +14,7 @@ import {
   toDomNode,
 } from '@jsx6/jsx6'
 import { $Or, observeNow } from '@jsx6/signal'
+import { JsxW, define } from '@jsx6/w'
 
 import { ConnectLine } from './ConnectLine.js'
 import { LineInteraction } from './LineInteraction.js'
