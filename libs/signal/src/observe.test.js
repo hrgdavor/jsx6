@@ -1,18 +1,17 @@
-import { test } from 'node:test'
-import { strict as assert } from 'node:assert'
+import { expect, test } from 'bun:test'
 import { $S } from '../index.js'
 import { observe, observeNow } from './observe.js'
 
-test('observeNow', t => {
+test('observeNow', () => {
   let $s = $S('bla')
 
-  assert.equal($s(), 'bla')
+  expect($s()).toEqual('bla')
 
   let value
   const setValue = v => (value = v)
   observeNow($s, setValue)
-  assert.equal(value, 'bla')
+  expect(value).toEqual('bla')
 
   observeNow('boink', setValue)
-  assert.equal(value, 'boink')
+  expect(value).toEqual('boink')
 })

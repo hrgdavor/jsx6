@@ -13,11 +13,11 @@ function jsxDEV(tag, { children, ...attr } = {}, key, isStatic, source) {
       'ERROR while creating DOM from JSX\n' +
         e.message +
         '\n  at: JSX (' +
-        source.fileName +
+        source?.fileName +
         ':' +
-        source.lineNumber +
+        source?.lineNumber +
         ':' +
-        source.columnNumber +
+        source?.columnNumber +
         ')\n',
     )
     console.log('tag:', tag)

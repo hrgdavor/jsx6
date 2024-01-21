@@ -11,11 +11,9 @@
     "outDir": "dist",
     // Generate d.ts files
     "declaration": true,
-    "emitDeclarationOnly": true,
     // go to js file when using IDE functions like
     // "Go to Definition" in VSCode
     "declarationMap": true
   },
-  "include": ["index.js", "src/**/*.js", "../w/JsxW.js"],
-  "exclude": ["**/*.test.js"]
+  "include": ["JsxW.js", "src/**/*.js"]
 }

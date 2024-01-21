@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal",
-  "version": "1.7.28",
+  "version": "1.8.0",
   "type": "module",
   "sideEffects": false,
   "description": "signal implementation for vanilla JS or JSX",
@@ -56,6 +56,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "bun-types": "~1.0.24"
   }
 }

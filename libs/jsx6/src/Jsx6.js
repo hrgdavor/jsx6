@@ -1,4 +1,4 @@
-import { domWithScope, insert, h } from '@jsx6/jsx6'
+import { domWithScope, insert, h } from './jsx2dom.js'
 import { $State } from '@jsx6/signal'
 
 export class Jsx6 {

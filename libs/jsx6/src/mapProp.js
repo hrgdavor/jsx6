@@ -4,7 +4,9 @@ export const mapPropArray = (obj, callback) => mapProp(obj, callback, true)
 
 export function mapProp(obj, callback, asArray) {
   if (obj) {
-    if (isObj(obj)) {
+    if (isArray(obj)) {
+      return obj.map(callback)
+    } else if (isObj(obj)) {
       const out = asArray ? [] : {}
       if (asArray) {
         for (const p in obj) {
@@ -16,8 +18,6 @@ export function mapProp(obj, callback, asArray) {
         }
       }
       return out
-    } else if (isArray(obj)) {
-      return obj.map(callback)
     }
   }
 }

@@ -1,5 +1,4 @@
-import { test } from 'node:test'
-import { strict as assert } from 'node:assert'
+import { expect, test } from 'bun:test'
 import {
   $And,
   $Any,
@@ -17,69 +16,69 @@ import {
 } from './index.js'
 // call immediately to update state values without async (simpler testing)
 
-test('basics', t => {
+test('basics', () => {
   const $sig = $S(1)
 
-  assert.equal($sig instanceof Function, true)
+  expect($sig instanceof Function).toEqual(true)
 
-  assert.equal($sig(), 1)
+  expect($sig()).toEqual(1)
 
   $sig(2)
-  assert.equal($sig(), 2)
+  expect($sig()).toEqual(2)
 })
 
-test('combine', t => {
+test('combine', () => {
   const $sig1 = $S(1)
   const $sig2 = $S(2)
 
-  if (0) $sum = $sig1 + $sig2
+  //if (0) $sum = $sig1 + $sig2
   const $sum = $S(() => $sig1() + $sig2(), $sig1, $sig2)
 
-  assert.equal($sig1(), 1)
-  assert.equal($sig2(), 2)
-  assert.equal($sum(), 3)
+  expect($sig1()).toEqual(1)
+  expect($sig2()).toEqual(2)
+  expect($sum()).toEqual(3)
 
   $sig1(2)
-  assert.equal($sum(), 4)
+  expect($sum()).toEqual(4)
 })
 
-test('utils', t => {
+test('utils', () => {
   const $sig0 = $S(0)
   const $sig1 = $S(1)
   const $sig2 = $S(2)
   const $siga = $S('a')
 
-  assert.equal($NOT($sig0)(), true)
-  assert.equal($NOT($sig1)(), false)
+  expect($NOT($sig0)()).toEqual(true)
+  expect($NOT($sig1)()).toEqual(false)
 
-  assert.equal($IS($sig0)(), false)
-  assert.equal($IS($sig1)(), true)
+  expect($IS($sig0)()).toEqual(false)
+  expect($IS($sig1)()).toEqual(true)
 
-  assert.equal($EQStrict(1, $sig1)(), true)
-  assert.equal($EQStrict('1', $sig1)(), false)
+  expect($EQStrict(1, $sig1)()).toEqual(true)
+  expect($EQStrict('1', $sig1)()).toEqual(false)
 
-  assert.equal($NEQStrict(1, $sig1)(), false)
-  assert.equal($NEQStrict('1', $sig1)(), true)
+  expect($NEQStrict(1, $sig1)()).toEqual(false)
+  expect($NEQStrict('1', $sig1)()).toEqual(true)
 
-  assert.equal($EQ(1, $sig1)(), true)
-  assert.equal($EQ('1', $sig1)(), true)
+  expect($EQ(1, $sig1)()).toEqual(true)
+  expect($EQ('1', $sig1)()).toEqual(true)
 
-  assert.equal($NEQ(1, $sig1)(), false)
-  assert.equal($NEQ('1', $sig1)(), false)
+  expect($NEQ(1, $sig1)()).toEqual(false)
+  expect($NEQ('1', $sig1)()).toEqual(false)
 
-  assert.equal($If($sig1, 'a', 'b')(), 'a')
-  assert.equal($If($sig0, 'a', 'b')(), 'b')
+  expect($If($sig1, 'a', 'b')()).toEqual('a')
+  expect($If($sig0, 'a', 'b')()).toEqual('b')
 
-  assert.equal($Any($sig0, $sig1, $sig2)(), true)
+  expect($Any($sig0, $sig1, $sig2)()).toEqual(true)
 
-  assert.equal($AnyValue($sig0, $sig1, $sig2)(), 1)
+  expect($AnyValue($sig0, $sig1, $sig2)()).toEqual(1)
 
-  assert.equal($Or($sig0, $sig1)(), 1)
-  assert.equal($Or($sig0, $sig0)(), 0)
+  expect($Or($sig0, $sig1)()).toEqual(1)
+  expect($Or($sig0, $sig0)()).toEqual(0)
 
-  assert.equal($And($sig0, $sig1)(), 0)
-  assert.equal($And($sig1, $sig1)(), 1)
+  expect($And($sig0, $sig1)()).toEqual(0)
+  expect($And($sig1, $sig1)()).toEqual(1)
 
   let map = { a: 12 }
-  assert.equal($Map(map, $siga)(), 12)
+  expect($Map(map, $siga)()).toEqual(12)
 })

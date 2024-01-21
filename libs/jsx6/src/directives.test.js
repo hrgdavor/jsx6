@@ -1,47 +1,42 @@
-import { test } from 'node:test'
-import { strict as assert } from 'node:assert'
+import { afterAll, beforeAll, expect, test } from 'bun:test'
+import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import { h } from './jsx2dom.js'
 
-import { JSDOM } from 'jsdom'
 import { signal } from '@jsx6/signal'
 import { IS, NOT } from './core.js'
 import { getValue } from './getValue.js'
 import { setValue } from './setValue.js'
 
-test.before(() => {
-  const dom = new JSDOM('<div id="my-element-id" />') // insert any html needed for the unit test suite here
-  global.document = dom.window.document // add the globals needed for the unit tests in this suite.
-})
+GlobalRegistrator.register()
+afterAll(() => GlobalRegistrator.unregister())
 
-test('x-if', t => {
+test('x-if', () => {
   let $show = signal(true)
-
   let div = h('DIV', { 'x-if': $show }, 'test')
-
-  assert.equal(div.hasAttribute('hidden'), false)
-
+  expect(div.hasAttribute('hidden')).toEqual(false)
   $show(false)
-  assert.equal(div.hasAttribute('hidden'), true)
+  expect(div.hasAttribute('hidden')).toEqual(true)
 })
 
-test('x-filter', t => {
+test('x-filter', () => {
   // single filter is applied to getValue
   let input = h('input', { 'x-filter': IS })
   // filter will generate false because '' is falsy
-  assert.equal(input.value, '')
-  assert.equal(getValue(input), false)
+  expect(input.value).toEqual('')
+  expect(getValue(input)).toEqual(false)
 
   // input works with text, so setting number will set it's value to string rep of it
   input.value = 1
   // NOT filter will generate true because '1' is truthy
-  assert.equal(getValue(input), true)
+  expect(getValue(input)).toEqual(true)
 
   // array of filters is for getValue,setValue
   input = h('input', { 'x-filter': [null, IS] })
 
-  assert.equal(getValue(input), '')
+  expect(getValue(input)).toEqual('')
   setValue(input, '1')
-  assert.equal(getValue(input), 'true')
+  expect(getValue(input)).toEqual('true')
   setValue(input, '')
-  assert.equal(getValue(input), 'false')
+  expect(getValue(input)).toEqual('false')
 })
+//*/

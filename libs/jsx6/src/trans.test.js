@@ -1,23 +1,19 @@
-import { test } from 'node:test'
-import { strict as assert } from 'node:assert'
+import { expect, test, afterAll } from 'bun:test'
 import { addTranslations } from './core.js'
 import { $T, addTranslationsAndNotify } from './trans.js'
 
 import { signal } from '@jsx6/signal'
 
-// call immediately to update state values without async (simpler testing)
-// setAnimFunction(f => f())
-
-test('T', t => {
+test('T', () => {
   addTranslations({ name: 'Name' })
   const $s = signal('name')
   const $translated = $T($s)
-  assert.equal('name', $s())
-  assert.equal('Name', $translated())
+  expect('name').toEqual($s())
+  expect('Name').toEqual($translated())
 
   addTranslationsAndNotify({ name: 'Name2', first: 'First' })
-  assert.equal('Name2', $translated())
+  expect('Name2').toEqual($translated())
 
   $s('first')
-  assert.equal('First', $translated())
+  expect('First').toEqual($translated())
 })

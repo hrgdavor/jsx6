@@ -1,8 +1,8 @@
-import { define } from './core.js'
-import { getValue } from './getValue.js'
-import { domWithScope, insert, insertAttr } from './jsx2dom.js'
+//import { define } from './core.js'
+import { getValue } from '../jsx6/src/getValue.js'
+import { domWithScope, insert, insertAttr } from '../jsx6/src/jsx2dom.js'
 import { mergeValue, $State } from '@jsx6/signal'
-import { setValue } from './setValue.js'
+import { setValue } from '../jsx6/src/setValue.js'
 
 /**
  * Template for a web component. If creating with shadowRoot mode:'open' is forced.
@@ -10,16 +10,18 @@ import { setValue } from './setValue.js'
  * You can register the component automatically by using define utility. 
  * Just add a static block inside your class:
   ```js
-  import { define, Jsx6W} from '@jsx6/jsx6'
-  class MyCustomElement extends Jsx6W {
+  import { define } from '@jsx6/jsx6'
+  import { JsxW } from '@jsx6/w'
+  class MyCustomElement extends JsxW {
     static { define('my-custom-element', this) } 
   }
  ```
  this will automatically register it first time created using jsx.
  If you want to give users control over registration, or it could be used in HTML without JSX
   ```js
-  import { define, Jsx6W} from '@jsx6/jsx6'
-  class MyCustomElement extends Jsx6W {
+  import { define } from '@jsx6/jsx6'
+  import { JsxW } from '@jsx6/w'
+  class MyCustomElement extends JsxW {
     static define(tag='my-custom-element'){ define(tag, this) } 
   }
   // in that case user must call define before using it
@@ -33,7 +35,7 @@ export class JsxW extends HTMLElement {
   }
 
   constructor(attr, children, parent, shadow, shadowOptions) {
-    super()
+    //    super()
     if (shadow) {
       this.attachShadow({ ...shadowOptions, mode: 'open' })
       globalThis.activateJsxInspector?.(root) // support for jsx code jump when jsx-dev

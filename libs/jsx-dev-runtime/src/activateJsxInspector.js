@@ -1,5 +1,5 @@
-export function activateJsxInspector(root = document.body) {
-  root.addEventListener('contextmenu', e => {
+export function activateJsxInspector(root = globalThis?.document?.body) {
+  root?.addEventListener('contextmenu', e => {
     if (!e.ctrlKey && !e.shiftKey) return
     let target = e.target
     addJsxSrcAttribute(target.getRootNode())

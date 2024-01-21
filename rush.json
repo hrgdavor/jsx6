@@ -524,6 +524,12 @@
       "versionPolicyName": "individual"
     },
     {
+      "packageName": "@jsx6/w",
+      "projectFolder": "libs/w",
+      "tags": ["webcomponent"],
+      "versionPolicyName": "jsx6"
+    },
+    {
       "packageName": "@jsx6/repl",
       "projectFolder": "apps/repl",
       "tags": ["tools", "repl", "tutorial"],

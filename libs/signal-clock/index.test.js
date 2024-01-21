@@ -1,10 +1,9 @@
-import { test } from 'node:test'
-import { strict as assert } from 'node:assert'
+import { expect, test } from 'bun:test'
 import { $DurationSignal, $DurationSignalSeconds, toSeconds, withClockTime } from './index.js'
 
 import { $S, observeNow, signal } from '@jsx6/signal'
 
-test('duration', async t => {
+test('duration', async () => {
   return new Promise((resolve, reject) => {
     let now = Date.now()
     let from = signal(now - 73000)
@@ -14,13 +13,13 @@ test('duration', async t => {
     // and $DurationSignal would get a regular clock instead of what we passed in withClockTime
     withClockTime(now, () => {
       let $dur = $DurationSignal(toSeconds, from)
-      assert.equal(73, $dur())
+      expect(73).toEqual($dur())
       let $durms = $DurationSignal(f => f, $from2)
-      assert.equal(0, $durms())
+      expect(0).toEqual($durms())
       setTimeout(() => {
         $from2(now - 3)
         console.log('now', now, $from2(), $durms())
-        assert.equal(3, $durms())
+        expect(3).toEqual($durms())
         resolve()
       }, 30)
     })

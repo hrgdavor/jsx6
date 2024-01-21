@@ -1,29 +1,26 @@
 {
-  "name": "@jsx6/signal-clock",
+  "name": "@jsx6/w",
   "version": "1.8.0",
   "type": "module",
   "sideEffects": false,
-  "description": "Generate signal for current time to synchronize update of time related values",
-  "main": "index.js",
-  "types": "dist/index.d.ts",
-  "unpkg": "cjs/index.js",
-  "module": "./index.js",
+  "description": "Webcomponent base class",
+  "main": "JsxW.js",
+  "unpkg": "cjs/JsxW.js",
+  "module": "./JsxW.js",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./cjs/index.js",
-      "default": "./index.js"
+      "require": "./cjs/JsxW.js",
+      "default": "./JsxW.js"
     }
   },
   "files": [
-    "index.js",
-    "dist",
+    "JsxW.js",
     "esm",
     "cjs"
   ],
   "scripts": {
-    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
-    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
+    "build": "esbuild JsxW.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
+    "build-cjs": "esbuild JsxW.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "node --test",
     "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs && npx tsc"
   },
@@ -35,7 +32,7 @@
     "DOM",
     "JSX",
     "JSXRuntime",
-    "Performance",
+    "webcomponent",
     "HTML"
   ],
   "author": "Davor hrg",

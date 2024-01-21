@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.7.28",
+  "version": "1.8.0",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",
@@ -53,10 +53,12 @@
     "@jsx6/build": "^0.2.4",
     "esbuild": "^0.17.18",
     "jsdom": "~20.0.1",
-    "@jsx6/jsx-dev-runtime": "workspace:*",
-    "typescript": "^5.0.4"
+    "@jsx6/jsx-dev-runtime": "1.8.0",
+    "typescript": "^5.0.4",
+    "@happy-dom/global-registrator": "~13.2.0",
+    "@types/bun": "~1.0.2"
   },
   "dependencies": {
-    "@jsx6/signal": "workspace:*"
+    "@jsx6/signal": "1.8.0"
   }
 }

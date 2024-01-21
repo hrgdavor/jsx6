@@ -1,6 +1,12 @@
 {
   "compilerOptions": {
+    "types": ["bun-types", "@types/bun"],
     "allowJs": true,
+    "jsxImportSource": "@jsx6",
+    "jsx": "preserve",
+    // enable latest features
+    "lib": ["esnext"],
+    "target": "esnext",
     "moduleResolution": "node16"
   },
   "exclude": ["node_modules", "build_dev", "build", "dist"]
