@@ -13,6 +13,7 @@ importers:
       '@jsx6/jsx-runtime': workspace:*
       '@jsx6/jsx6': workspace:*
       '@jsx6/signal': workspace:*
+      '@jsx6/w': workspace:*
       '@trivago/prettier-plugin-sort-imports': ~3.3.0
       esbuild: ^0.17.18
       live-server: ^1.2.2
@@ -23,6 +24,7 @@ importers:
       '@jsx6/jsx-runtime': link:../../libs/jsx-runtime
       '@jsx6/jsx6': link:../../libs/jsx6
       '@jsx6/signal': link:../../libs/signal
+      '@jsx6/w': link:../../libs/w
     devDependencies:
       '@jsx6/build': 0.2.4
       '@jsx6/jsx-dev-runtime': link:../../libs/jsx-dev-runtime
@@ -148,7 +150,7 @@ importers:
       esbuild: ^0.17.18
       typescript: ^5.0.4
     dependencies:
-      '@types/node': 20.11.5
+      '@types/node': 20.11.24
     devDependencies:
       bun-types: 1.0.24
       esbuild: 0.17.18
@@ -198,7 +200,7 @@ importers:
       glob: 8.0.3
     devDependencies:
       '@trivago/prettier-plugin-sort-imports': 3.3.0_prettier@2.7.1
-      '@types/node': 20.11.5
+      '@types/node': 20.11.24
       esbuild: 0.17.18
       minimatch: 5.1.0
       prettier: 2.7.1
@@ -724,10 +726,16 @@ packages:
     resolution: {integrity: sha512-9avDaQJczATcXgfmMAW3MIWArOO7A+m90vuCFLr8AotWf8igO/mRoYukrk2cqZVtv38tHs33retzHEilM7FpeQ==}
     dev: true
 
+  /@types/node/20.11.24:
+    resolution: {integrity: sha512-Kza43ewS3xoLgCEpQrsT+xRo/EJej1y0kVYGiLFE1NEODXGzTfwiC6tXTLMQskn1X4/Rjlh0MQUvx9W+L9long==}
+    dependencies:
+      undici-types: 5.26.5
+
   /@types/node/20.11.5:
     resolution: {integrity: sha512-g557vgQjUUfN76MZAN/dt1z3dzcUsimuysco0KeluHgrPdJXkP/XdAURgyO2W9fZWHRtRBiVKzKn8vyOAwlG+w==}
     dependencies:
       undici-types: 5.26.5
+    dev: true
 
   /@types/ws/8.5.10:
     resolution: {integrity: sha512-vmQSUcfalpIq0R9q7uTo2lXs6eGIpt9wtnLdMv9LVpIjCA/+ufZRozlVoVelIYixx1ugCBKDhn89vnsEGOCx9A==}

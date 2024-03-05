@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/w",
-  "version": "1.8.1",
+  "version": "1.8.3",
   "type": "module",
   "sideEffects": false,
   "description": "Webcomponent base class",
