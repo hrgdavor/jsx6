@@ -7,7 +7,7 @@
     "ver": "node verSwitch.js && rush update ",
     "ver:dev": "node verSwitch.js w && rush update ",
     "pub1": "npm run ver:dev && cd libs/signal && npm publish",
-    "pub2": "cd libs/jsx6 && npm publish",
+    "pub2": "cd libs/jsx6 && npm publish && cd ../w && npm publish",
     "pub3": "cd libs/signal-dom && npm publish && cd ../signal-clock && npm publish",
     "pub4": "cd libs/jsx-runtime && npm publish && cd ../jsx-dev-runtime && npm publish ",
     "pub": "npm run pub1 && npm run pub2 && npm run pub3 && npm run pub4"
