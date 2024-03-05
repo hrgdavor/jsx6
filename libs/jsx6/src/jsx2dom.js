@@ -1,15 +1,4 @@
-import {
-  isStr,
-  isFunc,
-  isObj,
-  throwErr,
-  Group,
-  isNode,
-  NOT,
-  isArray,
-  requireFunc,
-  errorMessage,
-} from './core.js'
+import { isStr, isFunc, isObj, throwErr, Group, isNode, isArray, requireFunc, errorMessage } from './core.js'
 import { setAttribute } from './setAttribute.js'
 
 import {
@@ -134,7 +123,7 @@ export function nodeFromObservable(obj) {
       out[1] = textNode
     } else if (r instanceof Array) {
       updateTextNode(textNode, '')
-      if (parent) insert(parent, r, textNode)
+      if (parent) r = insert(parent, r, textNode)
       out.length = r.length
       for (let i = 0; i < r.length; i++) out[i] = r[i]
       out.push(textNode)
@@ -316,7 +305,7 @@ export function insert(parent, newChild, before, _self) {
     console.error('parent', parent, 'newChild', newChild, 'before', before, 'forInsert', _newChild)
     throw error
   }
-  return newChild
+  return _newChild
 }
 
 export const addToBody = n => insert(document.body, n)

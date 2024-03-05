@@ -1,4 +1,4 @@
-import { observe, observeNow, triggerSymbol, subscribeSymbol } from './src/observe.js'
+import { observe, observeNow, triggerSymbol, subscribeSymbol, isObservable } from './src/observe.js'
 import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
 
 export const signalValue = $signal => (typeof $signal === 'function' ? $signal() : $signal)
@@ -43,9 +43,14 @@ export function $F(filter, ...signals) {
     return $signal
   } else {
     const $first = signals[0]
-    const { $signal } = prepareSignal(filter(signalValue($first)))
-    observe($first, () => $signal(filter(signalValue($first))))
-    return $signal
+    if (isObservable($first)) {
+      const { $signal } = prepareSignal(filter(signalValue($first)))
+      observe($first, () => $signal(filter(signalValue($first))))
+      return $signal
+    } else {
+      // static value
+      return staticSignal($first)
+    }
   }
 }
 
@@ -66,16 +71,25 @@ const callbackForTemplateString = (arr, signals) => () => {
   return out.join('')
 }
 
-export const $NOT = $signal => $F(v => !v, $signal)
-export const $IS = $signal => $F(v => !!v, $signal)
+export const VALUE = v => v
+export const NOT = v => !v
+export const BOOL = v => !!v
+export const EQ = (a, b) => a == b
+export const NEQ = (a, b) => a != b
+export const EQX = (a, b) => a === b
+export const NEQX = (a, b) => a !== b
 
-export const $EQStrict = (to, $signal) => $F(v => to === v, $signal)
-export const $NEQStrict = (to, $signal) => $F(v => to !== v, $signal)
-export const $EQ = (to, $signal) => $F(v => to == v, $signal)
-export const $NEQ = (to, $signal) => $F(v => to != v, $signal)
+export const $NOT = $signal => $F(NOT, $signal)
+export const $BOOL = $signal => $F(BOOL, $signal)
+
+export const $EQ = (to, $signal) => $F(EQ, to, $signal)
+export const $NEQ = (to, $signal) => $F(NEQ, to, $signal)
+export const $EQX = (to, $signal) => $F(EQX, to, $signal)
+export const $NEQX = (to, $signal) => $F(NEQX, to, $signal)
 
 export const $If = ($signal, t, f) => $F(v => (v ? t : f), $signal)
 
+/** signal that is true if any of the signals is truthy */
 export const $Any = (...signals) =>
   $S(() => {
     for (let i = 0; i < signals.length; i++) {
@@ -84,6 +98,7 @@ export const $Any = (...signals) =>
     return false
   }, ...signals)
 
+/** signal that has value of first truthy signal value */
 export const $AnyValue = (...signals) =>
   $S(() => {
     for (let i = 0; i < signals.length; i++) {

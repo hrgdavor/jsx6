@@ -2,8 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test'
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import { h } from './jsx2dom.js'
 
-import { signal } from '@jsx6/signal'
-import { IS, NOT } from './core.js'
+import { signal, BOOL } from '@jsx6/signal'
 import { getValue } from './getValue.js'
 import { setValue } from './setValue.js'
 
@@ -20,18 +19,18 @@ test('x-if', () => {
 
 test('x-filter', () => {
   // single filter is applied to getValue
-  let input = h('input', { 'x-filter': IS })
+  let input = h('input', { 'x-filter': BOOL })
   // filter will generate false because '' is falsy
   expect(input.value).toEqual('')
   expect(getValue(input)).toEqual(false)
 
   // input works with text, so setting number will set it's value to string rep of it
   input.value = 1
-  // NOT filter will generate true because '1' is truthy
+  // BOOL filter will generate true because '1' is truthy
   expect(getValue(input)).toEqual(true)
 
   // array of filters is for getValue,setValue
-  input = h('input', { 'x-filter': [null, IS] })
+  input = h('input', { 'x-filter': [null, BOOL] })
 
   expect(getValue(input)).toEqual('')
   setValue(input, '1')

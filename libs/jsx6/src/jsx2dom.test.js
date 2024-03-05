@@ -4,10 +4,13 @@ import { domWithScope, getScope, h } from './jsx2dom.js'
 import { $State, $F } from '@jsx6/signal'
 
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
+
+globalThis.oldConsole = console
 GlobalRegistrator.register()
 afterAll(() => GlobalRegistrator.unregister())
 
 test('simple', () => {
+  // <div>test</div>
   let div = h('DIV', null, 'test')
 
   expect(div.innerHTML).toEqual('test')
@@ -18,6 +21,8 @@ test('updatable', () => {
   const generator = state => {
     if (state.count === 1) {
       return 'one'
+    } else if (state.count === 2) {
+      return [h('B', null, 'number: ' + state.count), 'A']
     } else {
       return h('B', null, 'number: ' + state.count)
     }
@@ -27,10 +32,13 @@ test('updatable', () => {
   expect(div.innerHTML).toEqual('one')
 
   $state.count = 2
-  expect(div.innerHTML).toEqual('<b>number: 2</b>')
+  expect(div.innerHTML).toEqual('<b>number: 2</b>A')
 
   $state.count = 1
   expect(div.innerHTML).toEqual('one')
+
+  $state.count = 3
+  expect(div.innerHTML).toEqual('<b>number: 3</b>')
 })
 
 test('oncreate', () => {

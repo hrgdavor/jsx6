@@ -1,3 +1,11 @@
+## TODO
+- Loop create webComponent, but make it parameter if elements are inside or outside
+  - current usage of textElementis nice, but could be done by switching them
+  - outside(default) - useful for tables and other places where elements should be among other children of the loop's parent
+  - inside - useful as a container
+  - which should be default ?
+
+
 ## tests
 
 node builtin tests from node V18+ V16.17+ ( V18.0.0, V16.17.0)

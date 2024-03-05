@@ -39,12 +39,6 @@ export const throwErr = (c, ...info) => {
   throw new Error(msg)
 }
 
-export const NOT = v => !v
-export const VALUE = v => v
-export const IS = v => !!v
-export const EQ = to => v => to === v
-export const NEQ = to => v => to !== v
-
 export const isFunc = f => typeof f === 'function'
 export const isStr = s => typeof s === 'string'
 export const isObj = o => typeof o === 'object'

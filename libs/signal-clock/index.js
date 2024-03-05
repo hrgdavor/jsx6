@@ -81,18 +81,18 @@ export function getClockSignalSeconds() {
 }
 
 /** Make a Signal that calculates duration and watches the clock to update the value along
- * with wathing the base value. Formatter will get duration in miliseconds.
+ * with wathing the base value. Formatter will get duration in seconds.
  *
- * @param {Function} formatter convert duration in miliseconds to something else (usually string)
+ * @param {Function} formatter convert duration in seconds to something else (usually string)
  * @param {Function} signal base value to calculate duration from (if zero, duration is also zero)
  * @returns
  */
 export const $DurationSignalSeconds = (formatter, signal) => $DurationSignal(formatter, signal, 1)
 
 /** Make a Signal that calculates duration and watches the clock to update the value along
- * with wathing the base value. Formatter will get duration in seconds.
+ * with wathing the base value. Formatter will get duration in miliseconds.
  *
- * @param {Function} formatter convert duration in seconds to something else (usually string)
+ * @param {Function} formatter convert duration in miliseconds to something else (usually string)
  * @param {Function} $signal base value to calculate duration from (if zero, duration is also zero)
  * @returns
  */

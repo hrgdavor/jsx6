@@ -1,19 +1,5 @@
 import { expect, test } from 'bun:test'
-import {
-  $And,
-  $Any,
-  $AnyValue,
-  $EQ,
-  $EQStrict,
-  $IS,
-  $If,
-  $Map,
-  $NEQ,
-  $NEQStrict,
-  $NOT,
-  $Or,
-  $S,
-} from './index.js'
+import { $And, $Any, $AnyValue, $EQ, $EQX, $BOOL, $If, $Map, $NEQ, $NEQX, $NOT, $Or, $S } from './index.js'
 // call immediately to update state values without async (simpler testing)
 
 test('basics', () => {
@@ -45,23 +31,29 @@ test('combine', () => {
 test('utils', () => {
   const $sig0 = $S(0)
   const $sig1 = $S(1)
+  const $sig1_ = $S(1)
   const $sig2 = $S(2)
   const $siga = $S('a')
 
   expect($NOT($sig0)()).toEqual(true)
   expect($NOT($sig1)()).toEqual(false)
 
-  expect($IS($sig0)()).toEqual(false)
-  expect($IS($sig1)()).toEqual(true)
+  expect($BOOL($sig0)()).toEqual(false)
+  expect($BOOL($sig1)()).toEqual(true)
 
-  expect($EQStrict(1, $sig1)()).toEqual(true)
-  expect($EQStrict('1', $sig1)()).toEqual(false)
+  expect($EQX(1, $sig1)()).toEqual(true)
+  expect($EQX('1', $sig1)()).toEqual(false)
 
-  expect($NEQStrict(1, $sig1)()).toEqual(false)
-  expect($NEQStrict('1', $sig1)()).toEqual(true)
+  expect($NEQX(1, $sig1)()).toEqual(false)
+  expect($NEQX('1', $sig1)()).toEqual(true)
 
   expect($EQ(1, $sig1)()).toEqual(true)
   expect($EQ('1', $sig1)()).toEqual(true)
+
+  let $testEqsignals = $EQ($sig1_, $sig1)
+  expect($testEqsignals()).toEqual(true)
+  $sig1_(2)
+  expect($testEqsignals()).toEqual(false)
 
   expect($NEQ(1, $sig1)()).toEqual(false)
   expect($NEQ('1', $sig1)()).toEqual(false)
