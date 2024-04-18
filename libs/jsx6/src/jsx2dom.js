@@ -249,6 +249,10 @@ export function insertAttr(attr, out, self, component) {
 }
 
 function setPropGroup(self, part, path) {
+  // allow p attribute to be signal or callback for catching reference to the element
+  if (isFunc(path)) {
+    return path(part)
+  }
   if (isStr(path)) path = path.split('.')
   const [$group, $key] = path
   if (self === undefined) throw throwErr(JSX6E10_CONTEXT_REQUIRED)

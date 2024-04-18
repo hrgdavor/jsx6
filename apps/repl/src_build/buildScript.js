@@ -4,6 +4,7 @@ import * as esbuild from 'esbuild'
 export const esbDef = {
   // tsconfig.json is used for vscode to allow for more autocomplete options (without typescript checks)
   // it makes esbuild act weird, so we use a dummy config
+  tsconfig: 'tsconfig-custom.json',
   // jsxFactory: 'h',
   // jsxFragment: 'null',
   jsx: 'automatic',

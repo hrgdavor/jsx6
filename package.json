@@ -12,5 +12,9 @@
     "pub4": "cd libs/jsx-runtime && npm publish && cd ../jsx-dev-runtime && npm publish ",
     "pub": "npm run pub1 && npm run pub2 && npm run pub3 && npm run pub4"
   },
+  "workspaces": [
+    "libs/*",
+    "apps/*"
+  ],
   "dependencies": {}
 }

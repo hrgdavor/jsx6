@@ -48,7 +48,7 @@ export function observe(obj, callback, trigger = false) {
         bindingSub.call(obj, callback)
       } else {
         // not observable or Promise, it is assumed a static value
-        // and will be used as alue if trigger=true
+        // and will be used as value if trigger=true
         value = obj
       }
     }

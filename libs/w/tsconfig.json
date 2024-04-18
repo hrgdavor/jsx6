@@ -1,6 +1,8 @@
 {
   "compilerOptions": {
+    "noImplicitAny": false,
     "target": "ESNext",
+    "jsxImportSource": "@jsx6",
     // Tells TypeScript to read JS files, as
     // normally they are ignored as source files
     "allowJs": true,
@@ -13,7 +15,13 @@
     "declaration": true,
     // go to js file when using IDE functions like
     // "Go to Definition" in VSCode
-    "declarationMap": true
+    "declarationMap": true,
+    "baseUrl": ".",
+    // vscode does not recognize workspace for some reason
+    "paths": {
+      "@jsx6/signal": ["../signal/index.js"],
+      "@jsx6/jsx6": ["../jsx6/index.js"]
+    }
   },
-  "include": ["JsxW.js", "src/**/*.js"]
+  "include": ["./src/*.js", "./src/**/*.js"]
 }

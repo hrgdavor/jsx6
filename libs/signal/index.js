@@ -1,6 +1,12 @@
 import { observe, observeNow, triggerSymbol, subscribeSymbol, isObservable } from './src/observe.js'
 import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
 
+/** Utility that that returns signal value if the parameter is a signal/function and the parameter otherwise.
+ * This is especially useful when you want to handle cases whare you allow either a signal or a raw value
+ *
+ * @param {Function<any>|any} $signal
+ * @returns any
+ */
 export const signalValue = $signal => (typeof $signal === 'function' ? $signal() : $signal)
 /**
  * If called with single parameter creates new signal.
@@ -117,3 +123,4 @@ export const $Map = (map, $signal) => $F(v => map[v] || v, $signal)
 
 export { observe, observeNow, signal, prepareSignal, triggerSymbol, subscribeSymbol, asSignal, staticSignal }
 export * from './src/state.js'
+export * from './src/makeContext.js'

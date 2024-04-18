@@ -52,7 +52,8 @@
     "esbuild": "^0.17.18",
     "@jsx6/jsx-dev-runtime": "workspace:*",
     "typescript": "^5.0.4",
-    "@happy-dom/global-registrator": "~13.2.0",
+    "@happy-dom/global-registrator": "~14.7.1",
+    "happy-dom": "~14.7.1",
     "@types/bun": "~1.0.2"
   },
   "dependencies": {

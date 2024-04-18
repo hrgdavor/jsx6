@@ -4,7 +4,6 @@
     // Tells TypeScript to read JS files, as
     // normally they are ignored as source files
     "allowJs": true,
-    "skipLibCheck": true,
     // Types should go into this directory.
     // Removing this would place the .d.ts files
     // next to the .js files
@@ -16,6 +15,6 @@
     // "Go to Definition" in VSCode
     "declarationMap": true
   },
-  "include": ["index.js", "src/**/*.js", "../w/JsxW.js"],
+  "include": ["index.js", "src/**/*.js", "../w/src/JsxW.js"],
   "exclude": ["**/*.test.js"]
 }

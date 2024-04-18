@@ -54,7 +54,7 @@
     "@jsx6/editor-monaco": "workspace:^0.34.100",
     "live-server": "^1.2.2",
     "@babel/standalone": "~7.18.12",
-    "@happy-dom/global-registrator": "~13.2.0",
+    "@happy-dom/global-registrator": "~14.7.1",
     "@types/bun": "~1.0.2",
     "bun-types": "~1.0.24"
   },
@@ -63,9 +63,10 @@
     "@jsx6/jsx-runtime": "workspace:*",
     "@jsx6/dom-observer": "^2.0.0",
     "@jsx6/signal": "workspace:*",
+    "@jsx6/w": "workspace:*",
     "babel-plugin-syntax-jsx": "~6.18.0",
     "babel-plugin-jsx-simple": "~1.6.0",
-    "markdown-it": "~13.0.1",
+    "markdown-it": "~14.1.0",
     "mulmd": "~0.7.0",
     "perfect-scrollbar": "~1.5.5"
   }

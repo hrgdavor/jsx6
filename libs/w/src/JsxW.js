@@ -1,7 +1,5 @@
-import { getValue } from '../jsx6/src/getValue.js'
-import { domWithScope, insert, insertAttr } from '../jsx6/src/jsx2dom.js'
+import { setValue, getValue, domWithScope, insert, insertAttr } from '@jsx6/jsx6'
 import { mergeValue, $State } from '@jsx6/signal'
-import { setValue } from '../jsx6/src/setValue.js'
 
 /**
  * Template for a web component. If creating with shadowRoot mode:'open' is forced.
@@ -32,10 +30,10 @@ export class JsxW extends HTMLElement {
   }
 
   constructor(attr, children, parent, shadow, shadowOptions) {
-    //    super()
+    super()
     if (shadow) {
       this.attachShadow({ ...shadowOptions, mode: 'open' })
-      globalThis.activateJsxInspector?.(root) // support for jsx code jump when jsx-dev
+      globalThis.activateJsxInspector?.(this.shadowRoot) // support for jsx code jump when jsx-dev
     }
     let tpl = domWithScope(this, () => this.tpl(attr || {}, children, parent))
     if (typeof tpl === 'function') {
@@ -122,7 +120,8 @@ export class JsxWS extends JsxW {
  */
 export function define(tag, customElement) {
   if (customElements.get(tag)) {
-    log.warn(errorMessage(JSX6E16_CUSTOM_ELEMENT_DEFINED), tag, customElements.get(tag), customElement)
+    console.warn('JSX6E16 custom element already defined')
+    // console.warn(errorMessage(JSX6E16_CUSTOM_ELEMENT_DEFINED), tag, customElements.get(tag), customElement)
   } else {
     customElements.define(tag, customElement)
   }

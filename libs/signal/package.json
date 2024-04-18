@@ -4,15 +4,14 @@
   "type": "module",
   "sideEffects": false,
   "description": "signal implementation for vanilla JS or JSX",
-  "main": "index.js",
-  "types": "dist/index.d.ts",
+  "main": "./index.js",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "require": "./cjs/index.js",
-      "default": "./index.js"
+      "default": "./index.js",
+      "import": "./index.js"
     }
   },
   "files": [
@@ -52,7 +51,10 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@types/node": "latest"
+    "@types/node": "latest",
+    "@jsx6/signal": "workspace:*",
+    "@happy-dom/global-registrator": "~14.7.1",
+    "@jsx6/jsx6": "workspace:*"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",

@@ -54,6 +54,13 @@ export const isArray = a => a instanceof Array
  */
 export const isNode = obj => obj?.nodeType !== undefined //
 
+/** Check if a value is a DOM TextNode.
+ *
+ * @param {any} obj
+ * @returns {Boolean} true/false if passed value is a TextNode or not
+ */
+export const isTextNode = obj => obj?.nodeType === 3 //
+
 /** Check if value is a Function, return the function so function call can be chained
  * or throw an error if value is not a function
  *
