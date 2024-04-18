@@ -12,14 +12,6 @@ For building SPA applications by leveraging JSX and signals. Not meant to hide o
 - if there is a popular standalone signals lib will consider integrating 
 
 
-## If you are doing SSR(Server side rendering) GTFO
-
-Supporting SSR(Server Side Rendering) is actively ignored. Any compromises for using this lib combined with SSR are not welcome. 
-
-This lib is strictly for JS APPLICATIOS that are not crawled by search engines. 
-
-I do not want any ugly compromises to suport SSR (that I luckily never personally needed in my JavaScript apps).
-
 ## Useful standalone parts of JSX6
 
 If more parts of `jsx6` will make sense as standalone libs this section will be updated.
@@ -55,3 +47,11 @@ After cloning the repository you need to initialize  project.
 
 In the base dir of the project run `rush update`, and it will download dependencies using pnpm and link internal dependencies inside the monorepo.
 
+
+# If you are doing SSR(Server side rendering) GTFO
+
+Supporting SSR(Server Side Rendering) is actively ignored. Any compromises for using this lib combined with SSR are not welcome. 
+
+This lib is strictly for JS APPLICATIOS that are not crawled by search engines. 
+
+I do not want any ugly compromises to suport SSR (that I luckily never personally needed in my JavaScript apps).
