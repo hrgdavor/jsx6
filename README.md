@@ -12,9 +12,9 @@ For building SPA applications by leveraging JSX and signals. Not meant to hide o
 - if there is a popular standalone signals lib will consider integrating 
 
 
-## If you are doing SSR(Server side rendering) GTFO(Get the fuck out) of here
+## If you are doing SSR(Server side rendering) GTFO
 
-WILL NOT even consider supporting SSR(Server Side Rendering) and make any compromises for using this lib combined with SSR. 
+Supporting SSR(Server Side Rendering) is actively ignored. Any compromises for using this lib combined with SSR are not welcome. 
 
 This lib is strictly for JS APPLICATIOS that are not crawled by search engines. 
 
