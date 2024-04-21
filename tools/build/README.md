@@ -4,7 +4,7 @@
 During copy task you can transform the copied file content using filters.
 
 config for filter contains
-- `filter` - function taht transforms and returns new value, but can return `undefined` to say no changes happened
+- `filter` - function that transforms and returns new value, but can return `undefined` to say no changes happened
 - `include` - list of include glob patterns
 - `exclude` - list of exclude glob patterns
 
