@@ -23,11 +23,12 @@ to do it differently. Vite was likely written by devs that thought existing tool
 
 # VS something else
 
-This utility is my exploration if I can setup tooling to do those things (dev/watch, build, deploy) for my projects.
-This also means it will do only a smll subset of things Vite does, because that is the small subset I need.
-Vite has a much broader audience, and that is the double edge sword of any great library or framework,
-they are great but support so many different cases, the more time passes by, lesser is the percentage of
-things useful to individual teams/developers.
+This utility is my exploration if I can setup productive tooling to do those things (dev/watch, build, deploy) for my projects.
+This also means it will do only a small subset of things tools like Vite do, because the small subset is what I need.
+Vite has a much broader audience, and that is the double-edged sword of any great library or framework,
+they ARE great, but support so many different cases, the more time passes by, lesser is the percentage of
+things useful to individual teams/developers, and it also become increasingly more difficult do deviate from the
+main concept.
 
 # Bun parseArgs
 
