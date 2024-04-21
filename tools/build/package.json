@@ -16,8 +16,7 @@
     "src"
   ],
   "scripts": {
-    "format": "prettier --write \"./*.{js,jsx,json}\"",
-    "version": "node ./versync.js 0.34.100 && git add README.md"
+    "format": "prettier --write \"./*.{js,jsx,json}\""
   },
   "repository": {
     "type": "git",
@@ -46,8 +45,7 @@
     "@types/node": "latest",
     "esbuild": "^0.17.18",
     "prettier": "~2.7.1",
-    "minimatch": "^5.0.1",
-    "vitest": "~0.29.3"
+    "minimatch": "^5.0.1"
   },
   "dependencies": {
     "glob": "^8.0.3"
