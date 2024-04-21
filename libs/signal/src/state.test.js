@@ -76,7 +76,7 @@ test('setValue', () => {
   expect($s({ y: 1 })).toEqual(true)
   expect($s()).toEqual({ y: 1, x: undefined })
 
-  // set same value again, no changes will happen, and taht is reported
+  // set same value again, no changes will happen, and that is reported
   expect($s({ y: 1 })).toEqual(false)
 })
 
@@ -86,7 +86,7 @@ test('mergeValue', () => {
   expect(mergeValue($s, { y: 1 })).toEqual(true)
   expect($s()).toEqual({ y: 1, x: 1 })
 
-  // set same value again, no changes will happen, and taht is reported
+  // set same value again, no changes will happen, and that is reported
   expect(mergeValue($s, { y: 1 })).toEqual(false)
 })
 //*/
