@@ -2,6 +2,30 @@
   "name": "@jsx6/nodditor",
   "entries": [
     {
+      "version": "1.0.40",
+      "tag": "@jsx6/nodditor_v1.0.40",
+      "date": "Thu, 25 Apr 2024 11:46:22 GMT",
+      "comments": {
+        "dependency": [
+          {
+            "comment": "Dependency @jsx6/jsx-runtime version bump from 1.8.3 to 1.8.4."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx6 version bump from 1.8.3 to 1.8.4."
+          },
+          {
+            "comment": "Dependency @jsx6/signal version bump from 1.8.3 to 1.8.4."
+          },
+          {
+            "comment": "Dependency @jsx6/w version bump from 1.8.3 to 1.8.4."
+          },
+          {
+            "comment": "Dependency @jsx6/jsx-dev-runtime version bump from 1.8.3 to 1.8.4."
+          }
+        ]
+      }
+    },
+    {
       "version": "1.0.29",
       "tag": "@jsx6/nodditor_v1.0.29",
       "date": "Sun, 17 Sep 2023 14:41:08 GMT",
