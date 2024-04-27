@@ -146,16 +146,12 @@ importers:
   ../../libs/signal:
     specifiers:
       '@happy-dom/global-registrator': ~14.7.1
-      '@jsx6/jsx6': workspace:*
-      '@jsx6/signal': workspace:*
       '@types/node': latest
       bun-types: ~1.0.24
       esbuild: ^0.17.18
       typescript: ^5.0.4
     dependencies:
       '@happy-dom/global-registrator': 14.7.1
-      '@jsx6/jsx6': link:../jsx6
-      '@jsx6/signal': 'link:'
       '@types/node': 20.12.7
     devDependencies:
       bun-types: 1.0.36
