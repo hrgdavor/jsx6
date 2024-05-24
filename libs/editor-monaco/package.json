@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/editor-monaco",
-  "version": "0.34.100",
+  "version": "0.48.0",
   "type": "module",
   "description": "Monaco editor pre-build for standalone usage",
   "main": "index.js",
@@ -21,7 +21,7 @@
     "build-editor-esm": "esbuild index.js --outfile=dist/index.esm.js --bundle --sourcemap --minify --loader:.ttf=file --format=esm",
     "build-workers": "esbuild editor.worker.js ts.worker.js json.worker.js html.worker.js css.worker.js --outdir=dist --bundle --sourcemap --minify --loader:.ttf=file",
     "format": "prettier --write \"./*.{js,jsx,json}\"",
-    "version": "node ./versync.js 0.34.100 && git add README.md",
+    "version": "node ./versync.js 0.48.0 && git add README.md",
     "prepublishOnly": "npm run build"
   },
   "repository": {
@@ -55,6 +55,6 @@
     "http-server": "~14.1.1"
   },
   "dependencies": {
-    "monaco-editor": "~0.34.0"
+    "monaco-editor": "~0.48.0"
   }
 }

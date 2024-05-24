@@ -524,6 +524,12 @@
       "versionPolicyName": "individual"
     },
     {
+      "packageName": "@jsx6/url-util",
+      "projectFolder": "libs/url-util",
+      "tags": ["url", "html"],
+      "versionPolicyName": "individual"
+    },
+    {
       "packageName": "@jsx6/w",
       "projectFolder": "libs/w",
       "tags": ["webcomponent"],

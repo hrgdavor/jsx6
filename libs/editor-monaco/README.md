@@ -50,7 +50,7 @@ The worker files are named by convention: `editor.worker.js`, `ts.worker.js`, `h
 Although you can simply use the main editor code from CDN by adding script tag to your html: 
 
 ```html
-<script src="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.js"></script>
+<script src="https://www.unpkg.com/@jsx6/editor-monaco@0.48.0/dist/index.js"></script>
 ```
 
 it is not as simple as that with web workers. Trying to run worker from CDN on your page will cause a CORS error.
@@ -60,7 +60,7 @@ There is a neat trick that I learned about while preparing to use this pre-built
 To be able to run worker code from CDN you need to generate [data url](https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs) with a script inside that tells Monaco where base is, and call `importScripts` inside the worker script. This way the worker is local (no CORS error) and then our small two-liner worker loads the external script ... and it works :).
 
 ```js
-const workerBase = 'https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/'
+const workerBase = 'https://www.unpkg.com/@jsx6/editor-monaco@0.48.0/dist/'
 self.MonacoEnvironment = { getWorkerUrl: (moduleId, label)=>{
   if(label === 'javascript'){
     const proxyCode = `self.MonacoEnvironment = { baseUrl: '${workerBase}'};
@@ -83,12 +83,13 @@ Local copy of Monaco pre-built files [more details](monaco.local.md)
 
 Monaco pre-built files from CDN [more details](monaco.cdn.md)
 ```html
-<link rel="stylesheet" href="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.css">
-<script src="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.js"></script>
-<script>monaco.setPreBuiltWorkerBase('https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist', true)</script>
+<link rel="stylesheet" href="https://www.unpkg.com/@jsx6/editor-monaco@0.48.0/dist/index.css">
+<script src="https://www.unpkg.com/@jsx6/editor-monaco@0.48.0/dist/index.js"></script>
+<script>monaco.setPreBuiltWorkerBase('https://www.unpkg.com/@jsx6/editor-monaco@0.48.0/dist', true)</script>
 ```
 
 # versions
 - [@jsx6/editor version] -> [monaco version]
-- 0.34.100 -> [monaco/0.34.0] - with some internal patches
-- 0.34.0 -> [monaco/0.34.0] - initial version
+- 0.48.0 -> [monaco-editor@0.48.0]
+- 0.34.100 -> [monaco-editor@0.34.0] - with some internal patches
+- 0.34.0 -> [monaco-editor@0.34.0] - initial version

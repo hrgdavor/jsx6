@@ -22,7 +22,7 @@
   "scripts": {
     "start": "node src_build/build.js --dev",
     "build": "node src_build/build.js",
-    "prepublishOnly": "node ../../verSwitch.js p && npx tsc"
+    "prepublishOnly": "node ../../verSwitch.js p"
   },
   "repository": {
     "type": "git",

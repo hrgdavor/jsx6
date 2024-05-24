@@ -1,0 +1,9 @@
+{
+  "name": "@jsx6/url-util",
+  "version": "1.0.1",
+  "exports": "./index.js",
+  "publish": {
+    "include": ["README.md", "index.js"],
+    "exclude": []
+  }
+}

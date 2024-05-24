@@ -1,10 +1,10 @@
 {
-  "name": "@jsx6/signal",
-  "version": "1.8.7",
+  "name": "@jsx6/url-util",
+  "version": "1.0.1",
   "type": "module",
   "sideEffects": false,
-  "description": "signal implementation for vanilla JS or JSX",
-  "main": "./index.js",
+  "description": "Utilities to manage url parameters",
+  "main": "index.js",
   "types": "dist/index.d.ts",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
@@ -24,20 +24,17 @@
     "cjs"
   ],
   "scripts": {
-    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
-    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
+    "build": "esbuild index.js --outdir=esm --bundle --sourcemap --minify --format=esm",
+    "build-cjs": "esbuild index.js --outdir=cjs --bundle --sourcemap --minify --format=cjs",
     "test": "node --test",
-    "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs && npx tsc"
+    "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hrgdavor/jsx6.git"
   },
   "keywords": [
-    "DOM",
-    "JSX",
-    "JSXRuntime",
-    "Performance",
+    "URL",
     "HTML"
   ],
   "author": "Davor hrg",
@@ -51,14 +48,9 @@
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
   },
-  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
-  "dependencies": {
-    "@types/node": "latest",
-    "@happy-dom/global-registrator": "~14.7.1"
-  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/url-util/README.md",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "typescript": "^5.0.4",
-    "bun-types": "~1.0.24"
+    "typescript": "^5.0.4"
   }
 }

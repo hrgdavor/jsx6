@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/repl",
-  "version": "1.8.6",
+  "version": "1.8.7",
   "type": "module",
   "description": "JSX6 REPL engine",
   "main": "index.js",
@@ -51,7 +51,7 @@
     "@jsx6/jsx-dev-runtime": "workspace:*",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0",
     "prettier": "~2.7.1",
-    "@jsx6/editor-monaco": "workspace:^0.34.100",
+    "@jsx6/editor-monaco": "workspace:*",
     "live-server": "^1.2.2",
     "@babel/standalone": "~7.18.12",
     "@happy-dom/global-registrator": "~14.7.1",

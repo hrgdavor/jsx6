@@ -1,5 +1,5 @@
 import { toDom, isNode } from '@jsx6/jsx6'
-import { activateJsxInspector } from './src/activateJsxInspector'
+import { activateJsxInspector } from './src/activateJsxInspector.js'
 
 function jsxDEV(tag, { children, ...attr } = {}, key, isStatic, source) {
   try {
