@@ -1,5 +1,10 @@
 import { makeObserverHandler } from './makeObserverHandler.js'
 
+/**
+ * @typedef ResizeObserverOptions
+ * @param {string} box - content-box (the default), border-box, device-pixel-content-box
+ */
+
 /** Utility to handle observing resize events. Reason for having this is that
  * observer calling back to js has performace overhead so it is preferred to reuse them.
  *
@@ -7,9 +12,10 @@ import { makeObserverHandler } from './makeObserverHandler.js'
  *
  * @param {Node} el - DOM node to observe
  * @param {Function} callback observer
+ * @param {ResizeObserverOptions} options observer
  * @returns {Function} a function that removes the observer
  */
-export const observeResize = (el, callback) => handler.observe(el, callback)
+export const observeResize = (el, callback, options) => handler.observe(el, callback, options)
 
 const handler = makeObserverHandler('ResizeObserver')
 handler.observer = new ResizeObserver(handler)

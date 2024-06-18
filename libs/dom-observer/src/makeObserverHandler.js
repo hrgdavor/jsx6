@@ -16,13 +16,13 @@ export const makeObserverHandler = name => {
     })
   }
 
-  listener.observe = (el, callback) => {
+  listener.observe = (el, callback, options) => {
     const observer = listener.observer
 
     let arr = listenMap.get(el)
 
     if (!arr) {
-      observer.observe(el)
+      observer.observe(el, options)
       listenMap.set(el, (arr = []))
     }
 
