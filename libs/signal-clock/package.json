@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal-clock",
-  "version": "1.8.7",
+  "version": "1.8.8",
   "type": "module",
   "sideEffects": false,
   "description": "Generate signal for current time to synchronize update of time related values",

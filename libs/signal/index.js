@@ -121,6 +121,16 @@ export const $AndB = ($sa, $sb) => $F((a, b) => !!(a && b), $sa, $sb)
 
 export const $Map = (map, $signal) => $F(v => map[v] || v, $signal)
 
-export { observe, observeNow, signal, prepareSignal, triggerSymbol, subscribeSymbol, asSignal, staticSignal }
+export {
+  observe,
+  observeNow,
+  signal,
+  prepareSignal,
+  triggerSymbol,
+  subscribeSymbol,
+  asSignal,
+  staticSignal,
+  isObservable,
+}
 export * from './src/state.js'
 export * from './src/makeContext.js'

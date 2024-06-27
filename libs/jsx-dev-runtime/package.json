@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx-dev-runtime",
-  "version": "1.8.7",
+  "version": "1.8.8",
   "type": "module",
   "sideEffects": false,
   "description": "JSX dev runtime for jsx6",
