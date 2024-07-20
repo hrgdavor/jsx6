@@ -1,5 +1,10 @@
 import { isObj, isArray } from './core.js'
 
+/**
+ *
+ * @param {*} obj
+ * @param {ForEachCallback} callback
+ */
 export function forEachProp(obj, callback) {
   if (obj) {
     if (isObj(obj)) {
@@ -11,3 +16,10 @@ export function forEachProp(obj, callback) {
     }
   }
 }
+
+/**
+ * @callback ForEachCallback
+ * @param {any} item array element
+ * @param {number|string} index that is number for arrays, and string for objects
+ * @param {Array} original array
+ */

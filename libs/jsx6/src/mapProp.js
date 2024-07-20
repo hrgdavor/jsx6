@@ -1,7 +1,23 @@
-import { isObj, isArray } from './core.js'
+/**
+ * @typedef {import('./forEachProp.js').ForEachCallback} ForEachCallback
+ */
 
+import { isObj, isArray } from './core.js'
+/**
+ *
+ * @param {Object|Array} obj
+ * @param {ForEachCallback} callback
+ * @returns {Array}
+ */
 export const mapPropArray = (obj, callback) => mapProp(obj, callback, true)
 
+/**
+ *
+ * @param {Object|Array} obj
+ * @param {ForEachCallback} callback
+ * @param {boolean} asArray return array regardless if source is object
+ * @returns {Object|Array}
+ */
 export function mapProp(obj, callback, asArray) {
   if (obj) {
     if (isArray(obj)) {

@@ -1,6 +1,11 @@
 # Change Log - @jsx6/jsx6
 
-This log was last generated on Thu, 27 Jun 2024 15:01:50 GMT and should not be manually modified.
+This log was last generated on Fri, 19 Jul 2024 18:45:50 GMT and should not be manually modified.
+
+## 1.8.9
+Fri, 19 Jul 2024 18:45:50 GMT
+
+_Version update only_
 
 ## 1.8.8
 Thu, 27 Jun 2024 15:01:50 GMT
