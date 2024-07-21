@@ -5,5 +5,10 @@
   },
   "files.associations": {
     "*.js": "javascriptreact"
-  }
+  },
+  "typescript.inlayHints.propertyDeclarationTypes.enabled": false,
+  "typescript.inlayHints.parameterTypes.enabled": false,
+  "typescript.inlayHints.variableTypes.enabled": false,
+  "typescript.inlayHints.parameterNames.enabled": "none",
+  "typescript.inlayHints.variableTypes.suppressWhenTypeMatchesName": false
 }
