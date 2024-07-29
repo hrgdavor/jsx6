@@ -1,17 +1,20 @@
 import { $F, observeNow, observe, signal } from '@jsx6/signal'
 
 let clockSignal
+let clockSignalDate
 let clockSignalSeconds
 let requestAnimationFrame = globalThis.requestAnimationFrame || (f => setTimeout(() => f(), 10))
 
 function initClockSignal() {
   clockSignal = signal(Date.now())
+  clockSignalDate = signal(new Date())
   clockSignalSeconds = signal(toSeconds(clockSignal()))
   function callNext() {
     let now = Date.now()
     let nows = toSeconds(now)
     if (nows !== clockSignalSeconds()) {
       clockSignal(now)
+      clockSignalDate(now)
       clockSignalSeconds(nows)
     }
     requestAnimationFrame(callNext)
@@ -47,12 +50,15 @@ export function toSeconds(time) {
  */
 export function withClockTime(time, callback) {
   let c = clockSignal
+  let cd = clockSignalDate
   let cs = clockSignalSeconds
   try {
     if (typeof time == 'function') {
       clockSignal = $F(toMs, time)
+      clockSignalDate = $F(x => x, time)
       clockSignalSeconds = $F(toSeconds, time)
     } else {
+      clockSignalDate = signal(time)
       time = toMs(time)
       clockSignal = signal(time)
       clockSignalSeconds = signal(toSeconds(time))
@@ -60,6 +66,7 @@ export function withClockTime(time, callback) {
     callback()
   } finally {
     clockSignal = c
+    clockSignalDate = cd
     clockSignalSeconds = cs
   }
 }
@@ -70,6 +77,14 @@ export function withClockTime(time, callback) {
 export function getClockSignal() {
   if (!clockSignal) initClockSignal()
   return clockSignal
+}
+
+/**
+ * @returns current clock signal with Date object
+ */
+export function getClockSignalDate() {
+  if (!clockSignal) initClockSignal()
+  return clockSignalDate
 }
 
 /**
