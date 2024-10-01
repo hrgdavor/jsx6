@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/w",
-  "version": "1.8.12",
+  "version": "1.8.13",
   "type": "module",
   "sideEffects": false,
   "description": "Webcomponent base class",
@@ -49,9 +49,9 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {
-    "@jsx6/jsx-dev-runtime": "1.8.12",
-    "@jsx6/signal": "1.8.12",
-    "@jsx6/jsx6": "1.8.12"
+    "@jsx6/jsx-dev-runtime": "1.8.13",
+    "@jsx6/signal": "1.8.13",
+    "@jsx6/jsx6": "1.8.13"
   },
   "devDependencies": {
     "esbuild": "^0.17.18",

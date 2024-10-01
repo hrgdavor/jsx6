@@ -88,14 +88,14 @@ function validateSimple(v, rule = {}, field) {
 
   var reg = pattern instanceof RegExp ? pattern : new RegExp(pattern)
   if (!reg.test(v)) {
-    return { type, message, value, example, min, max, rule, field }
+    return { ...rule, value: v, field }
   }
 
   var hasMin = min !== void 0 && min !== null
   var hasMax = max !== void 0 && max !== null
   if (hasMin || hasMax) {
     v = parseFloat(v)
-    var prep = { type: 'invalid_range', min, max, field }
+    var prep = { type: 'invalid_range', value: v, min, max, field }
     if (hasMax && hasMin) {
       if (v < min || v > max) prep.message = 'must_be_between'
     } else if (hasMax) {
