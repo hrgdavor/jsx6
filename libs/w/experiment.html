@@ -1,0 +1,128 @@
+<html>
+  <style>
+    .grid1 {
+      width: 400px;
+      height: 200px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, 1fr);
+      grid-template-rows: max-content;
+    }
+    .header,
+    .row {
+      outline: solid 1px;
+      position: relative;
+    }
+    .inherit-grid {
+      grid-template-columns: subgrid;
+      display: grid;
+      grid-column: span 3;
+    }
+    .row1 {
+      /* force all row element into same location, use transform to move to their location */
+      grid-row-start: 1;
+      grid-row-end: 2;
+      grid-column-start: 1;
+      grid-column-end: 4;
+    }
+  </style>
+  <body>
+    <div class="grid1">
+      <div class="header inherit-grid">
+        <div>h1</div>
+        <div>h2</div>
+        <div>h3</div>
+      </div>
+      <div
+        class="inherit-grid"
+        style="
+          grid-template-rows: 1fr;
+          border: solid 1px red;
+          background-color: gray;
+          contain: strict;
+          overflow: auto;
+        "
+      >
+        <div class="row inherit-grid">
+          <div>a 1</div>
+          <div>a 2</div>
+          <div>a 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>b 1</div>
+          <div>b 2</div>
+          <div>b 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>c 1</div>
+          <div>c 2</div>
+          <div>c 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>d 1</div>
+          <div>d 2</div>
+          <div>d 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>e 1</div>
+          <div>e 2</div>
+          <div>e 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>f 1</div>
+          <div>f 2</div>
+          <div>f 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>g 1</div>
+          <div>g 2</div>
+          <div>g 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>h 1</div>
+          <div>h 2</div>
+          <div>h 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>i 1</div>
+          <div>i 2</div>
+          <div>i 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>j 1</div>
+          <div>j 2</div>
+          <div>j 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>k 1</div>
+          <div>k 2</div>
+          <div>k 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>l 1</div>
+          <div>l 2</div>
+          <div>l 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>m 1</div>
+          <div>m 2</div>
+          <div>m 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>n 1</div>
+          <div>n 2</div>
+          <div>n 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>o 1</div>
+          <div>o 2</div>
+          <div>o 3</div>
+        </div>
+        <div class="row inherit-grid">
+          <div>p 1</div>
+          <div>p 2</div>
+          <div>p 3</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

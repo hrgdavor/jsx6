@@ -50,12 +50,12 @@
   "devDependencies": {
     "@jsx6/build": "^0.2.4",
     "esbuild": "^0.17.18",
-    "@jsx6/jsx-dev-runtime": "1.8.13",
+    "@jsx6/jsx-dev-runtime": "workspace:*",
     "typescript": "^5.0.4",
     "@happy-dom/global-registrator": "~14.7.1",
     "happy-dom": "~14.7.1"
   },
   "dependencies": {
-    "@jsx6/signal": "1.8.13"
+    "@jsx6/signal": "workspace:*"
   }
 }

@@ -27,7 +27,7 @@ export function staticSignal(obj) {
   let $signal = () => obj
   $signal[subscribeSymbol] = noOp
   $signal[triggerSymbol] = noOp
-  $signal[Symbol.toPrimitive] = $signal
+  $signal[Symbol.toPrimitive] = $signal.get = $signal
   return $signal
 }
 
@@ -47,6 +47,7 @@ export function asSignal(obj) {
     return staticSignal(obj)
   }
 }
+
 /**
  * @function
  * @template T
@@ -56,7 +57,6 @@ export function asSignal(obj) {
  */
 export function prepareSignal(value) {
   const listeners = new Set()
-  const batchListeners = new Set()
 
   function setValue(v) {
     if (v === value) return
@@ -78,12 +78,24 @@ export function prepareSignal(value) {
   Object.defineProperty($signal, ValueSymbol, { get: $signal }) // allows getting velue in Chrome dev tools
 
   const fireChanged = () => {
-    for (let listener of listeners) listener(value)
+    // for (let listener of listeners) listener()
+    listeners.forEach(runFuncNoArg)
   }
 
-  $signal[subscribeSymbol] = u => listeners.add(u)
+  $signal[subscribeSymbol] = u => {
+    if (!u && typeof u != 'function') throw 'listener must be a function'
+    listeners.add(u)
+  }
   $signal[triggerSymbol] = fireChanged
-  $signal[Symbol.toPrimitive] = () => value
+  $signal[Symbol.toPrimitive] = $signal.get = () => value
 
-  return { $signal, fireChanged, listeners, batchListeners, setValue }
+  return { $signal, fireChanged, listeners, setValue }
+}
+
+export const runFuncNoArg = f => {
+  try {
+    f()
+  } catch (e) {
+    console.error(e, f)
+  }
 }

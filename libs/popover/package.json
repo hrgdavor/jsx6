@@ -1,20 +1,23 @@
 {
-  "name": "@jsx6/w",
-  "version": "1.8.13",
+  "name": "@jsx6/popover",
+  "version": "1.0.0",
   "type": "module",
   "sideEffects": false,
-  "description": "Webcomponent base class",
+  "description": "Popover utility",
   "main": "index.js",
+  "types": "dist/index.d.ts",
   "unpkg": "cjs/index.js",
   "module": "./index.js",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "require": "./cjs/index.js",
       "default": "./index.js"
     }
   },
   "files": [
     "index.js",
+    "dist",
     "src",
     "esm",
     "cjs"
@@ -23,7 +26,7 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "node --test",
-    "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs && npx tsc"
+    "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
   },
   "repository": {
     "type": "git",
@@ -31,9 +34,9 @@
   },
   "keywords": [
     "DOM",
-    "JSX",
-    "JSXRuntime",
-    "webcomponent",
+    "IntersectionObserver",
+    "ResizeObserver",
+    "Performance",
     "HTML"
   ],
   "author": "Davor hrg",
@@ -47,21 +50,12 @@
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
   },
-  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
-  "dependencies": {
-    "@jsx6/jsx-dev-runtime": "workspace:*",
-    "@jsx6/signal": "workspace:*",
-    "@jsx6/jsx6": "workspace:*"
-  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/dom-observer/README.md",
   "devDependencies": {
     "esbuild": "^0.17.18",
-    "@types/bun": "~1.0.2",
-    "bun-types": "~1.0.24",
-    "typescript": "^5.0.4",
-    "@happy-dom/global-registrator": "~14.7.1",
-    "happy-dom": "~14.7.1",
-    "entities": "^4.5.0",
-    "webidl-conversions": "^7.0.0",
-    "whatwg-mimetype": "^3.0.0"
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@jsx6/dom-observer": "^2.0.0"
   }
 }

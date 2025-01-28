@@ -1,5 +1,5 @@
 import { subscribeSymbol, triggerSymbol } from './observe.js'
-import { prepareSignal } from './signal.js'
+import { prepareSignal, runFuncNoArg } from './signal.js'
 
 export const mergeValueSymbol = Symbol.for('signalMergeValue')
 
@@ -7,6 +7,12 @@ export function $State(initial) {
   let internals = {}
   let signals = {}
   const getSignal = (p, initialValue) => signals[p] || getInternal(p, initialValue).$signal
+
+  let listeners = new Set()
+  const fireChanged = () => {
+    // for (let listener of listeners) listener()
+    listeners.forEach(runFuncNoArg)
+  }
 
   for (let p in initial) {
     getSignal(p, initial[p])
@@ -45,14 +51,10 @@ export function $State(initial) {
     let internal = internals[p]
     if (!internal) {
       internal = internals[p] = prepareSignal(initialValue)
+      internal.listeners.add(fireChanged)
       signals[p] = internal.$signal
     }
     return internal
-  }
-
-  let listeners = new Set()
-  const fireChanged = () => {
-    for (let listener of listeners) listener()
   }
 
   let $state = function (...args) {
@@ -72,7 +74,8 @@ export function $State(initial) {
 
   let statePproxy = new Proxy($state, {
     set: function (_, prop, value) {
-      if (getSignal(prop)(value)) fireChanged()
+      getSignal(prop)(value)
+      // if (getSignal(prop)(value)) fireChanged()
       return true
     },
     get: function (_, prop) {

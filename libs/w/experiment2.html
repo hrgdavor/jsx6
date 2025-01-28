@@ -1,0 +1,42 @@
+<html>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <style>
+    .grid1 {
+      width: 800px;
+      height: 600px;
+      overflow: auto;
+    }
+  </style>
+  <body>
+    <div style="width: 800px; height: 600px; overflow: auto">
+      <table width="100%">
+        <thead class="header" style="position: sticky; top: 0; background: white">
+          <tr align="left">
+            <th>h1</th>
+            <th>h2</th>
+            <th>h3</th>
+            <th>h4</th>
+          </tr>
+        </thead>
+        <tbody style="background: silver" id="tbody"></tbody>
+      </table>
+    </div>
+  </body>
+</html>
+<script type="module">
+  const $ = id => document.getElementById(id)
+
+  let text = await (await fetch('cities.txt')).text()
+  console.log('text', text)
+  let lines = text.split('\n')
+  let html = lines
+    .map(line => {
+      let tds = line
+        .split('\t')
+        .map(v => `<td>${v}</td>`)
+        .join('')
+      return `<tr>${tds}</tr>`
+    })
+    .join('')
+  $('tbody').innerHTML = html
+</script>

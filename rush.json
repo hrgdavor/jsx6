@@ -524,6 +524,12 @@
       "versionPolicyName": "individual"
     },
     {
+      "packageName": "@jsx6/popover",
+      "projectFolder": "libs/popover",
+      "tags": ["dom", "resizeobserver", "popover", "dialog", "html"],
+      "versionPolicyName": "individual"
+    },
+    {
       "packageName": "@jsx6/url-util",
       "projectFolder": "libs/url-util",
       "tags": ["url", "html"],

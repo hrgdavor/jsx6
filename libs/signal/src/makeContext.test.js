@@ -1,7 +1,6 @@
 import { afterAll, expect, test } from 'bun:test'
-import { $S, makeContext, makeSignalContext } from '../index.js'
+import { $F, $S, makeContext, makeSignalContext } from '../index.js'
 import { observe, observeNow } from './observe.js'
-import { domWithScope } from '../../jsx6/index.js'
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 
 GlobalRegistrator.register()
@@ -45,7 +44,7 @@ test('simple signal', () => {
   ctxs.set(div, 1)
 
   let value
-  observeNow(ctxs.getSignal(div), v => (value = v))
+  $F(v => (value = v), ctxs.getSignal(div))
 
   expect(ctxs.get(div)).toEqual(1)
   expect(value).toEqual(1)
@@ -96,7 +95,7 @@ test('nested signal', () => {
 
   let value
   let value2
-  observeNow(ctxs.getSignal(first), v => (value = v))
+  $F(v => (value = v), ctxs.getSignal(first))
 
   expect(ctxs.get(div)).toEqual(1)
   expect(value).toEqual(1)
