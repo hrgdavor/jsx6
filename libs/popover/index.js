@@ -8,10 +8,11 @@ export const CLICK_HIDE_ATTR = 'pop-click-hide'
  * @param {*} popover - popover element that will be opened
  * @param {HTMLElement|Event} e - the html element to align the popover, or dom event where then e.target is used
  * @param {string} selector - default is 'button' and it is used to find the actual element for alingment, in case there is more markup
+ * @param {string} position - default is 'default' and it is used to position the popover relative to the anchor element topRight|topLeft|bottomRight|bottomLeft
  * @returns
  */
-export function doPop(popover, e, selector = 'button') {
-  return valuePop(undefined, popover, e, selector)
+export function doPop(popover, e, selector = 'button', position= 'default') {
+  return valuePop(undefined, popover, e, selector, position)
 }
 
 /**
@@ -22,17 +23,18 @@ export function doPop(popover, e, selector = 'button') {
  * @param {*} popover - popover element that will be opened
  * @param {HTMLElement|Event} e - the html element to align the popover, or dom event where then e.target is used
  * @param {string} selector - default is 'button' and it is used to find the actual element for alingment, in case there is more markup
+ * @param {string} position - default is 'default' and it is used to position the popover relative to the anchor element topRight|topLeft|bottomRight|bottomLeft
  * @returns
  */
-export function valuePop(value, popover, e, selector = 'button') {
+export function valuePop(value, popover, e, selector = 'button', position= 'default') {
   let target = e.target || e
   if (selector) {
     target = target.closest(selector) || target
   }
-  return showPopover(popover, target, value)
+  return showPopover(popover, target, value, position)
 }
 
-export function showPopover(popover, target, value) {
+export function showPopover(popover, target, value, position) {
   if (!target) throw new Error('target required')
   if (!popover._pop) {
     let _pop = (popover._pop = { width: 0, height: 0 })
@@ -49,7 +51,7 @@ export function showPopover(popover, target, value) {
         _pop.width = rect.width
         _pop.height = rect.height
       }
-      movePopover(popover)
+      movePopover(popover, position)
     })
     popover.onclick = e => {
       let p = e.target.closest(`[${CLICK_HIDE_ATTR}]`)
@@ -62,7 +64,7 @@ export function showPopover(popover, target, value) {
 
   popover._pop.target = target
   popover.value = value
-  movePopover(popover)
+  movePopover(popover, position)
   popover.showPopover()
 }
 
@@ -74,13 +76,44 @@ export function popSetVisible(pop, v) {
   }
 }
 
-export function movePopover(pop) {
-  let { width, height, target } = pop._pop
-  if (!width) return
+export function movePopover(pop, position = "default", offset = 6) {
+  let { width, height, target } = pop._pop;
+  if (!width) return;
 
-  let trect = target.getBoundingClientRect()
-  let maxTop = document.body.clientHeight - height - 5
-  let maxRight = document.body.clientWidth - width - 5
-  pop.style.top = `${Math.min(trect.bottom, maxTop)}px`
-  pop.style.left = `${Math.min(Math.max(trect.left - 10, 0), maxRight)}px`
+  const trect = target.getBoundingClientRect();
+  const maxTop = document.body.clientHeight - height - 5;
+  const maxRight = document.body.clientWidth - width - 5;
+
+  let top, left;
+
+  switch (position) {
+    case "topLeft":
+      top = Math.max(trect.top - height - offset, 0);
+      left = Math.max(trect.left, 0);
+      break;
+
+    case "topRight":
+      top = Math.max(trect.top - height - offset, 0);
+      left = Math.min(trect.right - width, maxRight);
+      break;
+
+    case "bottomLeft":
+      top = Math.min(trect.bottom + offset, maxTop);
+      left = Math.max(trect.left, 0);
+      break;
+
+    case "bottomRight":
+
+      top = Math.min(trect.bottom + offset, maxTop);
+      left = Math.min(trect.right - width, maxRight);
+      break;
+
+    default:
+      top = Math.min(trect.bottom + offset, maxTop);
+      left = Math.min(Math.max(trect.left - 10, 0), maxRight);
+      break;
+  }
+
+  pop.style.top = `${top}px`;
+  pop.style.left = `${left}px`;
 }
