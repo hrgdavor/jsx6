@@ -1,0 +1,62 @@
+{
+  "name": "@jsx6/scloop",
+  "version": "1.0.0",
+  "type": "module",
+  "sideEffects": false,
+  "description": "Scrolling loop utility",
+  "main": "index.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "cjs/index.js",
+  "module": "./index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./cjs/index.js",
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "dist",
+    "src",
+    "esm",
+    "cjs"
+  ],
+  "scripts": {
+    "tsc": "tsc",
+    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
+    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
+    "test": "node --test",
+    "prepublishOnly": "npm run build && npm run build-cjs && rushx tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrgdavor/jsx6.git"
+  },
+  "keywords": [
+    "DOM",
+    "IntersectionObserver",
+    "ResizeObserver",
+    "Performance",
+    "HTML"
+  ],
+  "author": "Davor hrg",
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/hrgdavor/jsx6/blob/master/LICENSE.md"
+    }
+  ],
+  "bugs": {
+    "url": "https://hrgdavor/jsx6/issues"
+  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/dom-observer/README.md",
+  "devDependencies": {
+    "esbuild": "^0.17.18",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@jsx6/dom-observer": "^2.0.0"
+  }
+}
