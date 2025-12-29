@@ -5,6 +5,26 @@
   - inside - useful as a container
   - which should be default ?
 
+## thoughts dom -> jsx old version - jsx new
+
+## @jsxRuntime classic
+
+```js
+  // @jsx h
+  // @jsxFrag "frag"
+  // @jsxRuntime classic
+```
+
+## @jsxRuntime some-node-package
+
+Moderrn jsx-runtime and jsx-runtime-dev
+https://blog.saeloun.com/2021/07/01/react-17-adds-jsx-runtime-and-jsx-dev-runtime-for-the-new-jsx-transform/
+https://www.gatsbyjs.com/blog/2019-08-02-what-is-jsx-pragma/
+
+
+```js
+  // @jsxRuntime @jsx6/jsx
+```
 
 ## tests
 

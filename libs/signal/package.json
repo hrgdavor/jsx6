@@ -52,13 +52,12 @@
     "url": "https://hrgdavor/jsx6/issues"
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
-  "dependencies": {
-    "@types/node": "latest",
-    "@happy-dom/global-registrator": "~14.7.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "esbuild": "^0.17.18",
     "typescript": "^5.0.4",
-    "bun-types": "~1.0.24"
+    "bun-types": "~1.0.24",
+    "@types/node": "latest",
+    "@happy-dom/global-registrator": "~14.7.1"
   }
 }

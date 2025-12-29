@@ -47,7 +47,6 @@ After cloning the repository you need to initialize  project.
 
 In the base dir of the project run `rush update`, and it will download dependencies using pnpm and link internal dependencies inside the monorepo.
 
-
 # If you are doing SSR(Server side rendering) GTFO
 
 Supporting SSR(Server Side Rendering) is actively ignored. Any compromises for using this lib combined with SSR are not welcome. 
@@ -55,3 +54,19 @@ Supporting SSR(Server Side Rendering) is actively ignored. Any compromises for u
 This lib is strictly for JS APPLICATIOS that are not crawled by search engines. 
 
 I do not want any ugly compromises to suport SSR (that I luckily never personally needed in my JavaScript apps).
+
+# TSC troubleshooting
+
+`This is not the tsc command you are looking for`  typically occurs in environments using Microsoft Rush for monorepo management and TypeScript, when a project tries to run tsc.
+
+in rush project first declare tsc (reduntant but required)
+
+```json
+{
+  "scripts": {
+    "tsc": "tsc",
+    "prepublishOnly": "rushx tsc"
+}
+```
+
+use: `rushx tsc` instead simply tsc

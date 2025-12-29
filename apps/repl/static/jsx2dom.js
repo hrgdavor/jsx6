@@ -1,3 +1,9 @@
+/*
+@author Davor Hrg
+implementation of function for JSX tutorial https://hrgdavor.github.io/jsx6/demistify/ section: jsx2dom
+Although it is meant for JSX, it can be used plainly and code it not too bad looking
+*/
+
 /** Short but pretty usable support function for JSX.
  *
  * @param {String|Function} tag
