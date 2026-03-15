@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal",
-  "version": "1.8.13",
+  "version": "1.8.15",
   "type": "module",
   "sideEffects": false,
   "description": "signal implementation for vanilla JS or JSX",
@@ -26,8 +26,7 @@
   "scripts": {
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
-    "test": "node --test",
-    "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs && npx tsc"
+    "test": "bun test"
   },
   "repository": {
     "type": "git",
@@ -54,10 +53,10 @@
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/signal/README.md",
   "dependencies": {},
   "devDependencies": {
-    "esbuild": "^0.17.18",
-    "typescript": "^5.0.4",
-    "bun-types": "~1.0.24",
-    "@types/node": "latest",
-    "@happy-dom/global-registrator": "~14.7.1"
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "bun-types": "catalog:",
+    "@types/node": "catalog:",
+    "@happy-dom/global-registrator": "catalog:"
   }
 }

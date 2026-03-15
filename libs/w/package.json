@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/w",
-  "version": "1.8.13",
+  "version": "1.8.15",
   "type": "module",
   "sideEffects": false,
   "description": "Webcomponent base class",
@@ -22,8 +22,7 @@
   "scripts": {
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
-    "test": "node --test",
-    "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs && npx tsc"
+    "test": "node --test"
   },
   "repository": {
     "type": "git",
@@ -54,12 +53,12 @@
     "@jsx6/jsx6": "workspace:*"
   },
   "devDependencies": {
-    "esbuild": "^0.17.18",
-    "@types/bun": "~1.0.2",
-    "bun-types": "~1.0.24",
-    "typescript": "^5.0.4",
-    "@happy-dom/global-registrator": "~14.7.1",
-    "happy-dom": "~14.7.1",
+    "esbuild": "catalog:",
+    "@types/bun": "catalog:",
+    "bun-types": "catalog:",
+    "typescript": "catalog:",
+    "@happy-dom/global-registrator": "catalog:",
+    "happy-dom": "catalog:",
     "entities": "^4.5.0",
     "webidl-conversions": "^7.0.0",
     "whatwg-mimetype": "^3.0.0"

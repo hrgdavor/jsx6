@@ -1,13 +1,16 @@
 {
   "compilerOptions": {
     "types": ["bun-types", "@types/bun"],
+    "skipLibCheck": true,
     "allowJs": true,
     "jsxImportSource": "@jsx6",
     "jsx": "preserve",
     // enable latest features
-    "lib": ["esnext"],
+    "lib": ["esnext", "dom"],
     "target": "esnext",
-    "moduleResolution": "node16",
+    "noEmit": true,
+    "module": "Node16",
+    "moduleResolution": "Node16",
     "paths": {
       "@jsx6/signal": ["../signal/index.js"],
       "@jsx6/jsx6": ["../../libs/jsx6/index.js"],

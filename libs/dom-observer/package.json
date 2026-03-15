@@ -52,7 +52,7 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/dom-observer/README.md",
   "devDependencies": {
-    "esbuild": "^0.17.18",
-    "typescript": "^5.0.4"
+    "esbuild": "catalog:",
+    "typescript": "catalog:"
   }
 }

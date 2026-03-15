@@ -16,6 +16,6 @@
     // "Go to Definition" in VSCode
     "declarationMap": true
   },
-  "include": ["index.js", "src/**/*.js", "../w/src/JsxW.js"],
+  "include": ["index.js", "src/**/*.js"],
   "exclude": ["**/*.test.js"]
 }
