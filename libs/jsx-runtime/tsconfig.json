@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "skipLibCheck": true,
+    "allowJs": true,
+    "outDir": "dist",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": true
+  },
+  "include": ["index.js"]
+}

@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { file } from 'bun';
+import { file, Glob } from 'bun';
 import { join } from 'path';
 
 const CONFIG_PATH = 'scripts/versions.json';
@@ -9,8 +9,7 @@ async function runCommand(command, args, cwd) {
     console.log(`Running: ${command} ${args.join(' ')} (in ${cwd})`);
     const proc = spawn(command, args, { cwd, stdio: 'inherit', shell: true });
     proc.on('close', code => {
-      // bun test returns 1 if no tests are found, which we want to allow
-      if (code === 0 || (command === 'bun' && args[0] === 'test' && code === 1)) resolve();
+      if (code === 0) resolve();
       else reject(new Error(`Command failed with code ${code}`));
     });
   });
@@ -68,7 +67,18 @@ async function run() {
       }
 
       // 3. Test
-      await runCommand('bun', ['test'], relPath);
+      const glob = new Glob('**/*.test.js');
+      let hasTests = false;
+      for (const file of glob.scanSync({ cwd: relPath })) {
+        hasTests = true;
+        break;
+      }
+
+      if (hasTests) {
+        await runCommand('bun', ['test'], relPath);
+      } else {
+        console.log(`No tests found in ${relPath}. Skipping.`);
+      }
     } catch (err) {
       console.error(`\nValidation failed in ${relPath}. Aborting publish.`);
       process.exit(1);
@@ -84,20 +94,30 @@ async function run() {
     return;
   }
 
-  const otp = await prompt('Enter NPM OTP (press enter to skip if not needed): ');
+  let otp = await prompt('Enter NPM OTP (press enter to skip if not needed): ');
 
   for (const relPath of lockstepModules) {
-    const args = ['publish'];
-    if (otp) {
-      args.push('--otp', otp);
-    }
-    
-    try {
-      await runCommand('npm', args, relPath);
-    } catch (err) {
-      console.error(`\nPublish failed for ${relPath}.`);
-      console.error('Manual intervention may be required for remaining modules.');
-      process.exit(1);
+    let success = false;
+    while (!success) {
+      const args = ['publish', '--access', 'public'];
+      if (otp) {
+        args.push('--otp', otp);
+      }
+      
+      try {
+        await runCommand('npm', args, relPath);
+        success = true;
+      } catch (err) {
+        console.error(`\nPublish failed for ${relPath}.`);
+        const newOtp = await prompt('Retry with a new OTP? (enter new OTP, or empty to abort): ');
+        if (newOtp) {
+          otp = newOtp;
+          console.log(`Retrying ${relPath} with new OTP...`);
+        } else {
+          console.error('Manual intervention may be required for remaining modules.');
+          process.exit(1);
+        }
+      }
     }
   }
 

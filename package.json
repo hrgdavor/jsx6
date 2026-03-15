@@ -28,5 +28,7 @@
     "@types/bun": "~1.0.2",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "typescript": "^5.9.3"
+  }
 }
