@@ -1,0 +1,14 @@
+{
+  "groups": {
+    "lockstep": [
+      "libs/jsx6",
+      "libs/jsx-runtime",
+      "libs/jsx-dev-runtime",
+      "libs/signal",
+      "libs/signal-clock",
+      "libs/signal-dom",
+      "libs/w",
+      "apps/repl"
+    ]
+  }
+}

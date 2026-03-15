@@ -6,10 +6,12 @@ export const mergeValueSymbol = Symbol.for('signalMergeValue')
 export function $State(initial) {
   let internals = {}
   let signals = {}
+  let listeners = new Set()
   const getSignal = (p, initialValue) => signals[p] || getInternal(p, initialValue).$signal
 
-  let listeners = new Set()
+  let batchLevel = 0
   const fireChanged = () => {
+    if (batchLevel > 0) return
     // for (let listener of listeners) listener()
     listeners.forEach(runFuncNoArg)
   }
@@ -28,19 +30,30 @@ export function $State(initial) {
 
   function updateValue(nv = {}, skipFire) {
     let changed = false
-    for (let p in nv) {
-      if (getSignal(p)(nv[p])) changed = true
+    batchLevel++
+    try {
+      for (let p in nv) {
+        if (getSignal(p)(nv[p])) changed = true
+      }
+    } finally {
+      batchLevel--
     }
-    if (!skipFire) fireChanged()
+    if (!skipFire && changed) fireChanged()
     return changed
   }
 
   function setValue(nv = {}) {
-    let changed = updateValue(nv, true)
-    // keys that are not in the passed object 'nv' need to be reset to undefined
-    // if setting so returns true, it means it was !== undefined
-    for (let p in signals) {
-      if (!(p in nv) && signals[p](undefined)) changed = true
+    batchLevel++
+    let changed = false
+    try {
+      changed = updateValue(nv, true)
+      // keys that are not in the passed object 'nv' need to be reset to undefined
+      // if setting so returns true, it means it was !== undefined
+      for (let p in signals) {
+        if (!(p in nv) && signals[p](undefined)) changed = true
+      }
+    } finally {
+      batchLevel--
     }
 
     if (changed) fireChanged()
@@ -64,7 +77,10 @@ export function $State(initial) {
 
   let specialProps = new Map()
   // needed for observe to work
-  specialProps.set(subscribeSymbol, u => listeners.add(u))
+  specialProps.set(subscribeSymbol, u => {
+    listeners.add(u)
+    return () => listeners.delete(u)
+  })
   specialProps.set(triggerSymbol, fireChanged)
   // if we try to serialize the state, user need not worry, value goes into json
   specialProps.set('toJSON', getValue)

@@ -1,20 +1,32 @@
 {
+  "name": "jsx6-monorepo",
+  "private": true,
   "scripts": {
     "test1": "cd libs/jsx6 && bun test ",
     "test2": "cd libs/signal && bun test && cd ../signal-clock && bun test",
     "test": "npm run test1 && npm run test2 ",
-    "bump": "rush version --bump && rush publish --apply",
-    "ver": "node verSwitch.js && rush update ",
-    "ver:dev": "node verSwitch.js w && rush update ",
-    "pub1": "npm run ver:dev && cd libs/signal && npm publish",
-    "pub2": "cd libs/jsx6 && npm publish && cd ../w && npm publish",
-    "pub3": "cd libs/signal-dom && npm publish && cd ../signal-clock && npm publish",
-    "pub4": "cd libs/jsx-runtime && npm publish && cd ../jsx-dev-runtime && npm publish ",
-    "pub": "npm run pub1 && npm run pub2 && npm run pub3 && npm run pub4"
+    "lint": "eslint .",
+    "bump": "bun run scripts/versions.js",
+    "pub": "bun run scripts/publish.js",
+    "check-versions": "bun run scripts/check-versions.js"
   },
   "workspaces": [
     "libs/*",
-    "apps/*"
+    "apps/*",
+    "tools/*"
   ],
+  "catalog": {
+    "esbuild": "^0.17.18",
+    "typescript": "^5.0.4",
+    "prettier": "~2.7.1",
+    "eslint": "^8.57.0",
+    "@happy-dom/global-registrator": "~14.7.1",
+    "happy-dom": "~14.7.1",
+    "bun-types": "~1.0.24",
+    "@types/node": "latest",
+    "live-server": "^1.2.2",
+    "@types/bun": "~1.0.2",
+    "@trivago/prettier-plugin-sort-imports": "~3.3.0"
+  },
   "dependencies": {}
 }

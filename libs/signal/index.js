@@ -1,4 +1,4 @@
-import { observe, observeNow, triggerSymbol, subscribeSymbol, isObservable } from './src/observe.js'
+import { observe, observeNow, subscribe, triggerSymbol, subscribeSymbol, isObservable } from './src/observe.js'
 import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
 
 /** Utility that that returns signal value if the parameter is a signal/function and the parameter otherwise.
@@ -8,6 +8,18 @@ import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
  * @returns any
  */
 export const signalValue = $signal => (typeof $signal === 'function' ? $signal() : $signal)
+/** Internal helper to create a derived signal
+ * @param {Array<Function>} signals
+ * @param {Function} getValue
+ * @returns {Function} $signal
+ */
+function createDerivedSignal(signals, getValue) {
+  const { $signal } = prepareSignal(getValue())
+  const updater = () => $signal(getValue())
+  signals.forEach(b => subscribe(b, updater))
+  return $signal
+}
+
 /**
  * If called with single parameter creates new signal.
  *
@@ -25,11 +37,7 @@ export function $S(template, ...signals) {
     template = callbackForTemplateString(template, signals)
   }
 
-  const { $signal } = prepareSignal(template())
-  const updater = () => $signal(template())
-  signals.forEach(b => observe(b, updater))
-
-  return $signal
+  return createDerivedSignal(signals, template)
 }
 
 /**
@@ -41,22 +49,11 @@ export function $S(template, ...signals) {
  * @returns
  */
 export function $F(filter, ...signals) {
-  if (signals.length > 1) {
-    const calculate = () => filter(...signals.map(signalValue))
-    const { $signal } = prepareSignal(calculate())
-    const updater = () => $signal(calculate())
-    signals.forEach(b => observe(b, updater))
-    return $signal
+  if (signals.length > 1 || isObservable(signals[0])) {
+    return createDerivedSignal(signals, () => filter(...signals.map(signalValue)))
   } else {
-    const $first = signals[0]
-    if (isObservable($first)) {
-      const { $signal } = prepareSignal(filter(signalValue($first)))
-      observe($first, () => $signal(filter(signalValue($first))))
-      return $signal
-    } else {
-      // static value
-      return staticSignal($first)
-    }
+    // static value
+    return staticSignal(signals[0])
   }
 }
 
@@ -124,6 +121,7 @@ export const $Map = (map, $signal) => $F(v => map[v] || v, $signal)
 export {
   observe,
   observeNow,
+  subscribe,
   signal,
   prepareSignal,
   triggerSymbol,

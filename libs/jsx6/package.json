@@ -25,7 +25,7 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "node --test",
-    "prepublishOnly": "node ../../verSwitch.js p && npm run build && npm run build-cjs"
+    "prepublishOnly": "npm run build && npm run build-cjs"
   },
   "repository": {
     "type": "git",
@@ -48,11 +48,11 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/README.md",
   "devDependencies": {
-    "@jsx6/build": "^0.2.4",
-    "esbuild": "^0.17.18",
-    "typescript": "^5.0.4",
-    "@happy-dom/global-registrator": "~14.7.1",
-    "happy-dom": "~14.7.1"
+    "@jsx6/build": "workspace:*",
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "@happy-dom/global-registrator": "catalog:",
+    "happy-dom": "catalog:"
   },
   "dependencies": {
     "@jsx6/signal": "workspace:*"

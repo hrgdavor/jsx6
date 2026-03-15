@@ -5,22 +5,23 @@
  * @typedef {Object} SignalDef
  * @prop {function(T):T} $signal
  * @prop {function():void} fireChanged
- * @prop {Array<Function>} listeners
+ * @prop {Set<Function>} listeners
  * @prop {function(T):boolean} setValue
  *
  */
 
-import { subscribeSymbol, triggerSymbol } from './observe.js'
+import { isObservable, subscribeSymbol, triggerSymbol } from './observe.js'
 
 export const ValueSymbol = Symbol.for('signalValue')
 const noOp = function () {}
 /**
  * @template T
  * @param {T|undefined} value
+ * @param {string} [name]
  * @returns {function():T|boolean} signal
  */
-export function signal(value) {
-  return prepareSignal(value).$signal
+export function signal(value, name) {
+  return prepareSignal(value, name).$signal
 }
 
 export function staticSignal(obj) {
@@ -31,18 +32,26 @@ export function staticSignal(obj) {
   return $signal
 }
 
+
 export function asSignal(obj) {
   if (obj?.[subscribeSymbol]) return obj
-  let bindingSub
-  if (obj) {
-    bindingSub = obj.then || obj.subscribe
-  }
-  if (bindingSub) {
+  if (!obj) return staticSignal(obj)
+
+  if (isObservable(obj)) {
     let { $signal, listeners } = prepareSignal()
-    bindingSub.call(obj, v => {
+    const isPromise = typeof obj.then === 'function'
+    const callback = v => {
       $signal(v)
-      listeners.clear()
-    })
+      if (isPromise) {
+        listeners.clear()
+      }
+    }
+    if (isPromise) {
+      obj.then(callback)
+    } else {
+      obj.subscribe(callback)
+    }
+    return $signal
   } else {
     return staticSignal(obj)
   }
@@ -53,9 +62,10 @@ export function asSignal(obj) {
  * @template T
  *
  * @param {T} value
+ * @param {string} [name]
  * @returns {SignalDef<T>}
  */
-export function prepareSignal(value) {
+export function prepareSignal(value, name) {
   const listeners = new Set()
 
   function setValue(v) {
@@ -76,6 +86,10 @@ export function prepareSignal(value) {
   }
 
   Object.defineProperty($signal, ValueSymbol, { get: $signal }) // allows getting velue in Chrome dev tools
+  if (name) {
+    $signal.label = name
+    Object.defineProperty($signal, 'name', { value: name })
+  }
 
   const fireChanged = () => {
     // for (let listener of listeners) listener()
@@ -85,6 +99,7 @@ export function prepareSignal(value) {
   $signal[subscribeSymbol] = u => {
     if (!u && typeof u != 'function') throw 'listener must be a function'
     listeners.add(u)
+    return () => listeners.delete(u)
   }
   $signal[triggerSymbol] = fireChanged
   $signal[Symbol.toPrimitive] = $signal.get = () => value
