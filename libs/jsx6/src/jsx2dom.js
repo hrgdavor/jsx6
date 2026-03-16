@@ -211,7 +211,7 @@ export function insertAttr(attr, out, self, component) {
 
     if (a[0] === 'o' && a[1] === 'n') {
       if (isFunc(value)) {
-        out.addEventListener(a.substring(2), value.bind(self))
+        out.addEventListener(a.substring(2).toLowerCase(), value.bind(self))
       } else {
         throwErr(JSX6E9_LISTENER_MUST_BE_FUNC, attr)
       }
