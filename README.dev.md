@@ -39,35 +39,29 @@ This script will:
 
 ## Publishing (Pub)
 
-The publishing process differs depending on whether a module is part of the **lockstep group** (defined in `scripts/versions.json`) or a standalone package.
+We use a centralized publish script to ensure all `workspace:*` and `catalog:` dependencies are resolved correctly before they reach the NPM registry.
 
-### 1. Lockstep Modules (Automated)
-The publishing of lockstep modules is automated via `scripts/publish.js` to ensure safety and consistency. This script validates the entire group before any publication occurs.
+### Unified Publish Process
+The script `scripts/publish.js` handles build validation, test execution, dependency resolution, and public access configuration for scoped packages.
 
-**Command:**
+**Publish the lockstep group (default):**
 ```bash
-bun run pub
+bun pub
 ```
 
-**The Two-Phase Process:**
-1. **Phase 1: Validation (Zero-Failure Policy)**: Runs `tsc`, `build`, and `test` for **all** lockstep modules. If any step fails, the process aborts.
-2. **Phase 2: Actual Publish**: Prompts for NPM OTP and publishes each module in the group.
-
-**Dry Run:**
+**Publish individual packages:**
 ```bash
-bun run pub --dry-run
+bun pub libs/popover
 ```
 
-### 2. Standalone Modules (Manual)
-Modules that are not part of the lockstep group (e.g., specialized tools or experimental libs) must be published manually from their respective directories:
-
+**Dry Run (Simulation):**
 ```bash
-cd libs/my-standalone-lib
-npm run build
-npm run build-cjs
-bun test
-npm publish
+bun pub --dry-run
+# or
+bun pub libs/popover --dry-run
 ```
+
+**Note:** The script relies on your active `npm login` session (no manual OTP prompts). The `--manual-replace` and `--public` flags are automatically included when using the `bun pub` shortcut from the root.
 
 ---
 

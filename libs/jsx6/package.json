@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/jsx6",
-  "version": "1.8.15",
+  "version": "1.8.17",
   "type": "module",
   "sideEffects": false,
   "description": "JSX and ES6+ UI library",
@@ -57,5 +57,8 @@
     "@jsx6/jsx-dev-runtime": "workspace:*",
     "@jsx6/jsx-runtime": "workspace:*",
     "@jsx6/signal": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

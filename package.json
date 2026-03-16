@@ -7,7 +7,7 @@
     "test": "npm run test1 && npm run test2 ",
     "lint": "eslint .",
     "bump": "bun run scripts/versions.js",
-    "pub": "bun run scripts/publish.js",
+    "pub": "bun run scripts/publish.js --manual-replace --public",
     "check-versions": "bun run scripts/check-versions.js"
   },
   "workspaces": [

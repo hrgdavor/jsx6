@@ -26,9 +26,8 @@
   "scripts": {
     "build": "esbuild index.js --outdir=esm --bundle --sourcemap --minify --format=esm",
     "build-cjs": "esbuild index.js --outdir=cjs --bundle --sourcemap --minify --format=cjs",
-    "test": "node --test",
-    "prepublishOnly": "npm run build && npm run build-cjs && npx tsc"
-  },
+    "test": "node --test"
+},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hrgdavor/jsx6.git"
@@ -54,3 +53,4 @@
     "typescript": "catalog:"
   }
 }
+

@@ -5,7 +5,7 @@ This document describes the versioning strategy for the packages in this monorep
 ## Lockstep Modules
 
 The following modules share the same version number and are always released together. 
-Current Version: **1.8.15**
+Current Version: **1.8.17**
 
 - `@jsx6/jsx6` (libs/jsx6)
 - `@jsx6/jsx-runtime` (libs/jsx-runtime)
