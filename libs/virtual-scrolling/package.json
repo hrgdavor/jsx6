@@ -1,0 +1,54 @@
+{
+  "name": "@jsx6/virtual-scrolling",
+  "version": "1.0.0",
+  "description": "High-performance virtual scrolling for large lists",
+  "main": "index.js",
+  "module": "./index.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "require": "./cjs/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "types": "dist/index.d.ts",
+  "unpkg": "cjs/index.js",
+  "files": [
+    "index.js",
+    "dist",
+    "src",
+    "esm",
+    "cjs"
+  ],
+  "scripts": {
+    "build": "esbuild index.js --outdir=esm --bundle --sourcemap --minify --format=esm",
+    "build-cjs": "esbuild index.js --outdir=cjs --bundle --sourcemap --minify --format=cjs",
+    "test": "node --test test/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrgdavor/jsx6.git"
+  },
+  "keywords": [
+    "virtual",
+    "scroll",
+    "scrolling",
+    "performance",
+    "list"
+  ],
+  "author": "Davor hrg",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://hrgdavor/jsx6/issues"
+  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/libs/virtual-scrolling/README.md",
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^20.9.0",
+    "esbuild": "catalog:",
+    "happy-dom": "^20.9.0",
+    "typescript": "catalog:"
+  },
+  "sideEffects": false
+}
