@@ -1,4 +1,5 @@
-import { ScrollController, VirtualScroll } from './../esm/index.js';
+import { VirtualScroll } from './../esm/index.js';
+import { ScrollController } from '../examples/scroll-controller.js';
 
 
 const container = document.getElementById('scroll-container')
