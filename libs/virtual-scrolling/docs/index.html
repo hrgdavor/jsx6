@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Virtual Scrolling</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <script type="module" src="script.js"></script>
+</head>
+
+<body>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="offset-top.html">Offset Top</a>
+        </nav>
+
+    <div id="app">
+        <header>
+            <h1>Virtual Scrolling Demo 1</h1>
+            <p>High-speed, smooth element recycling in Vanilla JS</p>
+            <div>
+                <button data-action="reverse-items">Reverse Items</button>
+            </div>
+        </header>
+
+        <main id="scroll-container">
+
+            <div id="spacer"></div>
+            <div id="list-items-container">
+                <!-- Items will be injected and recycled here -->
+            </div>
+        </main>
+<div id="stats">
+            <span>Scroll Position: <span id="scroll-y">0</span>px</span>
+        </div>
+    </div>
+</body>
+
+</html>
