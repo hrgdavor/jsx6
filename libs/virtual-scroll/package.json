@@ -1,5 +1,5 @@
 {
-  "name": "@jsx6/virtual-scrolling",
+  "name": "@jsx6/virtual-scroll",
   "version": "1.0.0",
   "description": "High-performance virtual scrolling for large lists",
   "main": "index.js",
@@ -43,7 +43,7 @@
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
   },
-  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/libs/virtual-scrolling/README.md",
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/libs/virtual-scroll/README.md",
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.9.0",
     "esbuild": "catalog:",
