@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Virtual Scrolling - Attached Header</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <script type="module" src="script-page2.js"></script>
+</head>
+
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="offset-top.html">Offset Top</a>
+    </nav>
+
+    <div id="app">
+        <header>
+            <h1>Virtual Scrolling Demo 2</h1>
+            <p>Header attached to scrolling items using offsetTop</p>
+        </header>
+
+        <main id="scroll-container">
+            <!-- A header that will be positioned with offsetTop -->
+            <div id="attached-header" class="attached-header">
+                <strong>This header is attached to the list items</strong>
+                <br>It scrolls with the content and uses offsetTop for positioning
+            </div>
+
+            <div id="spacer"></div>
+
+            <div id="list-items-container">
+                <!-- Items will be injected and recycled here -->
+            </div>
+        </main>
+
+        <div id="stats">
+            <span>Scroll Position: <span id="scroll-y">0</span>px</span>
+            <span>Active Elements: <span id="element-count">0</span></span>
+        </div>
+    </div>
+</body>
+
+</html>
