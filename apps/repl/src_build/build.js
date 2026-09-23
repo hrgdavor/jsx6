@@ -1,16 +1,24 @@
 import { copyTask, parseArgs } from '@jsx6/build'
 // import { copyTask } from './src_build/copyTask.js'
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from 'fs'
 import liveServer from 'live-server'
 
 import { buildScript } from './buildScript.js'
 
-const srcPath = () => `globalThis.JSX_SRC_ROOT = '${realpathSync('./').replaceAll('\\', '/')}'`
+const srcPath = () =>
+  `globalThis.JSX_SRC_ROOT = '${realpathSync('./').replaceAll('\\', '/')}'`
 
 /** Version of a vendored package, read from its manifest. */
 const pkgVersion = name => {
   try {
-    return JSON.parse(readFileSync(`node_modules/${name}/package.json`, 'utf8')).version
+    return JSON.parse(readFileSync(`node_modules/${name}/package.json`, 'utf8'))
+      .version
   } catch {
     return 'unknown'
   }
@@ -29,9 +37,12 @@ const vendorVersions = () =>
   })
 
 const vendorUpToDate = outDir => {
-  if (!existsSync(outDir + '/monaco') || !existsSync(outDir + '/babel')) return false
+  if (!existsSync(outDir + '/monaco') || !existsSync(outDir + '/babel'))
+    return false
   try {
-    return readFileSync(`${outDir}/${VENDOR_STAMP}`, 'utf8') === vendorVersions()
+    return (
+      readFileSync(`${outDir}/${VENDOR_STAMP}`, 'utf8') === vendorVersions()
+    )
   } catch {
     return false
   }
@@ -52,8 +63,15 @@ mkdirSync(outDir, { recursive: true })
 
 if (forceVendor || !vendorUpToDate(outDir)) {
   console.log(`copying vendored assets (${vendorVersions()})`)
-  copyTask('node_modules/@jsx6/editor-monaco/dist', outDir + '/monaco', { include: ['*'], exclude: [], watch })
-  copyTask('node_modules/@babel/standalone', outDir + '/babel', { include: ['babel.min.js*'], watch })
+  copyTask('node_modules/@jsx6/editor-monaco/dist', outDir + '/monaco', {
+    include: ['*'],
+    exclude: [],
+    watch,
+  })
+  copyTask('node_modules/@babel/standalone', outDir + '/babel', {
+    include: ['babel.min.js*'],
+    watch,
+  })
   writeFileSync(`${outDir}/${VENDOR_STAMP}`, vendorVersions())
 }
 copyTask('static', outDir, { include: [], exclude: [], watch, filters: [] })
@@ -65,12 +83,17 @@ let devOptions = dev ? { jsxDev: true, footer: { js: srcPath() } } : {}
 if (dev) {
   // The dev build bakes this machine's absolute path into the bundle; it must never reach a
   // production build, so say so out loud instead of leaving it to be discovered later.
-  console.warn(`dev build: embedding developer source root ${realpathSync('./')}`)
+  console.warn(
+    `dev build: embedding developer source root ${realpathSync('./')}`,
+  )
 }
 await buildScript('./src', outDir, 'index.jsx', { watch, ...devOptions })
 await buildScript('./src', outDir, 'editor.jsx', { watch, ...devOptions })
 await buildScript('./src', outDir, 'demistify.jsx', { watch, ...devOptions })
-await buildScript('./src', outDir, 'random.tricks.jsx', { watch, ...devOptions })
+await buildScript('./src', outDir, 'random.tricks.jsx', {
+  watch,
+  ...devOptions,
+})
 
 /**************************** LIVE SERVER  *************/
 

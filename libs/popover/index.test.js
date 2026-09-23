@@ -84,8 +84,7 @@ test('movePopover positions the popover below the anchor', () => {
   Object.defineProperty(document.body, 'clientHeight', { value: 800, configurable: true })
   Object.defineProperty(document.body, 'clientWidth', { value: 600, configurable: true })
   const anchor = document.createElement('div')
-  anchor.getBoundingClientRect = () =>
-    /** @type {DOMRect} */ ({ bottom: 100, top: 80, left: 20, right: 60 })
+  anchor.getBoundingClientRect = () => /** @type {DOMRect} */ ({ bottom: 100, top: 80, left: 20, right: 60 })
   const pop = makePopover()
 
   doPop(pop, anchor)

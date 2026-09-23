@@ -9,7 +9,9 @@
     "test": "bun run scripts/verify.js --tests-only",
     "check": "bun run scripts/verify.js",
     "check:fast": "bun run scripts/verify.js --quick",
-    "lint": "eslint .",
+    "lint": "oxlint libs tools scripts --deny-warnings",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "bump": "bun run scripts/versions.js",
     "pub": "bun run scripts/publish.js --public",
     "check-versions": "bun run scripts/check-versions.js",
@@ -24,23 +26,18 @@
   "catalog": {
     "esbuild": "^0.17.18",
     "typescript": "^5.0.4",
-    "prettier": "~2.7.1",
-    "eslint": "^9.0.0",
-    "@eslint/js": "^9.0.0",
-    "globals": "^16.0.0",
+    "oxfmt": "^0.70.0",
+    "oxlint": "^1.85.0",
     "@happy-dom/global-registrator": "~14.7.1",
     "happy-dom": "~14.7.1",
     "bun-types": "~1.0.24",
     "@types/node": "^20.19.9",
     "live-server": "^1.2.2",
-    "@types/bun": "~1.0.2",
-    "@trivago/prettier-plugin-sort-imports": "~3.3.0"
+    "@types/bun": "~1.0.2"
   },
   "devDependencies": {
-    "@eslint/js": "catalog:",
-    "eslint": "catalog:",
-    "globals": "catalog:",
-    "prettier": "catalog:",
+    "oxlint": "catalog:",
+    "oxfmt": "catalog:",
     "typescript": "catalog:"
   }
 }

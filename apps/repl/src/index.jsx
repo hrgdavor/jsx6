@@ -36,21 +36,30 @@ console.log('objState() = ', objState())
 function NotAComponent(attr) {
   const state = $State({ count: 1, offset: 3 }, true)
   const out = (
-    <b {...attr} name={name} onclick={evt => console.log('click', evt, state.count++, this)}>
+    <b
+      {...attr}
+      name={name}
+      onclick={evt => console.log('click', evt, state.count++, this)}
+    >
       NotAComponent{state.count} / <i>{state(s => s.count + s.offset)}</i>
     </b>
   )
   return out
 }
 
-const NotAComponent2 = ({ text = 'NotAComponent2', TagName = 'b', ...attr }) => <TagName {...attr}>{text}</TagName>
+const NotAComponent2 = ({
+  text = 'NotAComponent2',
+  TagName = 'b',
+  ...attr
+}) => <TagName {...attr}>{text}</TagName>
 
 class AComponent extends Jsx6 {
   tpl(attr = {}) {
     const { $v } = this
     return (
       <div {...attr}>
-        AComponent:<b onclick={e => this.el.loopComp?.removeItem(this)}>{$v.name}</b>
+        AComponent:
+        <b onclick={e => this.el.loopComp?.removeItem(this)}>{$v.name}</b>
       </div>
     )
   }
@@ -125,23 +134,39 @@ addToBody(
       <AComponent p="comp1" />
       Hello world.{T`test`} ...{ThePromise}
       (<Loop primitive value={$loopValue} item={({ $v }) => <div>{$v}</div>} />)
-      <Loop p="loop" title={T`test`} item={AComponent} x-if={window.testState} />
+      <Loop
+        p="loop"
+        title={T`test`}
+        item={AComponent}
+        x-if={window.testState}
+      />
       <div>
-        shared value <input x-value={$sharedValue} />-<input x-value={$sharedValue} />
+        shared value <input x-value={$sharedValue} />-
+        <input x-value={$sharedValue} />
         and here: {$sharedValue}
       </div>
       <Loop
         p="loop2"
         item={({ $v }, c, _scope, loop) => (
           <div>
-            TPL:<b onclick={e => scope.loop2.removeItem(_scope)}>{$F(name => name + '----', $v.name)}</b>
+            TPL:
+            <b onclick={e => scope.loop2.removeItem(_scope)}>
+              {$F(name => name + '----', $v.name)}
+            </b>
           </div>
         )}
       />
       <div p="jozo" />
       <NotAComponent style="border:solid 1px; display:block" />
-      <NotAComponent2 style="border:solid 1px red; display: block" text="Bla" TagName="i" />
-      <div style="width: 400px; height:400px; border: solid 1px" class="fxs"></div>
+      <NotAComponent2
+        style="border:solid 1px red; display: block"
+        text="Bla"
+        TagName="i"
+      />
+      <div
+        style="width: 400px; height:400px; border: solid 1px"
+        class="fxs"
+      ></div>
     </>
   )),
 )

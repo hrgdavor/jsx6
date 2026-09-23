@@ -1,6 +1,18 @@
 import { expect, test } from 'bun:test'
 
-import { Group, isArray, isFunc, isNode, isNullish, isObj, isObjNN, isStr, isTextNode, t, throwErr } from './core.js'
+import {
+  Group,
+  isArray,
+  isFunc,
+  isNode,
+  isNullish,
+  isObj,
+  isObjNN,
+  isStr,
+  isTextNode,
+  t,
+  throwErr,
+} from './core.js'
 
 // P2-5: `isNullish` was `o !== null && o === undefined`, i.e. it never matched `null`.
 test('isNullish matches both null and undefined', () => {

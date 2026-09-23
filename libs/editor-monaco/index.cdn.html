@@ -1,37 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-
-    <link rel="stylesheet" href="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.css">
+    <link rel="stylesheet" href="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.css" />
     <script src="https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist/index.js"></script>
-    <script>monaco.setPreBuiltWorkerBase('https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist', true)</script>
+    <script>
+      monaco.setPreBuiltWorkerBase('https://www.unpkg.com/@jsx6/editor-monaco@0.34.100/dist', true)
+    </script>
 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pre-built monaco editor from CDN</title>
     <style>
-      *{ box-sizing: border-box;}
-      body, html{
-        margin: 0; padding: 0; width: 100%; height: 100%;
+      * {
+        box-sizing: border-box;
+      }
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
       }
     </style>
   </head>
   <body>
-    <div id="container" style="height:100%"></div>
+    <div id="container" style="height: 100%"></div>
   </body>
-  </html>
+</html>
 
 <script>
   var editor = monaco.editor.create(document.getElementById('container'), {
-	value: "// First line\nfunction hello() {\n\talert('Hello world!');\n}\n// Last line",
-	language: 'javascript',
+    value: "// First line\nfunction hello() {\n\talert('Hello world!');\n}\n// Last line",
+    language: 'javascript',
 
-	lineNumbers: 'on',
-	roundedSelection: false,
-	scrollBeyondLastLine: false,
-	readOnly: false,
-  automaticLayout: true,
-	theme: 'vs-dark'
-});
+    lineNumbers: 'on',
+    roundedSelection: false,
+    scrollBeyondLastLine: false,
+    readOnly: false,
+    automaticLayout: true,
+    theme: 'vs-dark',
+  })
 </script>
-  

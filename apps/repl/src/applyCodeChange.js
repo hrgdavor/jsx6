@@ -9,7 +9,11 @@ let applyCodeDelay = defApplyCodeDelay
 
 let lateThrowTimer
 
-export function queueCodeChange(iframe, editor, { otherEditor, codeRunner = runCode }) {
+export function queueCodeChange(
+  iframe,
+  editor,
+  { otherEditor, codeRunner = runCode },
+) {
   clearTimeout(changeTimer)
   clearTimeout(lateThrowTimer)
   changeTimer = setTimeout(() => {
@@ -28,7 +32,11 @@ export function queueCodeChange(iframe, editor, { otherEditor, codeRunner = runC
   }, applyCodeDelay)
 }
 
-function applyCodeChange(iframeHandler, editor, { otherEditor, codeRunner = runCode }) {
+function applyCodeChange(
+  iframeHandler,
+  editor,
+  { otherEditor, codeRunner = runCode },
+) {
   const code = editor.getValue()
   let codeTransformed = otherEditor ? transform(code, {}).code : ''
 

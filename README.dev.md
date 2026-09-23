@@ -64,14 +64,15 @@ The full gate (`scripts/verify.js`) runs, in order:
 | tests | `bun test` in **every** package that has tests (discovered by glob, not hardcoded) |
 | declaration emit | `tsc -p tsconfig.json` per lib, so `dist/*.d.ts` is always producible |
 | type check | `tsc --noEmit` per lib with `checkJs` on (catches undefined-identifier bugs) |
-| eslint | library/tool/script sources, including the custom `jsx6/signal-dependencies` rule |
+| oxlint | `libs/`, `tools/` and `scripts/` with `--deny-warnings`, including the custom `jsx6/signal-dependencies` JS-plugin rule (loaded via `jsPlugins`; warning-severity findings stop the gate) |
+| oxfmt | `oxfmt --check` — every file in the tree is already canonically formatted, so `bun run format` stays a no-op |
 | dependency versions | `scripts/check-versions.js` — every catalog-managed dependency must use `catalog:` |
 | docs sync | `scripts/check-docs.js` — the committed `docs/demistify/` site matches a build from `apps/repl/static/` (single source of truth) |
 | manifest audit | `scripts/check-manifests.js` — declared entry points exist, are covered by `files`, resolve to real dependencies, match `MODULE_VERSIONING.md` **and `scripts/versions.json`**, ship no test files, and are actually present in `npm pack --dry-run` output |
 | workspace integrity | `scripts/check-workspace.js` — no Rush artifacts, exactly one lockfile, internal deps are `workspace:*`, and no dependency is pinned to two different versions across the workspace |
 
 Useful flags: `--quick`, `--tests-only`, `--build` (build every lib bundle first, so the tarball
-assertions become strict, and rebuild-compare the docs site), `--no-pack`, `--no-lint`, `--no-types`,
+assertions become strict, and rebuild-compare the docs site), `--no-pack`, `--no-lint`, `--no-format`, `--no-types`,
 `--no-declarations`, `--no-versions`, `--no-docs`, `--no-manifests`, `--no-workspace`, and
 `--require-built` (every declared build output must already exist — used by the publish path).
 
@@ -86,11 +87,23 @@ bun run scripts/check-docs.js                    # docs/demistify vs apps/repl/s
 bun run docs:build                               # regenerate the tutorial site
 ```
 
-**Lint scope:** the gate lints `libs/`, `tools/` and `scripts/`. `apps/` is deliberately excluded:
-JSX components are consumed by the JSX transform, so `no-unused-vars` reports them all as unused
-(~40 false positives today), and the tutorial sources contain intentional irregular whitespace inside
-example text that a linter must not "fix". The apps are verified by their own builds and by the docs
-sync check instead. `bun run lint` (plain `eslint .`) remains available if you want the full report.
+**Lint scope:** the gate lints `libs/`, `tools/` and `scripts/` with Oxlint (`--deny-warnings`; the
+custom `jsx6/signal-dependencies` rule runs at warning severity, so that flag is what keeps it
+gate-stopping). `apps/` is deliberately excluded: JSX components are consumed by the JSX transform,
+so `no-unused-vars` reports them all as unused (~40 false positives today), and the tutorial sources
+contain intentional irregular whitespace inside example text that a linter must not "fix". The apps
+are verified by their own builds and by the docs sync check instead; one known Oxlint finding in apps
+stays intentionally unfixed (`no-empty-pattern` in `apps/repl/src/intersect.jsx`). `bun run lint`
+runs the same Oxlint scope if you want the report outside the gate.
+
+The plan's "58 Oxlint findings" number ([plan/eslint/README.md](plan/eslint/README.md) §2.4) was
+measured with an *empty* Oxlint config — a measurement artifact, not a parity gap. Under the
+committed [`.oxlintrc.json`](.oxlintrc.json), which mirrors the old ESLint flat config (62 rules, the
+same `no-unused-vars` options including `caughtErrors: 'none'`), the gate reports **0** findings,
+matching ESLint's 0. The 4 `unicorn`/`oxc` findings in that measurement were rules this repo never
+enabled; they were adopted explicitly and their findings fixed in `libs/jsx6`. The plan's
+`caughtErrors` anomaly (three "caught but never used" catch parameters in `scripts/publish.js`) did
+not reproduce under the committed config.
 
 ## Building Modules
 
@@ -176,10 +189,11 @@ manual OTP prompts.
 
 ## Install layout
 
-`bunfig.toml` pins `[install] linker = "hoisted"`. This is deliberate: parts of the toolchain (ESLint
-and its own dependencies, Prettier, the `tsc` `.bin` shims) expect classic `node_modules` resolution.
-Bun's isolated linker keeps transitive dependencies inside `node_modules/.bun`, which Node-based
-shims cannot resolve.
+`bunfig.toml` pins `[install] linker = "hoisted"`. This is deliberate: the `tsc` and `esbuild`
+`.bin` shims and `npm` itself (used by `scripts/publish.js` for `npm pack`) expect classic
+`node_modules` resolution. Bun's isolated linker keeps transitive dependencies inside
+`node_modules/.bun`, which Node-based shims cannot resolve. Oxlint and Oxfmt do not depend on that
+layout — both ship native binaries that the gate and the root scripts invoke through `bun x`.
 
 `bun.lock` is committed and is the only lockfile; per-package `package-lock.json` /
 `pnpm-lock.yaml` files are leftovers from before the Bun migration, and the workspace-integrity step
@@ -195,17 +209,36 @@ If you encounter `ENOENT` when spawning `npm` or `tsc` in scripts, ensure you ar
 ### TypeScript Resolution
 If `tsc` is not recognized, run `bun install` at the root to link the workspace dependencies.
 
-### ESLint cannot find its own modules
-If ESLint fails with `Cannot find module '@eslint/eslintrc'`, your `node_modules` was installed with
-Bun's isolated linker. Re-run `bun install` (with the committed `bunfig.toml` in place) to get the
-hoisted layout. `scripts/verify.js` also runs ESLint through Bun rather than through the `.bin` shim
-so the gate works either way.
+### Oxlint and Oxfmt run through `bun x`
+Both ship native binaries that the Node-based `.bin` shims do not wrap, so the gate
+(`scripts/verify.js`) and the root `lint`/`format` scripts invoke them through `bun x`, which
+resolves the local install under either linker layout. Do not try to call their `.bin` entries —
+they do not exist.
 
-### ESLint warns about `.eslintignore`
-There is no `.eslintignore` any more: ESLint 9 uses flat config, and ignores live in the
-`jsx6/ignores` entry of [`eslint.config.js`](eslint.config.js). Note that those patterns are written
-as `**/dist/**` rather than a bare `dist`, because a flat-config global ignore of `dist` only matches
-the repository root — the generated `dist/`, `esm/` and `cjs/` inside each package would be linted.
+### Oxfmt nested configs replace the root config
+A per-directory `.oxfmtrc.json` is a **complete** config: Oxfmt does not merge it with the root one.
+A partial file silently applies Oxfmt defaults (for example `semi: true` adds semicolons, and
+`sortPackageJson: true` reorders every `package.json`). That is why
+[`apps/repl/.oxfmtrc.json`](apps/repl/.oxfmtrc.json) (printWidth 80) and
+[`apps/nodditor/.oxfmtrc.json`](apps/nodditor/.oxfmtrc.json) (printWidth 120) repeat the entire root
+setting list and differ only in `printWidth`. `docs/demistify/` and the byte-stable sources in
+`apps/repl/static/` are excluded from formatting on both sides, because `scripts/check-docs.js`
+compares them byte-for-byte with a fresh `docs:build` output.
+
+### `bun test <package dir>` from the repo root
+Bun resolves `bunfig.toml` from the **process cwd**, not from the directory under test, so
+`bun test libs/w` from the root does not pick up `libs/w/bunfig.toml` and fails on a missing
+`jsxDEV` import. The gate runs each package's tests with the cwd set to the package directory, which
+is why the gate passes. Two packages need `jsxImportSource = "@jsx6/jsx-dev-runtime"` in their
+bunfig (`libs/w`, `apps/repl`): Bun's automatic JSX transform in `.js` files imports `jsxDEV` and
+`Fragment` from a runtime package that must exist, and the repo ships it as
+`@jsx6/jsx-dev-runtime`.
+
+### Oxlint on Windows (OOM)
+Oxlint has a known out-of-memory failure mode on some Windows setups. If a run OOMs, retry with
+fewer threads; it is a tool issue, not a repo configuration problem. For scale: the gate's oxlint
+step runs in ~0.2 s over `libs tools scripts` (the ESLint-era lint step took ~0.9 s), and Oxfmt's
+full-tree check in ~0.3 s over ~226 files.
 
 ---
 

@@ -45,7 +45,9 @@ export class TutorialRunner extends Jsx6 {
   }
 
   showChapterPath(path) {
-    this.showChapter(this.chapters ? this.chapters.findIndex(c => c.path === path) : -1)
+    this.showChapter(
+      this.chapters ? this.chapters.findIndex(c => c.path === path) : -1,
+    )
   }
 
   showChapter(index, move = 0) {
@@ -82,7 +84,11 @@ export class TutorialRunner extends Jsx6 {
                 if (runnerMap[info.runner]) {
                   this.codeRunner = newRunner
                 } else {
-                  console.log('runner_name', info.runner, 'not found, using default')
+                  console.log(
+                    'runner_name',
+                    info.runner,
+                    'not found, using default',
+                  )
                 }
               }
             }
@@ -102,7 +108,10 @@ export class TutorialRunner extends Jsx6 {
     }
 
     $s.chapterTitle = mdParsed?.level == 1 ? '' : mdParsed?.title
-    $s.parentTitle = mdParsed?.level == 1 ? mdParsed?.title : suffix(mdParsed?.parentTitle, ' / ')
+    $s.parentTitle =
+      mdParsed?.level == 1
+        ? mdParsed?.title
+        : suffix(mdParsed?.parentTitle, ' / ')
     $s.disablePrev = mdIndex <= 0
     $s.disableNext = !(mdIndex >= 0 && mdIndex < chapters.length - 1)
     setTimeout(() => {
@@ -120,7 +129,12 @@ export class TutorialRunner extends Jsx6 {
     // this declaration is intentionaly here to have access to scope and scoped `h` function
     // nice side-effect of such declaration is that CTRL+R works in vscode to find it
     this.tplChapterButton = chapter => (
-      <button class="btn" level={chapter.level} path={chapter.path} onclick={() => this.showChapterPath(chapter.path)}>
+      <button
+        class="btn"
+        level={chapter.level}
+        path={chapter.path}
+        onclick={() => this.showChapterPath(chapter.path)}
+      >
         {chapter.title}
       </button>
     )
@@ -138,15 +152,28 @@ export class TutorialRunner extends Jsx6 {
 
     const tplTutorialHeader = (
       <div class="tutorial-menu fxs posr">
-        <button class="btn-icon-large" disabled={$s.disablePrev} onclick={() => this.showChapter(0, -1)}>
+        <button
+          class="btn-icon-large"
+          disabled={$s.disablePrev}
+          onclick={() => this.showChapter(0, -1)}
+        >
           &lt;
         </button>
-        <button p="chapterName" class="fxcv1 padh05 btn" onclick={showMenuClick}>
+        <button
+          p="chapterName"
+          class="fxcv1 padh05 btn"
+          onclick={showMenuClick}
+        >
           <b style="margin-right: 0.5em">{$s.parentTitle}</b>
           {$s.chapterTitle}
         </button>
 
-        <button p="nextButton" class="btn-icon-large" disabled={$s.disableNext} onclick={nextChapterClick}>
+        <button
+          p="nextButton"
+          class="btn-icon-large"
+          disabled={$s.disableNext}
+          onclick={nextChapterClick}
+        >
           &gt;
         </button>
       </div>
@@ -156,14 +183,22 @@ export class TutorialRunner extends Jsx6 {
       <div class="fx1 owh posr tutorial-section" p="mdArea">
         <div class="tutorial-text pad" p="md"></div>
         <div class="fx fxje pad tutorial-buttons-bottom">
-          <button class="btn btn1" disabled={$s.disableNext} onclick={nextChapterClick}>
+          <button
+            class="btn btn1"
+            disabled={$s.disableNext}
+            onclick={nextChapterClick}
+          >
             Next -&gt;
           </button>
         </div>
       </div>
     )
 
-    addToBody((this.menuItems = <button class="tutorial-menu-pop pad05 fxs fxfc"></button>))
+    addToBody(
+      (this.menuItems = (
+        <button class="tutorial-menu-pop pad05 fxs fxfc"></button>
+      )),
+    )
 
     const tplLayout = (
       <div {...attr}>
@@ -211,7 +246,10 @@ export class TutorialRunner extends Jsx6 {
     syncScroll(this.editor.editor, this.compiled.editor)
 
     this.editor.editor.getModel().onDidChangeContent(event => {
-      queueCodeChange(this.iframe, this.editor, { otherEditor: this.compiled, codeRunner: this.codeRunner })
+      queueCodeChange(this.iframe, this.editor, {
+        otherEditor: this.compiled,
+        codeRunner: this.codeRunner,
+      })
     })
     const ps = (this.mdArea.scroller = new PerfectScrollbar(this.mdArea, {
       wheelSpeed: 2,

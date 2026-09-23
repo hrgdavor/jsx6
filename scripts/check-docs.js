@@ -144,7 +144,9 @@ export function checkDocs(opts = {}) {
       }
       for (const file of committed) {
         if (!staged.includes(file)) {
-          errors.push(`docs/demistify/${file} is not produced by docs:build (stale orphan) — delete it or run: bun run docs:build`)
+          errors.push(
+            `docs/demistify/${file} is not produced by docs:build (stale orphan) — delete it or run: bun run docs:build`,
+          )
         }
       }
     }

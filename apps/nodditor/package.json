@@ -53,9 +53,7 @@
     "@jsx6/signal": "workspace:*",
     "@jsx6/signal-dom": "workspace:*",
     "@jsx6/w": "workspace:*",
-    "@trivago/prettier-plugin-sort-imports": "catalog:",
     "live-server": "catalog:",
-    "prettier": "catalog:",
     "typescript": "catalog:"
   },
   "dependencies": {
@@ -66,4 +64,3 @@
     "@jsx6/dom-observer": "workspace:*"
   }
 }
-

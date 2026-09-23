@@ -14,12 +14,6 @@
     "outDir": "dist",
     "skipLibCheck": true
   },
-  "include": [
-    "index.js",
-    "src/**/*.js"
-  ],
-  "exclude": [
-    "**/*.test.js",
-    "test/**/*.js"
-  ]
+  "include": ["index.js", "src/**/*.js"],
+  "exclude": ["**/*.test.js", "test/**/*.js"]
 }

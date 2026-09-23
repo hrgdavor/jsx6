@@ -236,9 +236,9 @@ export class Loop {
     const n = v.length
     const all = this.allItems
     /** item that will be displayed at each visible position @type {any[]} */
-    const next = new Array(n)
+    const next = Array.from({ length: n })
     /** key wanted by each datum: explicit `$key`/`loopKey`, or the key learned when it was built */
-    const wanted = new Array(n)
+    const wanted = Array.from({ length: n })
     const used = new Set()
     const created = new Set()
 

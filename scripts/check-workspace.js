@@ -30,7 +30,16 @@ const FOREIGN_LOCKFILES = new Set(['package-lock.json', 'pnpm-lock.yaml', 'yarn.
 
 /** Directories that are generated, cached or third-party: never inspected. */
 const IGNORED_DIRS = new Set([
-  'node_modules', '.git', '.history', '.tmp', 'coverage', 'dist', 'esm', 'cjs', 'build', 'build_dev',
+  'node_modules',
+  '.git',
+  '.history',
+  '.tmp',
+  'coverage',
+  'dist',
+  'esm',
+  'cjs',
+  'build',
+  'build_dev',
   'docs',
 ])
 
@@ -131,9 +140,7 @@ function checkManifests(dirs) {
         if (!isInternal(name)) continue
         if (version === 'workspace:*') continue
         if (typeof version === 'string' && version.startsWith('npm:')) continue
-        errors.push(
-          `${label}: ${type}.${name} is "${version}" — internal packages must use "workspace:*"`,
-        )
+        errors.push(`${label}: ${type}.${name} is "${version}" — internal packages must use "workspace:*"`)
       }
     }
   }
@@ -164,7 +171,9 @@ function checkVersionDrift(dirs) {
         if (isInternal(name) || spec.startsWith('workspace:') || spec.startsWith('file:')) continue
         if (!spec.startsWith('catalog:') && !spec.startsWith('npm:')) {
           if (Object.keys(rootCatalog).length && !rootCatalog[name]) {
-            warnings.push(`${label}: ${name}@${spec} is not in the root catalog (allowed, reported for visibility)`)
+            warnings.push(
+              `${label}: ${name}@${spec} is not in the root catalog (allowed, reported for visibility)`,
+            )
           }
         }
 

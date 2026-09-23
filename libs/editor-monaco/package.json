@@ -20,9 +20,9 @@
     "build-editor": "esbuild index.js --outdir=dist --bundle --sourcemap --minify --loader:.ttf=file --format=iife --global-name=monaco",
     "build-editor-esm": "esbuild index.js --outfile=dist/index.esm.js --bundle --sourcemap --minify --loader:.ttf=file --format=esm",
     "build-workers": "esbuild editor.worker.js ts.worker.js json.worker.js html.worker.js css.worker.js --outdir=dist --bundle --sourcemap --minify --loader:.ttf=file",
-    "format": "prettier --write \"./*.{js,jsx,json}\"",
+    "format": "oxfmt",
     "version": "node ./versync.js 0.48.0 && git add README.md"
-},
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hrgdavor/jsx6.git"
@@ -49,12 +49,9 @@
   "devDependencies": {
     "esbuild": "catalog:",
     "vite": "~3.0.9",
-    "@trivago/prettier-plugin-sort-imports": "catalog:",
-    "prettier": "catalog:",
     "http-server": "~14.1.1"
   },
   "dependencies": {
     "monaco-editor": "~0.48.0"
   }
 }
-

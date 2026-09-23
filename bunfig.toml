@@ -1,8 +1,8 @@
 # Bun install configuration for this monorepo.
 #
 # `linker = "hoisted"` is a deliberate choice: the repository is verified with tools that expect
-# classic node_modules resolution (eslint and its own dependencies, prettier, tsc through their
-# .bin shims, and npm itself in scripts/publish.js). Bun's isolated linker keeps transitive
+# classic node_modules resolution (the tsc and esbuild .bin shims, and npm itself in
+# scripts/publish.js). Bun's isolated linker keeps transitive
 # dependencies inside node_modules/.bun, which the Node-based .bin shims then cannot resolve.
 [install]
 linker = "hoisted"

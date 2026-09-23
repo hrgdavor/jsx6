@@ -1,7 +1,7 @@
-body{
+body {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
-.TestIntersect{
+.TestIntersect {
   margin-top: 50px;
   width: 200px;
   height: 200px;
@@ -10,26 +10,26 @@ body{
   justify-content: space-between;
   flex-direction: column;
 }
-.TestIntersect b{
+.TestIntersect b {
   text-align: center;
   color: gray;
   background-color: #eee;
 }
-.TestIntersect div{
+.TestIntersect div {
   font-size: 80px;
   text-align: center;
 }
-.IntesectOuter{
+.IntesectOuter {
   padding: 200px 0 250px 0;
-  width: 230px; 
+  width: 230px;
   height: 40px;
 }
-.intersect-page{
+.intersect-page {
   display: flex;
 }
-.intersect-preview{
+.intersect-preview {
 }
-.preview-box{
+.preview-box {
   display: flex;
   align-items: center;
   position: relative;
@@ -39,10 +39,10 @@ body{
 
   margin-bottom: 10px;
 }
-.preview-box div{
+.preview-box div {
   height: 100%;
   background-color: rgb(185, 214, 185);
 }
-.preview-box b{
+.preview-box b {
   position: absolute;
 }

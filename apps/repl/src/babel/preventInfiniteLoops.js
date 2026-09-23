@@ -1,4 +1,4 @@
-/* based on 
+/* based on
 https://stackoverflow.com/questions/65282666/js-infinite-loop-protection-how-to-use-babel-standalone-plugins-without-node-or
 and
 https://github.com/facebook/react/blob/d906de7f602df810c38aa622c83023228b047db6/scripts/babel/transform-prevent-infinite-loops.js

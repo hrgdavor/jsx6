@@ -9,8 +9,5 @@
   ],
   "scripts": {
     "test": "bun test"
-  },
-  "peerDependencies": {
-    "eslint": "catalog:"
   }
 }

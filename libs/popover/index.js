@@ -47,7 +47,7 @@ function resolveAnchor(e) {
  * @param {string} position - default is 'default' and it is used to position the popover relative to the anchor element topRight|topLeft|bottomRight|bottomLeft
  * @returns
  */
-export function doPop(popover, e, selector = 'button', position= 'default') {
+export function doPop(popover, e, selector = 'button', position = 'default') {
   return valuePop(undefined, popover, e, selector, position)
 }
 
@@ -62,7 +62,7 @@ export function doPop(popover, e, selector = 'button', position= 'default') {
  * @param {string} position - default is 'default' and it is used to position the popover relative to the anchor element topRight|topLeft|bottomRight|bottomLeft
  * @returns
  */
-export function valuePop(value, popover, e, selector = 'button', position= 'default') {
+export function valuePop(value, popover, e, selector = 'button', position = 'default') {
   // `e` is either the anchor element itself or an event which carries the anchor in `target`
   let target = resolveAnchor(e)
   if (selector && target) {
@@ -113,44 +113,43 @@ export function popSetVisible(pop, v) {
   }
 }
 
-export function movePopover(pop, position = "default", offset = 6) {
-  let { width, height, target } = pop._pop;
-  if (!width) return;
+export function movePopover(pop, position = 'default', offset = 6) {
+  let { width, height, target } = pop._pop
+  if (!width) return
 
-  const trect = target.getBoundingClientRect();
-  const maxTop = document.body.clientHeight - height - 5;
-  const maxRight = document.body.clientWidth - width - 5;
+  const trect = target.getBoundingClientRect()
+  const maxTop = document.body.clientHeight - height - 5
+  const maxRight = document.body.clientWidth - width - 5
 
-  let top, left;
+  let top, left
 
   switch (position) {
-    case "topLeft":
-      top = Math.max(trect.top - height - offset, 0);
-      left = Math.max(trect.left, 0);
-      break;
+    case 'topLeft':
+      top = Math.max(trect.top - height - offset, 0)
+      left = Math.max(trect.left, 0)
+      break
 
-    case "topRight":
-      top = Math.max(trect.top - height - offset, 0);
-      left = Math.min(trect.right - width, maxRight);
-      break;
+    case 'topRight':
+      top = Math.max(trect.top - height - offset, 0)
+      left = Math.min(trect.right - width, maxRight)
+      break
 
-    case "bottomLeft":
-      top = Math.min(trect.bottom + offset, maxTop);
-      left = Math.max(trect.left, 0);
-      break;
+    case 'bottomLeft':
+      top = Math.min(trect.bottom + offset, maxTop)
+      left = Math.max(trect.left, 0)
+      break
 
-    case "bottomRight":
-
-      top = Math.min(trect.bottom + offset, maxTop);
-      left = Math.min(trect.right - width, maxRight);
-      break;
+    case 'bottomRight':
+      top = Math.min(trect.bottom + offset, maxTop)
+      left = Math.min(trect.right - width, maxRight)
+      break
 
     default:
-      top = Math.min(trect.bottom + offset, maxTop);
-      left = Math.min(Math.max(trect.left - 10, 0), maxRight);
-      break;
+      top = Math.min(trect.bottom + offset, maxTop)
+      left = Math.min(Math.max(trect.left - 10, 0), maxRight)
+      break
   }
 
-  pop.style.top = `${top}px`;
-  pop.style.left = `${left}px`;
+  pop.style.top = `${top}px`
+  pop.style.left = `${left}px`
 }

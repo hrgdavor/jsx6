@@ -10,54 +10,63 @@
   --tutorial-incode-fg: rgb(245, 245, 245);
 }
 
-.tutorial-section{
+.tutorial-section {
   background-color: var(--tutorial-text-bg);
   color: var(--tutorial-text-fg);
 }
-.tutorial-text{
+.tutorial-text {
 }
 
-.tutorial-text > p > code, .tutorial-text > ul code, .tutorial-text > li code {
+.tutorial-text > p > code,
+.tutorial-text > ul code,
+.tutorial-text > li code {
   padding: 2px 6px;
   border-radius: 4px;
   background-color: var(--tutorial-incode-bg);
   color: var(--tutorial-incode-fg);
 }
 
-.tutorial-text pre code{
+.tutorial-text pre code {
   display: block;
   background-color: var(--tutorial-code-bg);
   color: var(--tutorial-code-fg);
   padding: var(--default-content-padding);
-  padding-bottom: calc(var(--default-content-padding) - 14px);/* there is usually extra newline*/
+  padding-bottom: calc(
+    var(--default-content-padding) - 14px
+  ); /* there is usually extra newline*/
   margin-left: calc(var(--default-content-padding) * -1 + 8px);
   margin-right: calc(var(--default-content-padding) * -1 + 8px);
   overflow: auto;
   border-radius: 8px;
 }
 
-.tutorial-text > h1:first-child, .tutorial-text > h2:first-child {
+.tutorial-text > h1:first-child,
+.tutorial-text > h2:first-child {
   margin-top: 0;
   display: none;
 }
 
-.tutorial-text > h3, .tutorial-text > h3, .tutorial-text > p a, .tutorial-text > ul a, .tutorial-text > li a,
-.tutorial-section .btn1{
+.tutorial-text > h3,
+.tutorial-text > h3,
+.tutorial-text > p a,
+.tutorial-text > ul a,
+.tutorial-text > li a,
+.tutorial-section .btn1 {
   color: var(--tutorial-text-fgh);
 }
-.tutorial-section .btn1{
-  font-size: 1.2em;  
+.tutorial-section .btn1 {
+  font-size: 1.2em;
 }
 
-.tutorial-menu{
+.tutorial-menu {
   position: relative;
   cursor: pointer;
 }
 
-.tutorial-menu-pop{
+.tutorial-menu-pop {
   position: absolute;
-  top:0;
-  left:40px;
+  top: 0;
+  left: 40px;
   z-index: 1;
   background-color: white;
   border: solid 1px gray;
@@ -68,25 +77,25 @@
 /* focus-within does not work if using display:none or visibility:hidden as you can not focus items inside
 https://stackoverflow.com/questions/21351476/why-changing-visibility-display-on-focus-does-not-work 
 */
-.tutorial-menu-pop:not(:focus-within){
+.tutorial-menu-pop:not(:focus-within) {
   opacity: 0;
   overflow: hidden;
-  height:0;
-  padding:0;
+  height: 0;
+  padding: 0;
   top: -100px;
 }
-.tutorial-menu-pop > button{
+.tutorial-menu-pop > button {
   padding: 8px 20px;
   display: block;
   text-align: left;
 }
-.tutorial-menu-pop > button:hover, .tutorial-menu-pop > button.selected{
+.tutorial-menu-pop > button:hover,
+.tutorial-menu-pop > button.selected {
   background-color: #ccc;
 }
-.tutorial-menu-pop > button[level="1"]{
+.tutorial-menu-pop > button[level='1'] {
   font-weight: bold;
 }
-.tutorial-menu-pop > button[level="2"]{
+.tutorial-menu-pop > button[level='2'] {
   padding-left: calc(var(--default-content-padding) + 20px);
 }
-

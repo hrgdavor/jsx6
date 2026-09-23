@@ -4,7 +4,9 @@ import syntax_jsx from 'babel-plugin-syntax-jsx'
 import { preventInfiniteLoops } from './preventInfiniteLoops'
 
 const babelMissing = () => {
-  throw new Error('Babel module is missing. Please load Babel module and call setBabelModule')
+  throw new Error(
+    'Babel module is missing. Please load Babel module and call setBabelModule',
+  )
 }
 let BABEL = { transform: babelMissing }
 
@@ -18,7 +20,12 @@ export function setBabelModule(B) {
 
 export const transformDefaults = {
   retainLines: true,
-  plugins: ['syntax-jsx', 'jsx-mi2', 'syntax-object-rest-spread', 'preventInfiniteLoops'],
+  plugins: [
+    'syntax-jsx',
+    'jsx-mi2',
+    'syntax-object-rest-spread',
+    'preventInfiniteLoops',
+  ],
   presets: [],
 }
 

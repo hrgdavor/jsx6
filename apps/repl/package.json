@@ -21,7 +21,7 @@
   "scripts": {
     "start": "node src_build/build.js --dev",
     "build": "node src_build/build.js",
-    "format": "prettier --write \"./src/**/*.{js,jsx,json}\""
+    "format": "oxfmt src"
   },
   "repository": {
     "type": "git",
@@ -48,8 +48,6 @@
     "esbuild": "catalog:",
     "@jsx6/build": "workspace:*",
     "@jsx6/jsx-dev-runtime": "workspace:*",
-    "@trivago/prettier-plugin-sort-imports": "catalog:",
-    "prettier": "catalog:",
     "@jsx6/editor-monaco": "workspace:*",
     "live-server": "catalog:",
     "@babel/standalone": "~7.18.12",

@@ -1,4 +1,11 @@
-import { observe, observeNow, subscribe, triggerSymbol, subscribeSymbol, isObservable } from './src/observe.js'
+import {
+  observe,
+  observeNow,
+  subscribe,
+  triggerSymbol,
+  subscribeSymbol,
+  isObservable,
+} from './src/observe.js'
 import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
 
 /** Utility that that returns signal value if the parameter is a signal/function and the parameter otherwise.
@@ -94,21 +101,27 @@ export const $If = ($signal, t, f) => $F(v => (v ? t : f), $signal)
 
 /** signal that is true if any of the signals is truthy */
 export const $Any = (...signals) =>
-  $S(() => {
-    for (let i = 0; i < signals.length; i++) {
-      if (signalValue(signals[i])) return true
-    }
-    return false
-  }, ...signals)
+  $S(
+    () => {
+      for (let i = 0; i < signals.length; i++) {
+        if (signalValue(signals[i])) return true
+      }
+      return false
+    },
+    ...signals,
+  )
 
 /** signal that has value of first truthy signal value */
 export const $AnyValue = (...signals) =>
-  $S(() => {
-    for (let i = 0; i < signals.length; i++) {
-      let val = signalValue(signals[i])
-      if (val) return val
-    }
-  }, ...signals)
+  $S(
+    () => {
+      for (let i = 0; i < signals.length; i++) {
+        let val = signalValue(signals[i])
+        if (val) return val
+      }
+    },
+    ...signals,
+  )
 
 export const $Or = ($sa, $sb) => $F((a, b) => a || b, $sa, $sb)
 export const $OrB = ($sa, $sb) => $F((a, b) => !!(a || b), $sa, $sb)

@@ -22,101 +22,101 @@
  *   bun pub --dry-run             simulate, without publishing
  *   bun pub --no-gate             skip the local gate (emergencies only)
  */
-import { spawn } from 'child_process';
-import { file, Glob } from 'bun';
-import { join } from 'path';
+import { spawn } from 'child_process'
+import { file, Glob } from 'bun'
+import { join } from 'path'
 
-const CONFIG_PATH = 'scripts/versions.json';
+const CONFIG_PATH = 'scripts/versions.json'
 
 async function runCommand(command, args, cwd) {
   return new Promise((resolve, reject) => {
-    console.log(`Running: ${command} ${args.join(' ')} (in ${cwd})`);
-    const proc = spawn(command, args, { cwd, stdio: 'inherit', shell: true });
+    console.log(`Running: ${command} ${args.join(' ')} (in ${cwd})`)
+    const proc = spawn(command, args, { cwd, stdio: 'inherit', shell: true })
     proc.on('close', code => {
-      if (code === 0) resolve();
-      else reject(new Error(`Command failed with code ${code}`));
-    });
-  });
+      if (code === 0) resolve()
+      else reject(new Error(`Command failed with code ${code}`))
+    })
+  })
 }
 
 async function prompt(question) {
-  process.stdout.write(question);
+  process.stdout.write(question)
   for await (const line of console) {
-    const trimmed = line.trim();
-    if (trimmed.toLowerCase() === 'y' || trimmed.toLowerCase() === 'yes') return 'y';
-    return trimmed;
+    const trimmed = line.trim()
+    if (trimmed.toLowerCase() === 'y' || trimmed.toLowerCase() === 'yes') return 'y'
+    return trimmed
   }
 }
 
 async function run() {
-  const args = process.argv.slice(2);
-  const isDryRun = args.includes('--dry-run');
-  const skipGate = args.includes('--no-gate');
+  const args = process.argv.slice(2)
+  const isDryRun = args.includes('--dry-run')
+  const skipGate = args.includes('--no-gate')
   // Support both --public and --access public (npm style).
-  const isPublic = args.includes('--public') || args.includes('public');
-  const tolerateRepublish = args.includes('--tolerate-republish');
+  const isPublic = args.includes('--public') || args.includes('public')
+  const tolerateRepublish = args.includes('--tolerate-republish')
 
   // Filter out flags to get target packages.
-  const targetPackages = args.filter(a => !a.startsWith('--') && a !== 'public');
+  const targetPackages = args.filter(a => !a.startsWith('--') && a !== 'public')
 
-  const configFile = file(CONFIG_PATH);
-  const config = (await configFile.exists()) ? await configFile.json() : { groups: { lockstep: [] } };
+  const configFile = file(CONFIG_PATH)
+  const config = (await configFile.exists()) ? await configFile.json() : { groups: { lockstep: [] } }
 
-  let modulesToPublish = targetPackages;
+  let modulesToPublish = targetPackages
   if (modulesToPublish.length === 0) {
-    modulesToPublish = config.groups.lockstep || [];
-    console.log('No specific packages targeted. Defaulting to lockstep group.');
+    modulesToPublish = config.groups.lockstep || []
+    console.log('No specific packages targeted. Defaulting to lockstep group.')
   }
 
   if (modulesToPublish.length === 0) {
-    console.error('No packages found to publish.');
-    process.exit(1);
+    console.error('No packages found to publish.')
+    process.exit(1)
   }
 
-  console.log('--- Phase 1: Validating all modules ---');
+  console.log('--- Phase 1: Validating all modules ---')
   for (const relPath of modulesToPublish) {
-    console.log(`\nValidating: ${relPath}`);
-    const pkgPath = join(relPath, 'package.json');
-    const tsconfigPath = join(relPath, 'tsconfig.json');
+    console.log(`\nValidating: ${relPath}`)
+    const pkgPath = join(relPath, 'package.json')
+    const tsconfigPath = join(relPath, 'tsconfig.json')
 
-    const pkgFile = file(pkgPath);
+    const pkgFile = file(pkgPath)
     if (!(await pkgFile.exists())) {
-      console.error(`Package file not found: ${pkgPath}`);
-      process.exit(1);
+      console.error(`Package file not found: ${pkgPath}`)
+      process.exit(1)
     }
-    const pkg = await pkgFile.json();
-    const scripts = pkg.scripts || {};
+    const pkg = await pkgFile.json()
+    const scripts = pkg.scripts || {}
 
     try {
       // 1. Build if scripts exist
       if (scripts.build) {
-        await runCommand('bun', ['run', 'build'], relPath);
+        await runCommand('bun', ['run', 'build'], relPath)
       }
       if (scripts['build-cjs']) {
-        await runCommand('bun', ['run', 'build-cjs'], relPath);
+        await runCommand('bun', ['run', 'build-cjs'], relPath)
       }
 
       // 2. TSC if tsconfig exists
       if (await file(tsconfigPath).exists()) {
-        await runCommand('bun', ['x', 'tsc'], relPath);
+        await runCommand('bun', ['x', 'tsc'], relPath)
       }
 
       // 3. Test
-      const testGlob = new Glob('**/*.test.js');
-      let hasTests = false;
+      const testGlob = new Glob('**/*.test.js')
+      let hasTests = false
       for (const _testFile of testGlob.scanSync({ cwd: relPath })) {
-        hasTests = true;
-        break;
+        hasTests = true
+        break
       }
 
       if (hasTests) {
-        await runCommand('bun', ['test'], relPath);
+        await runCommand('bun', ['test'], relPath)
       } else {
-        console.log(`No tests found in ${relPath}. Skipping.`);
+        console.log(`No tests found in ${relPath}. Skipping.`)
       }
     } catch (err) {
-      console.error(`\nValidation failed in ${relPath}. Aborting publish.`);
-      process.exit(1);
+      console.error(`\nValidation failed in ${relPath}. Aborting publish.`)
+      process.exit(1)
     }
   }
 
@@ -124,72 +124,72 @@ async function run() {
   // so publishing refuses to continue unless it passes. It runs after the per-module builds
   // above so that --require-built can assert every declared entry point is really in the tarball.
   if (skipGate) {
-    console.warn('\n--- Phase 1b: local verification gate SKIPPED (--no-gate) ---');
+    console.warn('\n--- Phase 1b: local verification gate SKIPPED (--no-gate) ---')
   } else {
-    console.log('\n--- Phase 1b: local verification gate (bun run check --require-built) ---');
+    console.log('\n--- Phase 1b: local verification gate (bun run check --require-built) ---')
     try {
-      await runCommand('bun', ['run', 'scripts/verify.js', '--require-built'], '.');
+      await runCommand('bun', ['run', 'scripts/verify.js', '--require-built'], '.')
     } catch (err) {
-      console.error('\nLocal verification gate failed. Aborting publish.');
-      process.exit(1);
+      console.error('\nLocal verification gate failed. Aborting publish.')
+      process.exit(1)
     }
   }
 
   if (isDryRun) {
-    console.log('\n--- Phase 2: Dry Run (Simulated Publishing) ---');
+    console.log('\n--- Phase 2: Dry Run (Simulated Publishing) ---')
   } else {
-    console.log('\n--- Phase 2: Publishing ---');
+    console.log('\n--- Phase 2: Publishing ---')
   }
 
   for (const relPath of modulesToPublish) {
-    const pkgPath = join(relPath, 'package.json');
-    const pkgFile = file(pkgPath);
+    const pkgPath = join(relPath, 'package.json')
+    const pkgFile = file(pkgPath)
     if (!(await pkgFile.exists())) {
-      console.warn(`Package file not found: ${pkgPath}. Skipping.`);
-      continue;
+      console.warn(`Package file not found: ${pkgPath}. Skipping.`)
+      continue
     }
-    const pkg = await pkgFile.json();
+    const pkg = await pkgFile.json()
 
     if (pkg.private) {
-      console.log(`\nSkipping private module: ${relPath}`);
-      continue;
+      console.log(`\nSkipping private module: ${relPath}`)
+      continue
     }
 
-    const version = pkg.version;
-    console.log(`\nPreparing to publish: ${relPath} (version: ${version})`);
+    const version = pkg.version
+    console.log(`\nPreparing to publish: ${relPath} (version: ${version})`)
 
-    const publishArgs = ['publish'];
-    if (isPublic) publishArgs.push('--access', 'public');
-    if (tolerateRepublish) publishArgs.push('--tolerate-republish');
-    if (isDryRun) publishArgs.push('--dry-run');
+    const publishArgs = ['publish']
+    if (isPublic) publishArgs.push('--access', 'public')
+    if (tolerateRepublish) publishArgs.push('--tolerate-republish')
+    if (isDryRun) publishArgs.push('--dry-run')
 
-    let success = false;
+    let success = false
     while (!success) {
       try {
-        await runCommand('bun', publishArgs, relPath);
-        success = true;
+        await runCommand('bun', publishArgs, relPath)
+        success = true
       } catch (err) {
-        console.error(`\nPublish failed for ${relPath}.`);
-        if (isDryRun) process.exit(1);
-        const choice = await prompt('Retry? (y/n, or empty to abort): ');
+        console.error(`\nPublish failed for ${relPath}.`)
+        if (isDryRun) process.exit(1)
+        const choice = await prompt('Retry? (y/n, or empty to abort): ')
         if (choice === 'y') {
-          console.log(`Retrying ${relPath}...`);
+          console.log(`Retrying ${relPath}...`)
         } else {
-          console.error('Manual intervention may be required for remaining modules.');
-          process.exit(1);
+          console.error('Manual intervention may be required for remaining modules.')
+          process.exit(1)
         }
       }
     }
   }
 
   if (isDryRun) {
-    console.log('\nDry run completed. No changes made.');
+    console.log('\nDry run completed. No changes made.')
   } else {
-    console.log('\nAll targeted modules published successfully.');
+    console.log('\nAll targeted modules published successfully.')
   }
 }
 
 run().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+  console.error(err)
+  process.exit(1)
+})

@@ -62,7 +62,7 @@ test('installInspector() installs explicitly and is idempotent per root', async 
 // read per call so it can be set by the host page at any time. A fresh module instance is
 // imported with a cache-busting query so the assertion is not affected by the tests above.
 test('JSX6_DEV_INSPECTOR=false opts out of the automatic installation', async () => {
-  /** @type {any} */ (globalThis).JSX6_DEV_INSPECTOR = false
+  ;/** @type {any} */ (globalThis).JSX6_DEV_INSPECTOR = false
   try {
     const mod = await import('./index.js?optout')
     const before = inspectorRoots().length
@@ -73,6 +73,6 @@ test('JSX6_DEV_INSPECTOR=false opts out of the automatic installation', async ()
     expect(mod.installInspector()).toBe(true)
     expect(mod.isInspectorInstalled()).toBe(true)
   } finally {
-    delete /** @type {any} */ (globalThis).JSX6_DEV_INSPECTOR
+    delete (/** @type {any} */ (globalThis).JSX6_DEV_INSPECTOR)
   }
 })

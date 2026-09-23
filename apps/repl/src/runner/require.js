@@ -43,11 +43,20 @@ export function requireModule(url, source) {
     //------
     // is is important to attach these functions to iframe so this can be used to
     // call Function that is part of that widnow. Otherwise document.body or such calls would reference main window
-    const anonFn = new this.Function('require', 'exports', 'module', source).bind(this) //create a Fn with module code, and 3 params: require, exports & module
+    const anonFn = new this.Function(
+      'require',
+      'exports',
+      'module',
+      source,
+    ).bind(this) //create a Fn with module code, and 3 params: require, exports & module
     anonFn(require, exports, module) // call the Fn, Execute the module
     return module
   } catch (err) {
-    console.error('Error loading module ' + url + ': ' + err.message + '\n', err.stack, err)
+    console.error(
+      'Error loading module ' + url + ': ' + err.message + '\n',
+      err.stack,
+      err,
+    )
     console.log(source)
     throw err
   }
@@ -57,7 +66,8 @@ require.urlAlias = {}
 require.alias = (alias, orig) => {
   const cache = require.cache
   cache[alias] = cache[orig]
-  if (alias.toLowerCase().slice(-3) !== '.js') require.cache[alias + '.js'] = cache[orig]
+  if (alias.toLowerCase().slice(-3) !== '.js')
+    require.cache[alias + '.js'] = cache[orig]
   require.urlAlias[alias] = orig
 }
 require.alias('@jsx6/jsx6', './dist/jsx6.js')

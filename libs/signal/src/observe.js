@@ -23,7 +23,7 @@ export const observeNow = ($signal, callback) => observe($signal, callback, true
  * Wrapper for callback IS added for signals so that value is passed to callback.
  *
  * @param {function|any} $signal signal or static value
- * @param {function} callback called on every change. 
+ * @param {function} callback called on every change.
  * @param {boolean} trigger callback is also called immediately
  * @returns {function|undefined} unsubscribe function if observed
  */
@@ -32,11 +32,11 @@ export const observe = ($signal, callback, trigger = false) => _observe($signal,
 /**
  * observe static value or a signal.
  * Callback is NOT called on first subscribe unless trigger=true.
- * Wrapper for callback is NOT added for signals. 
+ * Wrapper for callback is NOT added for signals.
  * observing static value will NOT result in callback being called if trigger=true.
  *
  * @param {function|any} $signal signal or static value
- * @param {function} callback called on every change. 
+ * @param {function} callback called on every change.
  * @param {boolean} trigger callback is also called immediately
  * @returns {function|undefined} unsubscribe function if observed
  */
@@ -94,7 +94,6 @@ function _observe(obj, callback, trigger = false, passValue = false) {
   return unsubscribe
 }
 
-
 /**
  * manually trigger a signal
  * @param {function} $signal
@@ -111,4 +110,5 @@ export function triggerSignal($signal) {
  * @param {any} obj
  * @returns {boolean} if observable
  */
-export const isObservable = obj => !!(obj && (obj[subscribeSymbol] || typeof obj.then === 'function' || typeof obj.subscribe === 'function'))
+export const isObservable = obj =>
+  !!(obj && (obj[subscribeSymbol] || typeof obj.then === 'function' || typeof obj.subscribe === 'function'))

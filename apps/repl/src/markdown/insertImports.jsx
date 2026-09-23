@@ -7,7 +7,11 @@ export function insertImports(mdParsed, providedMap = {}) {
           const provided = providedMap[importName]
           if (provided) {
             line.lines = line.lines.concat(provided.lines)
-            line.info = { ...provided.info, ...line.info, hidden: line.info?.hidden }
+            line.info = {
+              ...provided.info,
+              ...line.info,
+              hidden: line.info?.hidden,
+            }
             delete line.info.import
           } else {
             console.log('import not found', importName)

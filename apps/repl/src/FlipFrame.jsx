@@ -88,8 +88,12 @@ export class FlipFrame extends Jsx6old {
 
   applyVisibility() {
     // this.iframes.forEach(ifr => (ifr.style.display = ifr == this.toShow ? '' : 'none'))
-    this.iframes.forEach(ifr => (ifr.style.opacity = ifr == this.toShow ? '1' : '0'))
-    this.iframes.forEach(ifr => (ifr.style.zIndex = ifr == this.toShow ? '1' : '0'))
+    this.iframes.forEach(
+      ifr => (ifr.style.opacity = ifr == this.toShow ? '1' : '0'),
+    )
+    this.iframes.forEach(
+      ifr => (ifr.style.zIndex = ifr == this.toShow ? '1' : '0'),
+    )
     const old = this.toClean
     old.contentWindow.document.location.reload()
   }

@@ -29,11 +29,50 @@ const TMP = join(ROOT, '.tmp')
 const GENERATED_DIRS = new Set(['node_modules', 'dist', 'esm', 'cjs', 'build', 'build_dev', 'coverage'])
 
 const BUILTINS = new Set([
-  'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'console', 'constants', 'crypto',
-  'dgram', 'diagnostics_channel', 'dns', 'domain', 'events', 'fs', 'http', 'http2', 'https',
-  'inspector', 'module', 'net', 'os', 'path', 'perf_hooks', 'process', 'punycode', 'querystring',
-  'readline', 'repl', 'stream', 'string_decoder', 'sys', 'timers', 'tls', 'trace_events', 'tty',
-  'url', 'util', 'v8', 'vm', 'wasi', 'worker_threads', 'zlib', 'bun', 'test',
+  'assert',
+  'async_hooks',
+  'buffer',
+  'child_process',
+  'cluster',
+  'console',
+  'constants',
+  'crypto',
+  'dgram',
+  'diagnostics_channel',
+  'dns',
+  'domain',
+  'events',
+  'fs',
+  'http',
+  'http2',
+  'https',
+  'inspector',
+  'module',
+  'net',
+  'os',
+  'path',
+  'perf_hooks',
+  'process',
+  'punycode',
+  'querystring',
+  'readline',
+  'repl',
+  'stream',
+  'string_decoder',
+  'sys',
+  'timers',
+  'tls',
+  'trace_events',
+  'tty',
+  'url',
+  'util',
+  'v8',
+  'vm',
+  'wasi',
+  'worker_threads',
+  'zlib',
+  'bun',
+  'test',
 ])
 
 /** Strip // and /* *\/ comments so JSONC (tsconfig.json) can be parsed. */
@@ -219,8 +258,9 @@ function readVersionsConfig() {
 
 function parseVersioningDoc() {
   const text = readFileSync(join(ROOT, 'MODULE_VERSIONING.md'), 'utf8')
-  const lockstepVersion = /\*\*Lockstep[^*]*Current Version:\s*\*\*([^*]+)\*\*/.exec(text)?.[1]?.trim()
-    || /Current Version:\s*\*\*([^*]+)\*\*/.exec(text)?.[1]?.trim()
+  const lockstepVersion =
+    /\*\*Lockstep[^*]*Current Version:\s*\*\*([^*]+)\*\*/.exec(text)?.[1]?.trim() ||
+    /Current Version:\s*\*\*([^*]+)\*\*/.exec(text)?.[1]?.trim()
   const listed = new Set()
   for (const m of text.matchAll(/^-\s+`([^`]+)`/gm)) listed.add(m[1])
   const lockstep = new Set()
@@ -263,7 +303,8 @@ export function auditManifests({ pack = true, requireBuilt = false } = {}) {
       if (path.includes('*')) continue // wildcard subpath export patterns
       const onDisk = existsSync(join(ROOT, dir, path))
       const top = path.split('/')[0]
-      const produced = outputs.has(top) || [...outputs].some(o => path.startsWith(o.replace(/^\.\//, '') + '/'))
+      const produced =
+        outputs.has(top) || [...outputs].some(o => path.startsWith(o.replace(/^\.\//, '') + '/'))
       if (!onDisk && !produced) {
         errors.push(`${label}: declares "${path}" but it is neither on disk nor produced by a build script`)
       }
@@ -291,7 +332,9 @@ export function auditManifests({ pack = true, requireBuilt = false } = {}) {
         // Workspace-internal packages are declared as dependencies like any other.
         if (runtime.has(name)) continue
         if (dev.has(name) && rawSource) {
-          errors.push(`${label}: ${file} imports "${name}", which is only in devDependencies but this package ships raw source`)
+          errors.push(
+            `${label}: ${file} imports "${name}", which is only in devDependencies but this package ships raw source`,
+          )
         } else if (dev.has(name)) {
           warnings.push(`${label}: ${file} imports build-time dependency "${name}" from devDependencies`)
         } else {
@@ -304,7 +347,11 @@ export function auditManifests({ pack = true, requireBuilt = false } = {}) {
     if (!versioning.listed.has(pkg.name)) {
       errors.push(`${label}: missing from MODULE_VERSIONING.md`)
     }
-    if (versioning.lockstep.has(pkg.name) && versioning.lockstepVersion && pkg.version !== versioning.lockstepVersion) {
+    if (
+      versioning.lockstep.has(pkg.name) &&
+      versioning.lockstepVersion &&
+      pkg.version !== versioning.lockstepVersion
+    ) {
       errors.push(`${label}: version ${pkg.version} != lockstep version ${versioning.lockstepVersion}`)
     }
     const jsrPath = join(ROOT, dir, 'jsr.json')
@@ -319,16 +366,16 @@ export function auditManifests({ pack = true, requireBuilt = false } = {}) {
     // `scripts/versions.js` maintains (R7). Without this the record silently rots into a lie.
     const recorded = standaloneVersions[dir]
     if (recorded && recorded !== pkg.version) {
-      errors.push(
-        `${label}: scripts/versions.json records ${recorded} but package.json is ${pkg.version}`,
-      )
+      errors.push(`${label}: scripts/versions.json records ${recorded} but package.json is ${pkg.version}`)
     }
 
     // 5 — the tarball actually contains what consumers are told to import.
     if (pack) {
       const { files: packed, status, error } = tarballFiles(dir)
       if (!packed) {
-        errors.push(`${label}: "npm pack --dry-run --json" produced no listing (status ${status}${error ? `: ${error}` : ''})`)
+        errors.push(
+          `${label}: "npm pack --dry-run --json" produced no listing (status ${status}${error ? `: ${error}` : ''})`,
+        )
       } else {
         const inTarball = p =>
           packed.includes(p) || packed.some(f => f.startsWith(p.replace(/\/$/, '') + '/'))
@@ -349,14 +396,18 @@ export function auditManifests({ pack = true, requireBuilt = false } = {}) {
           const onDisk = existsSync(join(ROOT, dir, path))
           const produced = outputs.has(path.split('/')[0])
           if (!onDisk && produced && !requireBuilt) {
-            warnings.push(`${label}: ${kind} "${path}" is not built yet — run the package build before publishing`)
+            warnings.push(
+              `${label}: ${kind} "${path}" is not built yet — run the package build before publishing`,
+            )
             continue
           }
           if (!inTarball(path)) errors.push(`${label}: ${kind} "${path}" is not in the tarball`)
         }
         const shippedTests = packed.filter(f => /\.test\.[a-z]+$/.test(f))
         if (shippedTests.length) {
-          errors.push(`${label}: tarball ships test files (${shippedTests.slice(0, 3).join(', ')}${shippedTests.length > 3 ? ', …' : ''})`)
+          errors.push(
+            `${label}: tarball ships test files (${shippedTests.slice(0, 3).join(', ')}${shippedTests.length > 3 ? ', …' : ''})`,
+          )
         }
       }
     }

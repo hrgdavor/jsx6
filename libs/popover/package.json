@@ -27,7 +27,7 @@
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "node --test"
-},
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hrgdavor/jsx6.git"
@@ -61,4 +61,3 @@
     "@jsx6/dom-observer": "workspace:*"
   }
 }
-

@@ -1,7 +1,9 @@
 import { Jsx6 } from '@jsx6/jsx6'
 
 const monacoMissing = () => {
-  throw new Error('Monaco module is missing. Please load monaco module and call setMonacoModule')
+  throw new Error(
+    'Monaco module is missing. Please load monaco module and call setMonacoModule',
+  )
 }
 let monaco = { colorize: monacoMissing, editor: { create: monacoMissing } }
 

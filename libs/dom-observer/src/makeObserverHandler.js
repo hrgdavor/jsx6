@@ -35,17 +35,19 @@ export const makeObserverHandler = name => {
   const listenMap = new WeakMap()
 
   /** @type {ObserverHandler} */
-  const listener = /** @type {ObserverHandler} */ (entries => {
-    entries.forEach(entry => {
-      listenMap.get(entry.target)?.forEach(fn => {
-        try {
-          if (fn) fn(entry)
-        } catch (e) {
-          console.error(`problem calling ${name} listener:  ${e.message}`, fn, e)
-        }
+  const listener = /** @type {ObserverHandler} */ (
+    entries => {
+      entries.forEach(entry => {
+        listenMap.get(entry.target)?.forEach(fn => {
+          try {
+            if (fn) fn(entry)
+          } catch (e) {
+            console.error(`problem calling ${name} listener:  ${e.message}`, fn, e)
+          }
+        })
       })
-    })
-  })
+    }
+  )
 
   listener.observe = (el, callback, options) => {
     const observer = listener.observer

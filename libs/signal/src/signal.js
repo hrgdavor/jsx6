@@ -40,7 +40,6 @@ export function staticSignal(obj) {
   return $signal
 }
 
-
 export function asSignal(obj) {
   if (obj?.[subscribeSymbol]) return obj
   if (!obj) return staticSignal(obj)

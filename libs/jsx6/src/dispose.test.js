@@ -255,7 +255,9 @@ test('removing a container tears down its Loop, including the value subscription
   const $items = signal([{ x: 1 }, { x: 2 }])
   const scope = {}
   const Item = ({ value }) => h('B', null, value.x)
-  const div = domWithScope(scope, hFn => hFn('DIV', null, hFn(Loop, { item: Item, p: 'loop', value: $items })))
+  const div = domWithScope(scope, hFn =>
+    hFn('DIV', null, hFn(Loop, { item: Item, p: 'loop', value: $items })),
+  )
   document.body.appendChild(div)
   const loop = scope.loop
 

@@ -304,12 +304,12 @@ export function forInsert(newChild) {
   return newChild
 }
 
-export function insert(parent, newChild, before, _self) {
+export function insert(parent, newChild, before) {
   if (newChild === undefined || newChild === null) return
   if (!parent) throwErr(JSX6E8_REQUIRE_PARENT, { parent, newChild, before })
 
   if (newChild instanceof Array) {
-    return newChild.map(c => insert(parent, c, before, _self))
+    return newChild.map(c => insert(parent, c, before))
   }
 
   const _parent = parent.insertBefore ? parent : toDomNode(parent)
@@ -343,5 +343,5 @@ export let factories = {
 const factoriesDefaults = factories
 
 export function changeFactories(func) {
-  factories = { ...factoriesDefaults, ...(func(factories) || {}) }
+  factories = { ...factoriesDefaults, ...func(factories) }
 }

@@ -118,8 +118,7 @@ function replaceOnce(text, pattern, replacement, what) {
  * @returns {string}
  */
 export function renderIndexHtml(opts = {}) {
-  const template =
-    opts.template ?? readFileSync(join(STATIC_DIR, TEMPLATE), 'utf8')
+  const template = opts.template ?? readFileSync(join(STATIC_DIR, TEMPLATE), 'utf8')
   const monaco = opts.monacoVersion ?? cdnVersions().monaco
   const babel = opts.babelVersion ?? cdnVersions().babel
 
@@ -212,7 +211,9 @@ export async function buildStage(dir) {
 export function listFiles(dir) {
   const out = []
   const walk = current => {
-    for (const entry of readdirSync(current, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    for (const entry of readdirSync(current, { withFileTypes: true }).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    )) {
       const full = join(current, entry.name)
       if (entry.isDirectory()) walk(full)
       else out.push(relative(dir, full).split(sep).join('/'))
@@ -336,7 +337,12 @@ export function validateStage(dir, opts = {}) {
   const refs = validateRefs(dir)
   errors.push(...refs.errors, ...validateNoOrphanAssets(dir))
   if (opts.syntax !== false) {
-    errors.push(...syntaxCheck(listFiles(join(dir, ASSET_DIR)).map(f => join(dir, ASSET_DIR, f)), join(STAGE_DIR, '.syntax')))
+    errors.push(
+      ...syntaxCheck(
+        listFiles(join(dir, ASSET_DIR)).map(f => join(dir, ASSET_DIR, f)),
+        join(STAGE_DIR, '.syntax'),
+      ),
+    )
   }
   return { errors, external: refs.external }
 }

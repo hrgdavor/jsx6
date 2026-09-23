@@ -13,11 +13,13 @@
  *   3. `tsc --noEmit` per lib — JSDoc/`checkJs` type checking, catches the undefined-identifier
  *      bug class that shipped in P0-1…P0-3
  *   4. `--build` only: build each lib's esm/cjs bundles, so the tarball assertion is strict
- *   5. `eslint` (includes the jsx6/signal-dependencies rule)
- *   6. `scripts/check-versions.js` — catalog hygiene
- *   7. `scripts/check-docs.js` — the committed docs site matches `apps/repl/static` (P4-2)
- *   8. `scripts/check-manifests.js` — manifest + dry-run tarball audit (§2.3)
- *   9. `scripts/check-workspace.js` — the single-package-manager invariant, and the guard rail that
+ *   5. `oxlint` (includes the jsx6/signal-dependencies JS-plugin rule; `--deny-warnings` keeps
+ *      warning-severity findings gate-stopping)
+ *   6. `oxfmt --check` — every file in the tree is already canonically formatted (Oxfmt)
+ *   7. `scripts/check-versions.js` — catalog hygiene
+ *   8. `scripts/check-docs.js` — the committed docs site matches `apps/repl/static` (P4-2)
+ *   9. `scripts/check-manifests.js` — manifest + dry-run tarball audit (§2.3)
+ *   10. `scripts/check-workspace.js` — the single-package-manager invariant, and the guard rail that
  *      keeps Rush-era artifacts (and version drift between manifests) from creeping back
  *      (plan/rush/README.md R3/R4)
  *
@@ -31,8 +33,7 @@
 import { spawnSync } from 'child_process'
 import { existsSync, readFileSync, readdirSync } from 'fs'
 import { Glob } from 'bun'
-import { createRequire } from 'module'
-import { dirname, join, resolve } from 'path'
+import { join, resolve } from 'path'
 import { auditManifests } from './check-manifests.js'
 import { checkDocs } from './check-docs.js'
 
@@ -87,9 +88,7 @@ function testsByPackage() {
       if (path.split('/').some(segment => ALWAYS_IGNORED.has(segment))) continue
       // Longest matching package dir wins, so a package named `build` (tools/build) is not
       // mistaken for generated output.
-      const dir = dirs
-        .filter(d => path.startsWith(d + '/'))
-        .sort((a, b) => b.length - a.length)[0]
+      const dir = dirs.filter(d => path.startsWith(d + '/')).sort((a, b) => b.length - a.length)[0]
       if (!dir) continue
       const inner = path.slice(dir.length + 1)
       if (inner.split('/').some(segment => GENERATED_DIRS.has(segment))) continue
@@ -102,9 +101,7 @@ function testsByPackage() {
 
 /** Libraries that type-check: anything under libs/ with a tsconfig.json. */
 function libsWithTsconfig() {
-  return packageDirs().filter(
-    dir => dir.startsWith('libs/') && existsSync(join(ROOT, dir, 'tsconfig.json')),
-  )
+  return packageDirs().filter(dir => dir.startsWith('libs/') && existsSync(join(ROOT, dir, 'tsconfig.json')))
 }
 
 /**
@@ -125,23 +122,20 @@ function run(command, args, cwd = ROOT) {
 }
 
 /**
- * eslint is executed with Bun rather than through `node_modules/.bin`: the .bin shims are
- * Node-based, and under an isolated node_modules layout Node cannot resolve eslint's own
- * dependencies. Resolving the bin field keeps this working under either linker.
+ * oxlint is invoked through `bun x` (Bun's own resolver) rather than through
+ * `node_modules/.bin`: the .bin shims are Node-based, and oxlint ships a native binary those
+ * shims do not wrap. `bun x oxlint` resolves the local install under either linker.
  */
-function runEslint(args) {
-  try {
-    const require = createRequire(import.meta.url)
-    const pkgPath = require.resolve('eslint/package.json')
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
-    const bin = typeof pkg.bin === 'string' ? pkg.bin : pkg.bin?.eslint
-    if (!bin) throw new Error('eslint package.json has no bin entry')
-    const eslintJs = join(dirname(pkgPath), bin)
-    return run('bun', [eslintJs, ...args])
-  } catch (err) {
-    console.error(`  eslint is not installed (${err.message}). Run: bun install`)
-    return 1
-  }
+function runOxlint(args) {
+  return run('bun', ['x', 'oxlint', ...args])
+}
+
+/**
+ * Oxfmt is invoked through `bun x` for the same reason as oxlint: it ships a native binary the
+ * Node-based .bin shims do not wrap. `--check` exits non-zero when any file would be rewritten.
+ */
+function runOxfmt(args) {
+  return run('bun', ['x', 'oxfmt', ...args])
 }
 
 function step(title, fn) {
@@ -235,23 +229,26 @@ if (flag('build') && !QUICK && !TESTS_ONLY) {
   )
 }
 
-// 5 — lint (library, tool and script sources; the jsx6/signal-dependencies rule lives here).
-// `--max-warnings 0` matters: the custom rule reports at warning severity, so without it a broken
-// rule would silently stop gating anything.
+// 5 — lint (library, tool and script sources; the jsx6/signal-dependencies JS-plugin rule
+// lives here). `--deny-warnings` matters: the custom rule reports at warning severity, so
+// without it a broken rule would silently stop gating anything (the same trap as ESLint's
+// `--max-warnings 0`).
 if (!QUICK && !TESTS_ONLY && !flag('no-lint')) {
-  results.push(
-    step('eslint', () =>
-      runEslint(['libs', 'tools', 'scripts', '--ext', '.js,.jsx,.cjs', '--max-warnings', '0']),
-    ),
-  )
+  results.push(step('oxlint', () => runOxlint(['libs', 'tools', 'scripts', '--deny-warnings'])))
 }
 
-// 6 — dependency catalog hygiene.
+// 6 — format check: the whole tree must already be Oxfmt-clean, so `bun run format` stays a
+// no-op. It is the format counterpart of the oxlint step above (same `bun x` invocation style).
+if (!QUICK && !TESTS_ONLY && !flag('no-format')) {
+  results.push(step('oxfmt (format check)', () => runOxfmt(['--check'])))
+}
+
+// 7 — dependency catalog hygiene.
 if (!QUICK && !TESTS_ONLY && !flag('no-versions')) {
   results.push(step('dependency versions', () => run('bun', ['run', 'scripts/check-versions.js'])))
 }
 
-// 7 — the committed docs site must match what `docs:build` produces from apps/repl/static (P4-2).
+// 8 — the committed docs site must match what `docs:build` produces from apps/repl/static (P4-2).
 if (!QUICK && !TESTS_ONLY && !flag('no-docs')) {
   results.push(
     step('docs sync', () => {
@@ -269,7 +266,7 @@ if (!QUICK && !TESTS_ONLY && !flag('no-docs')) {
   )
 }
 
-// 8 — manifest + tarball audit.
+// 9 — manifest + tarball audit.
 if (!QUICK && !TESTS_ONLY && !flag('no-manifests')) {
   results.push(
     step('manifest audit', () => {
@@ -286,7 +283,7 @@ if (!QUICK && !TESTS_ONLY && !flag('no-manifests')) {
   )
 }
 
-// 9 — workspace integrity: one package manager, no Rush artifacts, no version drift (R3/R4).
+// 10 — workspace integrity: one package manager, no Rush artifacts, no version drift (R3/R4).
 // Cheap (pure file/manifest reads), so it is a full-gate step rather than a --quick one.
 if (!QUICK && !TESTS_ONLY && !flag('no-workspace')) {
   results.push(step('workspace integrity', () => run('bun', ['run', 'scripts/check-workspace.js'])))
