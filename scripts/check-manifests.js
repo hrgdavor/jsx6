@@ -161,7 +161,16 @@ function sourceFiles(dir) {
   return out
 }
 
-/** Dry-run tarball listing. Captured through a file because piped child stdio is not always available. */
+/** Dry-run tarball listing. Captured through a file because piped child stdio is not always available.
+ *
+ * `npm pack` rather than `bun pm pack`, deliberately: publishing goes through `bun publish`
+ * (scripts/publish.js), and the point of this check is to compare the declared entry points against
+ * what the *reference* packer would ship, using the project's own `files` field. `bun pm pack` also
+ * has no `--json` output (its `--json` flag is silently ignored), so the listing would have to be
+ * scraped from its human-readable output — a strictly worse check. npm is therefore a dev-only tool
+ * here, not a second package manager; `scripts/check-workspace.js` enforces that no npm lockfile is
+ * ever committed.
+ */
 function tarballFiles(dir) {
   mkdirSync(TMP, { recursive: true })
   const out = join(TMP, `pack-${dir.replace(/[\\/]/g, '_')}.json`)
@@ -197,6 +206,17 @@ function tarballFiles(dir) {
   }
 }
 
+/** Standalone versions recorded in `scripts/versions.json` (see that file's header / plan R7). */
+function readVersionsConfig() {
+  const path = join(ROOT, 'scripts', 'versions.json')
+  if (!existsSync(path)) return {}
+  try {
+    return JSON.parse(readFileSync(path, 'utf8')).standalone || {}
+  } catch {
+    return {}
+  }
+}
+
 function parseVersioningDoc() {
   const text = readFileSync(join(ROOT, 'MODULE_VERSIONING.md'), 'utf8')
   const lockstepVersion = /\*\*Lockstep[^*]*Current Version:\s*\*\*([^*]+)\*\*/.exec(text)?.[1]?.trim()
@@ -226,6 +246,7 @@ export function auditManifests({ pack = true, requireBuilt = false } = {}) {
   const errors = []
   const warnings = []
   const versioning = parseVersioningDoc()
+  const standaloneVersions = readVersionsConfig()
   const dirs = packageDirs()
 
   for (const dir of dirs) {
@@ -292,6 +313,15 @@ export function auditManifests({ pack = true, requireBuilt = false } = {}) {
       if (jsr.version !== pkg.version) {
         errors.push(`${label}: jsr.json version ${jsr.version} != package.json version ${pkg.version}`)
       }
+    }
+
+    // 4b — a standalone package's version must match the record in scripts/versions.json, which
+    // `scripts/versions.js` maintains (R7). Without this the record silently rots into a lie.
+    const recorded = standaloneVersions[dir]
+    if (recorded && recorded !== pkg.version) {
+      errors.push(
+        `${label}: scripts/versions.json records ${recorded} but package.json is ${pkg.version}`,
+      )
     }
 
     // 5 — the tarball actually contains what consumers are told to import.

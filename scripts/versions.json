@@ -10,5 +10,15 @@
       "libs/w",
       "apps/repl"
     ]
+  },
+  "standalone": {
+    "tools/build": "0.2.4",
+    "libs/editor-monaco": "0.48.0",
+    "libs/dom-observer": "2.0.1",
+    "libs/popover": "1.0.1",
+    "libs/url-util": "1.0.1",
+    "libs/virtual-scroll": "1.0.0",
+    "apps/nodditor": "1.0.40",
+    "tools/eslint-plugin-jsx6": "1.0.0"
   }
 }

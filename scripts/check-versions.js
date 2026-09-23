@@ -1,7 +1,8 @@
 import { Glob, file } from 'bun'
 
 const rootPkg = await file('package.json').json()
-// Bun uses the singular `catalog` key (Rush used `catalogs.default`).
+// Bun's single root `catalog` is the replacement for Rush's version policies and for
+// `common-versions.json`; the plural `catalogs` key is not used anywhere in this repo.
 const catalog = rootPkg.catalog || {}
 const catalogDeps = new Set(Object.keys(catalog))
 

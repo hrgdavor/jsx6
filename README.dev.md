@@ -2,6 +2,40 @@
 
 This document provides instructions for developers working on the JSX6 monorepo.
 
+## Toolchain: Bun workspaces (Rush is gone)
+
+The repository is a single **Bun** workspace: `workspaces` + `catalog:` in the root
+[`package.json`](package.json), one committed `bun.lock`, and no second package manager. Imports
+between packages use `workspace:*`; shared external dependencies are declared once in the root
+`catalog` and referenced as `catalog:`.
+
+Requires **Bun 1.3.14 or newer**, declared in `packageManager` / `engines` in the root
+`package.json`. The floor is not cosmetic: this repo uses Bun's singular `catalog` key, and an older
+Bun can silently ignore it and resolve a different dependency tree than `bun.lock` was built from.
+
+```bash
+bun install                    # from the repository root
+bun install --frozen-lockfile  # what a clean checkout / verification should use
+```
+
+If you know Rush, this is the translation table:
+
+| Rush | Now |
+|---|---|
+| `rush update` | `bun install` (`--frozen-lockfile` for the strict form) |
+| `rush build` | `bun run check --build`, or `bun run build` inside a package |
+| `rush test` | `bun run test` |
+| `rush check` | `bun run check` — but note it is **not** the same check: the workspace-integrity step fails on *version drift between manifests*, which is the part of `rush check` that used to catch mismatched pins |
+| `rush change`, `rush version --bump` | `bun run bump <version>` (`scripts/versions.js`) |
+| `rush publish` | `bun pub` (`scripts/publish.js`) |
+
+`npm` is still used for exactly one thing: `npm pack --dry-run --json` inside the manifest audit,
+because it is the reference packer and the only one with machine-readable output. It is a dev-only
+tool, never a way to install — `scripts/check-workspace.js` fails the gate if a
+`package-lock.json` / `pnpm-lock.yaml` / `yarn.lock` reappears.
+
+---
+
 ## The local gate (there is no CI)
 
 This project deliberately has **no CI/CD** — no GitHub Actions, no build server, no remote gate of
@@ -33,12 +67,13 @@ The full gate (`scripts/verify.js`) runs, in order:
 | eslint | library/tool/script sources, including the custom `jsx6/signal-dependencies` rule |
 | dependency versions | `scripts/check-versions.js` — every catalog-managed dependency must use `catalog:` |
 | docs sync | `scripts/check-docs.js` — the committed `docs/demistify/` site matches a build from `apps/repl/static/` (single source of truth) |
-| manifest audit | `scripts/check-manifests.js` — declared entry points exist, are covered by `files`, resolve to real dependencies, match `MODULE_VERSIONING.md`, ship no test files, and are actually present in `npm pack --dry-run` output |
+| manifest audit | `scripts/check-manifests.js` — declared entry points exist, are covered by `files`, resolve to real dependencies, match `MODULE_VERSIONING.md` **and `scripts/versions.json`**, ship no test files, and are actually present in `npm pack --dry-run` output |
+| workspace integrity | `scripts/check-workspace.js` — no Rush artifacts, exactly one lockfile, internal deps are `workspace:*`, and no dependency is pinned to two different versions across the workspace |
 
 Useful flags: `--quick`, `--tests-only`, `--build` (build every lib bundle first, so the tarball
 assertions become strict, and rebuild-compare the docs site), `--no-pack`, `--no-lint`, `--no-types`,
-`--no-declarations`, `--no-versions`, `--no-docs`, `--no-manifests`, and `--require-built` (every
-declared build output must already exist — used by the publish path).
+`--no-declarations`, `--no-versions`, `--no-docs`, `--no-manifests`, `--no-workspace`, and
+`--require-built` (every declared build output must already exist — used by the publish path).
 
 The individual checks can also be run directly:
 
@@ -46,6 +81,7 @@ The individual checks can also be run directly:
 bun run scripts/check-versions.js
 bun run scripts/check-manifests.js
 bun run scripts/check-manifests.js --no-pack     # skip the npm-pack tarball assertion
+bun run scripts/check-workspace.js               # single-package-manager guard rail
 bun run scripts/check-docs.js                    # docs/demistify vs apps/repl/static
 bun run docs:build                               # regenerate the tutorial site
 ```
@@ -82,30 +118,35 @@ instead of a globally installed `tsc`, which on Windows may resolve to the unrel
 
 ## Versioning (Bump)
 
-We manage several modules in lockstep versioning. To update all lockstep modules to a new version, use the `bump` script from the root:
+We manage the core modules in lockstep versioning, and the rest independently; `scripts/versions.json`
+is the record of both groups.
 
 ```bash
-bun run bump <new-version>
+bun run bump                              # show the lockstep version and every standalone package
+bun run bump 1.8.19                       # bump the lockstep group
+bun run bump --pkg @jsx6/popover 1.0.2    # bump one standalone package
+bun run bump --standalone 2.1.0           # bump every standalone package
 ```
-Example: `bun run bump 1.8.19`
 
-This script will:
-1. Update `package.json` for all modules listed in `scripts/versions.json`.
-2. Update the `Current Version` in `MODULE_VERSIONING.md`.
-3. Update `jsr.json` in any bumped package that has one, so the JSR version cannot drift.
+A bump:
+1. updates `package.json` for every targeted module;
+2. updates the `Current Version` in `MODULE_VERSIONING.md` (lockstep bumps — that line describes the
+   lockstep group only);
+3. updates `jsr.json` in any bumped package that has one, so the JSR version cannot drift;
+4. records standalone versions back into `scripts/versions.json`, which the manifest audit then
+   cross-checks against each `package.json`.
 
 ---
 
 ## Publishing (Pub)
 
-We use a centralized publish script to ensure all `workspace:*` and `catalog:` dependencies are resolved correctly before they reach the NPM registry.
+`bun pub` runs `scripts/publish.js`, which builds and tests every targeted package, then runs the
+**full local verification gate** with `--require-built` and aborts if anything fails.
 
-### Unified Publish Process
-The script `scripts/publish.js` builds and tests each targeted package, then runs the **full local
-verification gate** with `--require-built` and aborts if anything fails. It resolves `workspace:*` /
-`catalog:` versions, writes the resolved manifest, publishes, and restores the original manifest —
-including from process-exit handlers, so an interrupted run cannot leave resolved versions behind in
-your working tree.
+The publish step is `bun publish`, which resolves `workspace:*` and `catalog:` at publish time and
+packs the rewritten manifest. Nothing is rewritten on disk, so an interrupted publish cannot leave
+resolved versions in your working tree (the old npm-based flow had to restore them from
+`process.on('exit')` handlers).
 
 **Publish the lockstep group (default):**
 ```bash
@@ -124,19 +165,25 @@ bun pub --dry-run
 bun pub libs/popover --dry-run
 ```
 
-**Note:** The script relies on your active `npm login` session (no manual OTP prompts). The `--manual-replace` and `--public` flags are automatically included when using the `bun pub` shortcut from the root.
+**Other flags:** `--public` (public access for scoped packages; `bun pub` from the root passes it),
+`--tolerate-republish` (do not fail when the version already exists), and `--no-gate` (skip the
+local gate — emergencies only).
+
+**Note:** publishing uses your existing npm credentials (`npm login` / `.npmrc`), so there are no
+manual OTP prompts.
 
 ---
 
 ## Install layout
 
-`bunfig.toml` pins `[install] linker = "hoisted"`. This is deliberate: the toolchain (ESLint and its
-own dependencies, Prettier, the `tsc`/`eslint` `.bin` shims, and `npm` itself inside
-`scripts/publish.js`) expects classic `node_modules` resolution. Bun's isolated linker keeps
-transitive dependencies inside `node_modules/.bun`, which Node-based shims cannot resolve.
+`bunfig.toml` pins `[install] linker = "hoisted"`. This is deliberate: parts of the toolchain (ESLint
+and its own dependencies, Prettier, the `tsc` `.bin` shims) expect classic `node_modules` resolution.
+Bun's isolated linker keeps transitive dependencies inside `node_modules/.bun`, which Node-based
+shims cannot resolve.
 
-`bun.lock` is committed; per-package `package-lock.json` / `pnpm-lock.yaml` files are leftovers from
-before the Bun migration and should not come back.
+`bun.lock` is committed and is the only lockfile; per-package `package-lock.json` /
+`pnpm-lock.yaml` files are leftovers from before the Bun migration, and the workspace-integrity step
+fails the gate if one comes back.
 
 ---
 
@@ -153,6 +200,12 @@ If ESLint fails with `Cannot find module '@eslint/eslintrc'`, your `node_modules
 Bun's isolated linker. Re-run `bun install` (with the committed `bunfig.toml` in place) to get the
 hoisted layout. `scripts/verify.js` also runs ESLint through Bun rather than through the `.bin` shim
 so the gate works either way.
+
+### ESLint warns about `.eslintignore`
+There is no `.eslintignore` any more: ESLint 9 uses flat config, and ignores live in the
+`jsx6/ignores` entry of [`eslint.config.js`](eslint.config.js). Note that those patterns are written
+as `**/dist/**` rather than a bare `dist`, because a flat-config global ignore of `dist` only matches
+the repository root — the generated `dist/`, `esm/` and `cjs/` inside each package would be linted.
 
 ---
 

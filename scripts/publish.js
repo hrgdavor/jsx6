@@ -1,41 +1,32 @@
+#!/usr/bin/env bun
+/**
+ * Lockstep / targeted publishing — the replacement for `rush publish`
+ * (see plan/rush/README.md, item R1).
+ *
+ * The publish step is `bun publish`, which resolves `workspace:*` and `catalog:` away at publish
+ * time and packs the rewritten manifest. That matters for more than tidiness: the previous version
+ * of this script rewrote `package.json` on disk, published with the npm CLI, then restored the
+ * original — and needed `process.on('exit')` plus signal handlers to undo the rewrite if a run was
+ * interrupted. None of that machinery exists any more, because nothing is rewritten on disk.
+ *
+ * What remains:
+ *   Phase 1   — build (and test) every targeted module, so a broken module never reaches the registry.
+ *   Phase 1b  — the full local verification gate with `--require-built`. There is no CI in this
+ *               project (plan/improvement-plan.md D1), so the gate is the only line of defence and
+ *               it must pass before anything is published.
+ *   Phase 2   — `bun publish --access public` per module, with a retry prompt.
+ *
+ * Usage:
+ *   bun pub                       publish the lockstep group (scripts/versions.json)
+ *   bun pub libs/popover          publish specific module directories
+ *   bun pub --dry-run             simulate, without publishing
+ *   bun pub --no-gate             skip the local gate (emergencies only)
+ */
 import { spawn } from 'child_process';
 import { file, Glob } from 'bun';
 import { join } from 'path';
-import { writeFileSync } from 'fs';
 
 const CONFIG_PATH = 'scripts/versions.json';
-
-/**
- * Publishing rewrites package.json in place (workspace:/catalog: -> resolved versions) and
- * restores it afterwards. An interrupted run used to leave the repository holding resolved
- * versions with no workspace markers, so every snapshot is also restored from process-exit
- * handlers, which run even when the process is terminated.
- */
-const manifestSnapshots = new Map();
-
-function snapshotManifest(path, content) {
-  if (!manifestSnapshots.has(path)) manifestSnapshots.set(path, content);
-}
-
-function restoreManifests() {
-  for (const [path, content] of manifestSnapshots) {
-    try {
-      writeFileSync(path, content);
-      console.log(`  - Restored original ${path}`);
-    } catch (err) {
-      console.error(`  ! Failed to restore ${path}: ${err.message}`);
-    }
-  }
-  manifestSnapshots.clear();
-}
-
-process.on('exit', restoreManifests);
-for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
-  process.on(signal, () => {
-    restoreManifests();
-    process.exit(130);
-  });
-}
 
 async function runCommand(command, args, cwd) {
   return new Promise((resolve, reject) => {
@@ -46,63 +37,6 @@ async function runCommand(command, args, cwd) {
       else reject(new Error(`Command failed with code ${code}`));
     });
   });
-}
-
-async function getAllPackageVersions() {
-  const versions = {};
-  const glob = new Glob('**/package.json');
-  const dirs = ['libs', 'apps', 'tools'];
-  
-  for (const dir of dirs) {
-    for (const pkgPath of glob.scanSync({ cwd: dir })) {
-      // Skip installed copies: node_modules holds a duplicated package.json per workspace
-      // package, and reading those would resolve workspace deps to whatever is installed.
-      if (pkgPath.includes('node_modules')) continue;
-      const fullPath = join(dir, pkgPath);
-      try {
-        const pkg = await file(fullPath).json();
-        if (pkg.name) {
-          versions[pkg.name] = pkg.version;
-        }
-      } catch (err) {
-        // Skip invalid or unreadable package.json
-      }
-    }
-  }
-  return versions;
-}
-
-function resolveDeps(pkg, catalog, packageVersions) {
-  let changed = false;
-  const depTypes = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'];
-  for (const type of depTypes) {
-    if (pkg[type]) {
-      for (const [name, depVersion] of Object.entries(pkg[type])) {
-        if (typeof depVersion !== 'string') continue;
-        
-        if (depVersion.startsWith('workspace:')) {
-          const version = packageVersions[name];
-          if (version) {
-            console.log(`  - Updating ${type}: ${name} (${depVersion} -> ${version})`);
-            pkg[type][name] = version;
-            changed = true;
-          } else {
-            console.warn(`  - Warning: ${name} is a workspace dependency but version not found in monorepo`);
-          }
-        } else if (depVersion === 'catalog:') {
-          const catalogVersion = catalog[name];
-          if (catalogVersion) {
-            console.log(`  - Updating ${type}: ${name} (catalog: -> ${catalogVersion})`);
-            pkg[type][name] = catalogVersion;
-            changed = true;
-          } else {
-            console.warn(`  - Warning: ${name} use catalog: but not found in root catalog`);
-          }
-        }
-      }
-    }
-  }
-  return changed;
 }
 
 async function prompt(question) {
@@ -117,22 +51,17 @@ async function prompt(question) {
 async function run() {
   const args = process.argv.slice(2);
   const isDryRun = args.includes('--dry-run');
-  const manualReplace = args.includes('--manual-replace');
-  // Support both --public and --access public (npm style)
+  const skipGate = args.includes('--no-gate');
+  // Support both --public and --access public (npm style).
   const isPublic = args.includes('--public') || args.includes('public');
-  
-  // Filter out flags to get target packages
-  const targetPackages = args.filter(a => !a.startsWith('--') && a !== 'public');
+  const tolerateRepublish = args.includes('--tolerate-republish');
 
-  const rootPkgFile = file('package.json');
-  const rootPkg = await rootPkgFile.json();
-  const catalog = rootPkg.catalog || {};
-  
-  const packageVersions = await getAllPackageVersions();
+  // Filter out flags to get target packages.
+  const targetPackages = args.filter(a => !a.startsWith('--') && a !== 'public');
 
   const configFile = file(CONFIG_PATH);
   const config = (await configFile.exists()) ? await configFile.json() : { groups: { lockstep: [] } };
-  
+
   let modulesToPublish = targetPackages;
   if (modulesToPublish.length === 0) {
     modulesToPublish = config.groups.lockstep || [];
@@ -149,7 +78,7 @@ async function run() {
     console.log(`\nValidating: ${relPath}`);
     const pkgPath = join(relPath, 'package.json');
     const tsconfigPath = join(relPath, 'tsconfig.json');
-    
+
     const pkgFile = file(pkgPath);
     if (!(await pkgFile.exists())) {
       console.error(`Package file not found: ${pkgPath}`);
@@ -161,10 +90,10 @@ async function run() {
     try {
       // 1. Build if scripts exist
       if (scripts.build) {
-        await runCommand('npm', ['run', 'build'], relPath);
+        await runCommand('bun', ['run', 'build'], relPath);
       }
       if (scripts['build-cjs']) {
-        await runCommand('npm', ['run', 'build-cjs'], relPath);
+        await runCommand('bun', ['run', 'build-cjs'], relPath);
       }
 
       // 2. TSC if tsconfig exists
@@ -194,12 +123,16 @@ async function run() {
   // The local gate is the only gate this project has (no CI, see plan/improvement-plan.md D1),
   // so publishing refuses to continue unless it passes. It runs after the per-module builds
   // above so that --require-built can assert every declared entry point is really in the tarball.
-  console.log('\n--- Phase 1b: local verification gate (bun run check --require-built) ---');
-  try {
-    await runCommand('bun', ['run', 'scripts/verify.js', '--require-built'], '.');
-  } catch (err) {
-    console.error('\nLocal verification gate failed. Aborting publish.');
-    process.exit(1);
+  if (skipGate) {
+    console.warn('\n--- Phase 1b: local verification gate SKIPPED (--no-gate) ---');
+  } else {
+    console.log('\n--- Phase 1b: local verification gate (bun run check --require-built) ---');
+    try {
+      await runCommand('bun', ['run', 'scripts/verify.js', '--require-built'], '.');
+    } catch (err) {
+      console.error('\nLocal verification gate failed. Aborting publish.');
+      process.exit(1);
+    }
   }
 
   if (isDryRun) {
@@ -225,72 +158,26 @@ async function run() {
     const version = pkg.version;
     console.log(`\nPreparing to publish: ${relPath} (version: ${version})`);
 
+    const publishArgs = ['publish'];
+    if (isPublic) publishArgs.push('--access', 'public');
+    if (tolerateRepublish) publishArgs.push('--tolerate-republish');
+    if (isDryRun) publishArgs.push('--dry-run');
+
     let success = false;
-    let originalContent = null;
-    let modified = false;
-
-    try {
-      const pkgContent = await pkgFile.text();
-      const pkgJson = JSON.parse(pkgContent);
-
-      let changed = false;
-      if (manualReplace && resolveDeps(pkgJson, catalog, packageVersions)) {
-        changed = true;
-      }
-
-      // Ensure public access for scoped packages
-      if (isPublic) {
-        pkgJson.publishConfig = pkgJson.publishConfig || {};
-        if (pkgJson.publishConfig.access !== 'public') {
-          pkgJson.publishConfig.access = 'public';
-          changed = true;
-          console.log(`  - Set publishConfig.access to public for ${relPath}`);
-        }
-      }
-
-      if (changed) {
-        if (!isDryRun) {
-          modified = true;
-          originalContent = pkgContent;
-          snapshotManifest(pkgPath, pkgContent);
-          await Bun.write(pkgPath, JSON.stringify(pkgJson, null, 2));
-          console.log(`  - Updated ${pkgPath} for publishing`);
-        } else {
-          console.log(`  - [DRY RUN] Would update ${pkgPath} with resolved dependencies`);
-        }
-      }
-
-      if (isDryRun) {
-        console.log(`  - [DRY RUN] Would publish ${relPath} (version: ${version})`);
+    while (!success) {
+      try {
+        await runCommand('bun', publishArgs, relPath);
         success = true;
-        continue;
-      }
-
-      while (!success) {
-        const args = ['publish'];
-        if (isPublic) {
-          args.push('--access', 'public');
+      } catch (err) {
+        console.error(`\nPublish failed for ${relPath}.`);
+        if (isDryRun) process.exit(1);
+        const choice = await prompt('Retry? (y/n, or empty to abort): ');
+        if (choice === 'y') {
+          console.log(`Retrying ${relPath}...`);
+        } else {
+          console.error('Manual intervention may be required for remaining modules.');
+          process.exit(1);
         }
-
-        try {
-          await runCommand('npm', args, relPath);
-          success = true;
-        } catch (err) {
-          console.error(`\nPublish failed for ${relPath}.`);
-          const choice = await prompt('Retry? (y/n, or empty to abort): ');
-          if (choice === 'y') {
-            console.log(`Retrying ${relPath}...`);
-          } else {
-            console.error('Manual intervention may be required for remaining modules.');
-            process.exit(1);
-          }
-        }
-      }
-    } finally {
-      if (!isDryRun && modified && originalContent) {
-        await Bun.write(pkgPath, originalContent);
-        manifestSnapshots.delete(pkgPath);
-        console.log(`  - Restored original package.json for ${relPath}`);
       }
     }
   }

@@ -17,6 +17,9 @@
  *   6. `scripts/check-versions.js` — catalog hygiene
  *   7. `scripts/check-docs.js` — the committed docs site matches `apps/repl/static` (P4-2)
  *   8. `scripts/check-manifests.js` — manifest + dry-run tarball audit (§2.3)
+ *   9. `scripts/check-workspace.js` — the single-package-manager invariant, and the guard rail that
+ *      keeps Rush-era artifacts (and version drift between manifests) from creeping back
+ *      (plan/rush/README.md R3/R4)
  *
  * Usage:
  *   bun run check                 full gate
@@ -233,9 +236,13 @@ if (flag('build') && !QUICK && !TESTS_ONLY) {
 }
 
 // 5 — lint (library, tool and script sources; the jsx6/signal-dependencies rule lives here).
+// `--max-warnings 0` matters: the custom rule reports at warning severity, so without it a broken
+// rule would silently stop gating anything.
 if (!QUICK && !TESTS_ONLY && !flag('no-lint')) {
   results.push(
-    step('eslint', () => runEslint(['libs', 'tools', 'scripts', '--ext', '.js,.jsx,.cjs'])),
+    step('eslint', () =>
+      runEslint(['libs', 'tools', 'scripts', '--ext', '.js,.jsx,.cjs', '--max-warnings', '0']),
+    ),
   )
 }
 
@@ -277,6 +284,12 @@ if (!QUICK && !TESTS_ONLY && !flag('no-manifests')) {
       return errors.length
     }),
   )
+}
+
+// 9 — workspace integrity: one package manager, no Rush artifacts, no version drift (R3/R4).
+// Cheap (pure file/manifest reads), so it is a full-gate step rather than a --quick one.
+if (!QUICK && !TESTS_ONLY && !flag('no-workspace')) {
+  results.push(step('workspace integrity', () => run('bun', ['run', 'scripts/check-workspace.js'])))
 }
 
 if (!results.length) {

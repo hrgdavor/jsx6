@@ -2,9 +2,10 @@ module.exports = {
   meta: {
     type: 'suggestion',
     docs: {
+      // ESLint 9 removed the legacy `category`/`recommended` doc fields in favour of a plain
+      // description plus a link; the rule ships with the repository rather than as a published
+      // preset, so there is no docs URL to point at.
       description: 'ensure signals used in $S and $F are listed as dependencies',
-      category: 'Possible Errors',
-      recommended: true,
     },
     fixable: null,
     schema: [],

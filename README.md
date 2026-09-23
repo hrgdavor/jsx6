@@ -35,7 +35,8 @@ After the general intro into `JSX` another tutorial is needed to continue on the
 ## Development / contribution
 
 This is a **Bun** workspace monorepo (`workspaces` + `catalog:` in the root `package.json`). Rush and
-pnpm are gone.
+pnpm are gone. Bun **1.3.14 or newer** is required — see [`README.dev.md`](README.dev.md) for the
+toolchain details and the Rush-to-Bun command translation.
 
 Prerequisites:
 - [Bun](https://bun.sh/) (the workspace/install/test runner)
