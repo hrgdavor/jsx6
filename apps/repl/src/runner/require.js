@@ -1,6 +1,10 @@
 import { transformcjs } from '../babel/transform'
 
 export function requireFile(url) {
+  // NOTE: this is a synchronous XHR, which is deprecated and blocks the UI thread. It is kept
+  // because `require()` is called synchronously from user code evaluated in the REPL; making the
+  // loader async changes that public contract and is tracked as remaining work
+  // (plan/improvement-plan.md P4-12).
   var X = new XMLHttpRequest()
   X.open('GET', url, 0) // sync
   X.send()
@@ -53,7 +57,7 @@ require.urlAlias = {}
 require.alias = (alias, orig) => {
   const cache = require.cache
   cache[alias] = cache[orig]
-  if (alias.toLowerCase().substr(-3) !== '.js') require.cache[alias + '.js'] = cache[orig]
+  if (alias.toLowerCase().slice(-3) !== '.js') require.cache[alias + '.js'] = cache[orig]
   require.urlAlias[alias] = orig
 }
 require.alias('@jsx6/jsx6', './dist/jsx6.js')

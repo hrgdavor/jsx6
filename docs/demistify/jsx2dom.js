@@ -1,3 +1,9 @@
+/*
+@author Davor Hrg
+implementation of function for JSX tutorial https://hrgdavor.github.io/jsx6/demistify/ section: jsx2dom
+Although it is meant for JSX, it can be used plainly and code it not too bad looking
+*/
+
 /** Short but pretty usable support function for JSX.
  *
  * @param {String|Function} tag
@@ -9,9 +15,13 @@ export function h(tag, attr, ...children) {
   if (!tag) return children // support JSX fragment: <></>
 
   if (tag instanceof Function) {
+    // declaring default value for attr in receiving function does not help because jsx tranformer would give us null here
+    // const MyFuncComponent = ({title='',...attr}={}, children)=>....
+    // so we will clean the value here  to avoid runtime errors and users need not worry
+    // const MyFuncComponent = ({title='',...attr}, children)=>......
+    // leaving attr == null might have some benefit in easier knowing when there were no attributes
+    // but the downsides are far greater in usability for most cases
     attr = attr || {} // so the functions need not worry if attr is null
-    // declaring default value in receiving function does not help, so we clean the value to avoid runtime errors
-    // leaving attr == null might have some benefit in knowing there are no attributes, but the downsides are far greater
     return tag.prototype ? new tag(attr, children) : tag(attr, children)
   }
 
@@ -23,7 +33,7 @@ export function h(tag, attr, ...children) {
         if (aName.startsWith('on') && typeof value === 'function') {
           node.addEventListener(aName.substring(2), value)
         } else {
-          node.setAttribute(aName, value)
+          if (value !== false && value !== null && value !== undefined) node.setAttribute(aName, value)
         }
       }
     }
@@ -63,19 +73,19 @@ export const addToBody = child => insert(document.body, child)
 
 /** Common use case when we are adding content to some part of a page.
  *
- * @param {Node|String} parent reference to dom node or css selector
- * @param {String|Node|Array<Node>} child
+ * @param {Node|String} node reference to dom node or String with css selector
+ * @param {String|Node|Array<Node>} newNode
  */
-export function replace(parent, child) {
-  if (typeof parent === 'string') parent = document.querySelector(parent)
-  const parentNode = parent.parentNode
+export function replace(node, newNode) {
+  if (typeof node === 'string') node = document.querySelector(node)
+  const parentNode = node.parentNode
 
-  if (child instanceof Array) {
+  if (newNode instanceof Array) {
     // first insert them in front of the node we are replacing
-    insert(parent.parentNode, child, parent)
+    insert(node.parentNode, newNode, node)
     // then just remove it
-    parentNode.removeChild(parent)
+    parentNode.removeChild(node)
   } else {
-    parentNode.replaceChild(child, parent)
+    parentNode.replaceChild(newNode, node)
   }
 }

@@ -3,6 +3,12 @@
     "target": "ESNext",
     "skipLibCheck": true,
     "allowJs": true,
+    "checkJs": true,
+    // Workspace imports resolve through package.json "exports" maps, and DOM types are needed
+    // for the browser-facing code.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext", "dom"],
     "outDir": "dist",
     "declaration": true,
     "emitDeclarationOnly": true,

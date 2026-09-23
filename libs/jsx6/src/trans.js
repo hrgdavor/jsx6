@@ -1,6 +1,6 @@
 import { $F, subscribeSymbol, triggerSymbol } from '@jsx6/signal'
 
-import { addTranslations, runFunc, runFuncNoArg, t, TRANS } from './core.js'
+import { addTranslations, runFuncNoArg, t, TRANS } from './core.js'
 
 /**  @type {Array<Function>} */
 const translationUpdaters = []

@@ -1,12 +1,12 @@
-import { isStr, isFunc, isObj, throwErr, Group, isNode, isArray, requireFunc, errorMessage } from './core.js'
+import { isStr, isFunc, isObj, throwErr, Group, isNode, isArray, errorMessage } from './core.js'
 import { setAttribute } from './setAttribute.js'
 
 import {
   JSX6E10_CONTEXT_REQUIRED,
   JSX6E9_LISTENER_MUST_BE_FUNC,
-  JSX6E13_NOT_OBSERVABLE,
   JSX6E1_NULL_TAG,
   JSX6E2_UNSUPPORTED_TAG,
+  JSX6E8_REQUIRE_PARENT,
   JSX6E15_MULTIPLE_VERSIONS,
 } from './errorCodes.js'
 import { toDomNode } from './toDomNode.js'
@@ -14,6 +14,13 @@ import { remove } from './remove.js'
 
 import { observeNow } from '@jsx6/signal'
 import { directives } from './directives.js'
+import { addDisposer } from './dispose.js'
+
+// P2-1 stage 1: `disposeNode` is the public entry point that releases the bindings collected by
+// insertAttr / directives / nodeFromObservable. It is re-exported here (jsx2dom.js is the module
+// that creates the nodes and is already re-exported by index.js) and from this module only:
+// two `export *` of the same name from index.js would make the name ambiguous and drop it.
+export { addDisposer, disposeNode, jsxDisposeSymbol } from './dispose.js'
 
 let markerSymbol = Symbol.for('jsx2dom_marker')
 let scopeSymbol = Symbol.for('jsx2dom_scope')
@@ -96,7 +103,6 @@ export const hSvg = (tag, attr, ...children) => {
 export function nodeFromObservable(obj) {
   const textNode = factories.Text('')
   const out = [textNode]
-  let first = null
   const updater = r => {
     if (r instanceof Array && r.length === 1) r = r[0]
 
@@ -131,7 +137,9 @@ export function nodeFromObservable(obj) {
       updateTextNode(textNode, factories.TextValue(r))
     }
   }
-  observeNow(obj, updater)
+  // The text node is the anchor that stays in the DOM for the whole life of this binding
+  // (it is also used as the insert `before` reference), so it owns the unsubscribe function.
+  addDisposer(textNode, observeNow(obj, updater))
   return out
 }
 
@@ -211,7 +219,14 @@ export function insertAttr(attr, out, self, component) {
 
     if (a[0] === 'o' && a[1] === 'n') {
       if (isFunc(value)) {
-        out.addEventListener(a.substring(2).toLowerCase(), value.bind(self))
+        const eventName = a.substring(2).toLowerCase()
+        // keep the bound listener so teardown can remove exactly this one
+        const listener = value.bind(self)
+        out.addEventListener(eventName, listener)
+        if (typeof out.removeEventListener === 'function') {
+          // the listener keeps `self` and the element alive, so it is part of node teardown
+          addDisposer(out, () => out.removeEventListener(eventName, listener))
+        }
       } else {
         throwErr(JSX6E9_LISTENER_MUST_BE_FUNC, attr)
       }
@@ -240,7 +255,9 @@ export function insertAttr(attr, out, self, component) {
     if (value !== undefined) {
       if (isFunc(value)) {
         let updater = makeAttrUpdater(out, a, value)
-        observeNow(value, updater)
+        // `observeNow` returns the unsubscribe function; keep it on the node so `disposeNode()`
+        // can release it (undefined for static values, which addDisposer tolerates)
+        addDisposer(out, observeNow(value, updater))
       } else if (out.setAttribute) {
         setAttribute(out, a, value)
       }
@@ -265,6 +282,7 @@ function setPropGroup(self, part, path) {
 }
 
 const forInsertFuncObj = newChild => {
+  /** @type {any} nodeFromObservable returns a single-node array, but a single node is used when possible */
   let maybe = nodeFromObservable(newChild)
   if (maybe?.length === 1) maybe = maybe[0]
   return maybe || factories.Text(factories.TextValue(newChild))
@@ -288,7 +306,7 @@ export function forInsert(newChild) {
 
 export function insert(parent, newChild, before, _self) {
   if (newChild === undefined || newChild === null) return
-  if (!parent) throwErr(ERR_REQUIRE_PARENT, { parent, newChild, before })
+  if (!parent) throwErr(JSX6E8_REQUIRE_PARENT, { parent, newChild, before })
 
   if (newChild instanceof Array) {
     return newChild.map(c => insert(parent, c, before, _self))

@@ -3,6 +3,42 @@ import { observeResize } from '@jsx6/dom-observer'
 export const CLICK_HIDE_ATTR = 'pop-click-hide'
 
 /**
+ * True when the value is an element-like DOM node.
+ *
+ * Structural sniffing (`closest` + `nodeType`) is used instead of `instanceof Element` so
+ * elements from another realm are still recognized, and - unlike `e.target || e` - an element
+ * that carries its own truthy `target` property (`<a target="_blank">`, `<form target>`) is
+ * detected as the element it is instead of being mistaken for an event.
+ *
+ * @param {*} value
+ * @returns {value is Element}
+ */
+function isElementLike(value) {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof value.closest === 'function' &&
+    typeof value.nodeType === 'number'
+  )
+}
+
+/**
+ * The anchor of a popover is either the element itself or an event which carries the element
+ * in `target`/`currentTarget`.
+ *
+ * @param {HTMLElement|Event} e - the html element to align the popover, or a dom event
+ * @returns {Element|null} the anchor element, or null when the value carries none
+ */
+function resolveAnchor(e) {
+  if (isElementLike(e)) return e
+  // an event: `target` is the element the event was dispatched on
+  if (isElementLike(e.target)) return e.target
+  // `currentTarget` is the element the listener is registered on
+  if (isElementLike(e.currentTarget)) return e.currentTarget
+  return null
+}
+
+/**
  * initialize a popover aligned to clicked element
  *
  * @param {*} popover - popover element that will be opened
@@ -27,8 +63,9 @@ export function doPop(popover, e, selector = 'button', position= 'default') {
  * @returns
  */
 export function valuePop(value, popover, e, selector = 'button', position= 'default') {
-  let target = e.target || e
-  if (selector) {
+  // `e` is either the anchor element itself or an event which carries the anchor in `target`
+  let target = resolveAnchor(e)
+  if (selector && target) {
     target = target.closest(selector) || target
   }
   return showPopover(popover, target, value, position)

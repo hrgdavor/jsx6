@@ -10,7 +10,8 @@ export function addClass(node, add) {
   node = toDomNode(node) || {}
   let cl = node.classList
   if (cl) {
-    if (add.includes(' ')) add = add.split(' ')
+    // only a String can contain the ' ' separator, arrays hold separate class names
+    if (add.includes(' ')) add = /** @type {String} */ (add).split(' ')
     if (isArray(add)) add.forEach(c => cl.add(c))
     else cl.add(add)
   } else if (isObj(node)) {

@@ -3,7 +3,6 @@
   "version": "1.8.18",
   "type": "module",
   "description": "JSX6 REPL engine",
-  "main": "index.js",
   "unpkg": "cjs/index.js",
   "module": "esm/index.js",
   "exports": {
@@ -15,6 +14,7 @@
   "files": [
     "index.js",
     "src",
+    "!src/**/*.test.js",
     "esm",
     "cjs"
   ],

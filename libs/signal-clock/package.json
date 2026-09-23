@@ -22,6 +22,7 @@
     "cjs"
   ],
   "scripts": {
+    "tsc": "tsc",
     "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
     "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "node --test"

@@ -1,12 +1,20 @@
 /**
- *  @template T
- *  @typedef {function():T|boolean} Signal
+ * A signal is a function that returns its current value when called without arguments,
+ * and sets a new value when called with one (returning true when the value changed).
  *
+ * @template T
+ * @typedef {(value?: T) => T|boolean|undefined} Signal
+ */
+
+/**
+ * Internals of the callable signal created by prepareSignal
+ *
+ * @template T
  * @typedef {Object} SignalDef
- * @prop {function(T):T} $signal
+ * @prop {Signal<T>} $signal
  * @prop {function():void} fireChanged
  * @prop {Set<Function>} listeners
- * @prop {function(T):boolean} setValue
+ * @prop {function(T):boolean|undefined} setValue
  *
  */
 
@@ -18,7 +26,7 @@ const noOp = function () {}
  * @template T
  * @param {T|undefined} value
  * @param {string} [name]
- * @returns {function():T|boolean} signal
+ * @returns {Signal<T>} signal
  */
 export function signal(value, name) {
   return prepareSignal(value, name).$signal
@@ -61,7 +69,7 @@ export function asSignal(obj) {
  * @function
  * @template T
  *
- * @param {T} value
+ * @param {T} [value]
  * @param {string} [name]
  * @returns {SignalDef<T>}
  */
@@ -97,7 +105,9 @@ export function prepareSignal(value, name) {
   }
 
   $signal[subscribeSymbol] = u => {
-    if (!u && typeof u != 'function') throw 'listener must be a function'
+    // Was `!u && typeof u != 'function'`, which only rejected undefined/null listeners and let
+    // any other non-function through to `listeners.add` (plan/improvement-plan.md P2-5).
+    if (typeof u != 'function') throw 'listener must be a function'
     listeners.add(u)
     return () => listeners.delete(u)
   }

@@ -1,5 +1,19 @@
 import { domWithScope, insert, h } from './jsx2dom.js'
-import { $State } from '@jsx6/signal'
+import { $State, mergeValue } from '@jsx6/signal'
+import { addDisposer } from './dispose.js'
+
+/** Call the optional `ondestroy()` hook of a component.
+ *
+ * `ondestroy` is deliberately NOT declared as a class field on `Jsx6`: a field initializer
+ * (`ondestroy`) would create an own `undefined` property on every instance and shadow an
+ * `ondestroy()` method defined on a subclass prototype. Subclasses simply implement
+ * `ondestroy() {}`, and it may also be assigned on an instance after construction.
+ *
+ * @param {any} comp
+ */
+const callOndestroy = comp => {
+  if (typeof comp.ondestroy === 'function') comp.ondestroy()
+}
 
 export class Jsx6 {
   isJsx6 = true
@@ -8,6 +22,9 @@ export class Jsx6 {
   constructor(...args) {
     /** @type {HTMLElement} */
     this.el = domWithScope(this, () => this.tpl(...args))
+    // P2-1 stage 3: `ondestroy()` is invoked by disposeNode() (and therefore by remove()/replace())
+    // after the component's own DOM bindings and its descendants have been released.
+    addDisposer(this.el, () => callOndestroy(this))
   }
   /*  Lazy initialize state proxy object*/
   get $s() {
@@ -42,6 +59,10 @@ export class Jsx6 {
   tpl(attr = {}) {
     return h('div', attr)
   }
+  /** Mirror of DOM addEventListener, delegated to the component's root element.
+   *
+   * @param {Parameters<HTMLElement['addEventListener']>} args
+   */
   addEventListener(...args) {
     this.el.addEventListener(...args)
   }

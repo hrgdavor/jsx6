@@ -63,7 +63,7 @@ export function $State(initial) {
   function getInternal(p, initialValue) {
     let internal = internals[p]
     if (!internal) {
-      internal = internals[p] = prepareSignal(initialValue)
+      internal = internals[p] = prepareSignal(initialValue, p)
       internal.listeners.add(fireChanged)
       signals[p] = internal.$signal
     }

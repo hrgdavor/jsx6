@@ -44,10 +44,10 @@
     "@trivago/prettier-plugin-sort-imports": "catalog:",
     "@types/node": "catalog:",
     "esbuild": "catalog:",
-    "prettier": "catalog:",
-    "minimatch": "^5.0.1"
+    "prettier": "catalog:"
   },
   "dependencies": {
-    "glob": "^8.0.3"
+    "glob": "^8.0.3",
+    "minimatch": "^5.0.1"
   }
 }

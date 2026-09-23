@@ -1,14 +1,21 @@
-# Don't allow people to merge changes to these generated files, because the result
-# may be invalid.  You need to run "rush update" again.
-pnpm-lock.yaml               merge=text
-shrinkwrap.yaml              merge=binary
-npm-shrinkwrap.json          merge=binary
-yarn.lock                    merge=binary
+# Normalize line endings in the working tree; repositories are checked out with LF.
+* text=auto eol=lf
 
-# Rush's JSON config files use JavaScript-style code comments.  The rule below prevents pedantic
-# syntax highlighters such as GitHub's from highlighting these comments as errors.  Your text editor
-# may also require a special configuration to allow comments in JSON.
-#
-# For more information, see this issue: https://github.com/microsoft/rushstack/issues/1088
-#
-*.json                       linguist-language=JSON-with-Comments
+# Binary files that must never be line-ending normalized.
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.map binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+
+# Lockfiles: keep real content, but never attempt a textual merge of them.
+bun.lock           merge=binary
+pnpm-lock.yaml     merge=binary
+yarn.lock          merge=binary
+package-lock.json  merge=binary

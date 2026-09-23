@@ -99,8 +99,6 @@ module.exports = {
             }
           });
 
-          const missingSignals = new Set();
-          
           // Group signals by their root and full path
           const signalGroups = new Map();
           usedSignals.forEach(fullPath => {

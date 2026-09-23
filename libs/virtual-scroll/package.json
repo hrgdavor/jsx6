@@ -23,6 +23,7 @@
     "cjs"
   ],
   "scripts": {
+    "tsc": "tsc",
     "build": "esbuild index.js --outdir=esm --bundle --sourcemap --minify --format=esm",
     "build-cjs": "esbuild index.js --outdir=cjs --bundle --sourcemap --minify --format=cjs",
     "test": "node --test test/"
@@ -45,9 +46,9 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/libs/virtual-scroll/README.md",
   "devDependencies": {
-    "@happy-dom/global-registrator": "^20.9.0",
+    "@happy-dom/global-registrator": "catalog:",
     "esbuild": "catalog:",
-    "happy-dom": "^20.9.0",
+    "happy-dom": "catalog:",
     "typescript": "catalog:"
   },
   "sideEffects": false

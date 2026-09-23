@@ -4,7 +4,7 @@ import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
 /** Utility that that returns signal value if the parameter is a signal/function and the parameter otherwise.
  * This is especially useful when you want to handle cases whare you allow either a signal or a raw value
  *
- * @param {Function<any>|any} $signal
+ * @param {Function|any} $signal
  * @returns any
  */
 export const signalValue = $signal => (typeof $signal === 'function' ? $signal() : $signal)
@@ -33,7 +33,7 @@ export function $S(template, ...signals) {
   if (!signals.length) return signal(template)
 
   // $S`something ${$signal}` support
-  if (template instanceof Array && template.raw) {
+  if (template instanceof Array && /** @type {{raw?: any}} */ (template).raw) {
     template = callbackForTemplateString(template, signals)
   }
 

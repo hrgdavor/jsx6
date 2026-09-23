@@ -3,9 +3,9 @@
   "version": "0.48.0",
   "type": "module",
   "description": "Monaco editor pre-build for standalone usage",
-  "main": "index.js",
-  "unpkg": "cjs/index.js",
-  "module": "esm/index.js",
+  "main": "dist/index.js",
+  "unpkg": "dist/index.js",
+  "module": "dist/index.esm.js",
   "exports": {
     ".": {
       "require": "./dist/index.js",

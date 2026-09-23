@@ -2,7 +2,7 @@ import { toDomNode } from './toDomNode.js'
 
 /** Shortcut utility
  *
- * @param {Node} node
+ * @param {Element} node element whose class list is changed
  * @param {String} cname
  * @param {boolean} bool decides if class is added or removed
  */

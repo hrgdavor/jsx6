@@ -1,58 +1,16 @@
-import { requireFunc, runFunc } from './core.js'
-
-const dirty = new Set()
-let isRunning = false
-let anim = func => func()
-
-if (typeof document !== 'undefined') {
-  anim = window.requestAnimationFrame
-}
-
-/** Set runner other than the default requestAnimationFrame
+/**
+ * Batching for signal-driven DOM updates.
  *
- * @param {Function} animFunc
- */
-export function setAnimFunction(animFunc) {
-  anim = animFunc
-}
-
-/** Schedule to run batch on the next animation frame (default runner is requestAnimationFrame)
+ * The implementation lives in `@jsx6/signal-dom` (the "signals in DOM" package). This module only
+ * re-exports it, so the two copies can no longer drift — they had already diverged in ways that
+ * mattered: this copy bound its animation-frame function to the window while signal-dom's did not,
+ * and each copy kept its own batch queue
+ * (plan/improvement-plan.md P3-1).
  *
- * @param {Function} callback
- */
-export function callAnim(callback) {
-  anim(callback)
-}
-
-/** Add callback to the next batch, or run now if `isRunning==true` (the batch is running alreaday)
+ * The named re-exports are deliberate: a second `export *` of `setAttribute` (which signal-dom also
+ * exports, and which `./setAttribute.js` re-exports for jsx6) would make the name ambiguous and
+ * silently drop it from the package entry point.
  *
- * @param {Function} callback to add
- * @returns {void}
+ * Follow-up for the next major: drop this file and import `@jsx6/signal-dom` directly.
  */
-export function runInBatch(callback) {
-  if (callback instanceof Array) {
-    callback.forEach(runInBatch)
-    return
-  }
-  requireFunc(callback)
-
-  if (isRunning) {
-    callback()
-  } else {
-    dirty.add(callback)
-    if (dirty.size === 1) callAnim(runDirty)
-  }
-}
-
-/** Run all of the callback that need to execute the change notification (have dirty values)
- *
- */
-export function runDirty() {
-  isRunning = true
-  try {
-    dirty.forEach(f => runFunc(f))
-    dirty.clear()
-  } finally {
-    isRunning = false
-  }
-}
+export { callAnim, runDirty, runInBatch, setAnimFunction } from '@jsx6/signal-dom'

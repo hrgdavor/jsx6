@@ -1,21 +1,10 @@
-import { isNode } from './core.js'
-
 /**
- *  - [null,undefined,false] will remove the attribute
- *  - false will set value to be attrName
- * @param {Node} node
- * @param {String} attrName attribute name
- * @param {any} newValue
+ * Attribute updates.
+ *
+ * The implementation lives in `@jsx6/signal-dom` (plan/improvement-plan.md P3-1); this module only
+ * re-exports it. That copy accepts plain DOM nodes *and* component/object wrappers exposing the node
+ * on `.el`, which is the contract jsx6 callers rely on.
+ *
+ * Follow-up for the next major: drop this file and import `@jsx6/signal-dom` directly.
  */
-export function setAttribute(node, attrName, newValue) {
-  if (newValue === false || newValue === undefined) newValue = null
-  if (newValue === true) newValue = attrName
-  if (!isNode(node) && isNode(node.el)) node = node.el
-  if (node.getAttribute(attrName) !== newValue) {
-    if (newValue === null) {
-      node.removeAttribute(attrName)
-    } else {
-      node.setAttribute(attrName, newValue)
-    }
-  }
-}
+export { setAttribute } from '@jsx6/signal-dom'

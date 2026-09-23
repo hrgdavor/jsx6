@@ -45,6 +45,18 @@ async function run() {
     
     await write(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
     console.log(`  ${pkg.name}: ${oldVersion} -> ${newVersion}`);
+
+    // Keep a JSR manifest in sync: it carries its own version field, and nothing else
+    // rewrites it, so it would silently drift from package.json (plan/improvement-plan.md P1-8).
+    const jsrPath = join(relPath, 'jsr.json');
+    const jsrFile = file(jsrPath);
+    if (await jsrFile.exists()) {
+      const jsr = await jsrFile.json();
+      const jsrOld = jsr.version;
+      jsr.version = newVersion;
+      await write(jsrPath, JSON.stringify(jsr, null, 2) + '\n');
+      console.log(`  ${jsrPath}: ${jsrOld} -> ${newVersion}`);
+    }
   }
 
   // Update MODULE_VERSIONING.md

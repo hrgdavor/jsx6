@@ -11,19 +11,22 @@
  * @prop {function} [validate]
  *
  * @typedef ValidationResult
- * @prop {string} message - message if failed
+ * @prop {string} [message] - message if failed
  * @prop {string} [type]
- * @prop {string} field
- * @prop {ValidationRule} rule - original rule that caused this validation error
- * @prop {Object.<string,ValidationRule>|Array.<ValidationResult>} items - if has subdocument
+ * @prop {string|number} [field] - field name, or the array index for array items
+ * @prop {ValidationRule} [rule] - original rule that caused this validation error
+ * @prop {any} [value] - value that failed the validation
+ * @prop {number} [min]
+ * @prop {number} [max]
+ * @prop {Object.<string,ValidationResult>|Array.<ValidationResult>} [items] - if has subdocument
  */
 
 /**
  *
  * @param {any} v
  * @param {ValidationRule} rule
- * @param {string} field
- * @returns
+ * @param {string|number} [field]
+ * @returns {Promise<ValidationResult|undefined>}
  */
 export async function validate(v, rule = {}, field = '') {
   const { validate: _validate, items } = rule
@@ -58,6 +61,11 @@ export async function validate(v, rule = {}, field = '') {
   // no return means undefined, means valid
 }
 
+/**
+ * @param {string|number} field
+ * @param {ValidationRule} [rule]
+ * @returns {ValidationResult}
+ */
 export const genRequired = (field, rule) => {
   const required = rule ? rule.required : 'required'
   return {
@@ -74,21 +82,23 @@ export const genRequired = (field, rule) => {
  *
  * @param {any} v
  * @param {ValidationRule} rule
- * @param {string} field
- * @returns
+ * @param {string|number} [field]
+ * @returns {ValidationResult|undefined}
  */
 function validateSimple(v, rule = {}, field) {
-  const { required, message = 'invalid_value', type = 'pattern', min, max, example, pattern } = rule
+  const { required, min, max, pattern } = rule
   //console.log('field', field, v)
   if (v === null || v === undefined || v === '' || (required && v && v instanceof Array && !v.length)) {
     return required ? genRequired(field, rule) : undefined // undefined means valid
   }
 
-  if (!pattern) return // undefined means valid
-
-  var reg = pattern instanceof RegExp ? pattern : new RegExp(pattern)
-  if (!reg.test(v)) {
-    return { ...rule, value: v, field }
+  // Only the pattern test is skipped when no pattern is given: returning early here also
+  // skipped min/max validation (plan/improvement-plan.md P2-5).
+  if (pattern) {
+    var reg = pattern instanceof RegExp ? pattern : new RegExp(pattern)
+    if (!reg.test(v)) {
+      return { ...rule, value: v, field }
+    }
   }
 
   var hasMin = min !== void 0 && min !== null

@@ -1,0 +1,19 @@
+# Generated output, third-party code and history are never linted.
+node_modules
+.history
+.tmp
+coverage
+
+# Build output
+dist
+esm
+cjs
+build
+build_dev
+
+# Hand-committed stale build of the tutorial (see plan/improvement-plan.md P4-1)
+docs
+
+# Vendored assets
+**/*.min.js
+apps/repl/public

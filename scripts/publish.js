@@ -1,8 +1,41 @@
 import { spawn } from 'child_process';
 import { file, Glob } from 'bun';
 import { join } from 'path';
+import { writeFileSync } from 'fs';
 
 const CONFIG_PATH = 'scripts/versions.json';
+
+/**
+ * Publishing rewrites package.json in place (workspace:/catalog: -> resolved versions) and
+ * restores it afterwards. An interrupted run used to leave the repository holding resolved
+ * versions with no workspace markers, so every snapshot is also restored from process-exit
+ * handlers, which run even when the process is terminated.
+ */
+const manifestSnapshots = new Map();
+
+function snapshotManifest(path, content) {
+  if (!manifestSnapshots.has(path)) manifestSnapshots.set(path, content);
+}
+
+function restoreManifests() {
+  for (const [path, content] of manifestSnapshots) {
+    try {
+      writeFileSync(path, content);
+      console.log(`  - Restored original ${path}`);
+    } catch (err) {
+      console.error(`  ! Failed to restore ${path}: ${err.message}`);
+    }
+  }
+  manifestSnapshots.clear();
+}
+
+process.on('exit', restoreManifests);
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(signal, () => {
+    restoreManifests();
+    process.exit(130);
+  });
+}
 
 async function runCommand(command, args, cwd) {
   return new Promise((resolve, reject) => {
@@ -22,6 +55,9 @@ async function getAllPackageVersions() {
   
   for (const dir of dirs) {
     for (const pkgPath of glob.scanSync({ cwd: dir })) {
+      // Skip installed copies: node_modules holds a duplicated package.json per workspace
+      // package, and reading those would resolve workspace deps to whatever is installed.
+      if (pkgPath.includes('node_modules')) continue;
       const fullPath = join(dir, pkgPath);
       try {
         const pkg = await file(fullPath).json();
@@ -137,9 +173,9 @@ async function run() {
       }
 
       // 3. Test
-      const glob = new Glob('**/*.test.js');
+      const testGlob = new Glob('**/*.test.js');
       let hasTests = false;
-      for (const file of glob.scanSync({ cwd: relPath })) {
+      for (const _testFile of testGlob.scanSync({ cwd: relPath })) {
         hasTests = true;
         break;
       }
@@ -153,6 +189,17 @@ async function run() {
       console.error(`\nValidation failed in ${relPath}. Aborting publish.`);
       process.exit(1);
     }
+  }
+
+  // The local gate is the only gate this project has (no CI, see plan/improvement-plan.md D1),
+  // so publishing refuses to continue unless it passes. It runs after the per-module builds
+  // above so that --require-built can assert every declared entry point is really in the tarball.
+  console.log('\n--- Phase 1b: local verification gate (bun run check --require-built) ---');
+  try {
+    await runCommand('bun', ['run', 'scripts/verify.js', '--require-built'], '.');
+  } catch (err) {
+    console.error('\nLocal verification gate failed. Aborting publish.');
+    process.exit(1);
   }
 
   if (isDryRun) {
@@ -205,6 +252,7 @@ async function run() {
         if (!isDryRun) {
           modified = true;
           originalContent = pkgContent;
+          snapshotManifest(pkgPath, pkgContent);
           await Bun.write(pkgPath, JSON.stringify(pkgJson, null, 2));
           console.log(`  - Updated ${pkgPath} for publishing`);
         } else {
@@ -241,6 +289,7 @@ async function run() {
     } finally {
       if (!isDryRun && modified && originalContent) {
         await Bun.write(pkgPath, originalContent);
+        manifestSnapshots.delete(pkgPath);
         console.log(`  - Restored original package.json for ${relPath}`);
       }
     }

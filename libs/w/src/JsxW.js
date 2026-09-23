@@ -29,6 +29,14 @@ export class JsxW extends HTMLElement {
     define('jsx6-wc', this)
   }
 
+  /**
+   * Optional form-like object (see `linkForm`). Consumer code can assign it; when present,
+   * getValue/setValue read and write that object instead of the internal `$v` proxy.
+   * This class never assigns it itself.
+   * @type {any}
+   */
+  form
+
   constructor(attr, children, parent, shadow, shadowOptions) {
     super()
     if (shadow) {
@@ -49,8 +57,14 @@ export class JsxW extends HTMLElement {
 
   onCreate() {}
 
-  tpl(attr, children) {
-    insertAttr(attr, this, this, this, true)
+  /**
+   * Builds the content of the component. Override in a subclass.
+   * @param {Object} attr attributes and properties passed to the component
+   * @param {Array<any>} children children passed to the component
+   * @param {Object} [parent] scope of the parent component (see `domWithScope`)
+   */
+  tpl(attr, children, parent) {
+    insertAttr(attr, this, this, this)
     insert(this, children)
   }
   initState(values = {}) {
@@ -116,7 +130,7 @@ export class JsxWS extends JsxW {
  ```
  *
  * @param {string} tag custom element tag name
- * @param {Class} customElement
+ * @param {CustomElementConstructor} customElement
  */
 export function define(tag, customElement) {
   if (customElements.get(tag)) {

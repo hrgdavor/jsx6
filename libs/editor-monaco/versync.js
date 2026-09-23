@@ -42,7 +42,7 @@ const doReplace = (file, regexArr) => {
   })
 }
 
-const unpkgDepRule = [/(\@jsx6\/editor\-monaco\@)(\d+\.\d+\.\d+)(\/)/g, `$1[--VERSION--]$3`]
+const unpkgDepRule = [/(@jsx6\/editor-monaco@)(\d+\.\d+\.\d+)(\/)/g, `$1[--VERSION--]$3`]
 
 doReplace(
   ['README.md', 'monaco.cdn.md', 'monaco.local.md'],

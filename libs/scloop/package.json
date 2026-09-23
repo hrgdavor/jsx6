@@ -1,43 +1,32 @@
 {
   "name": "@jsx6/scloop",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "sideEffects": false,
-  "description": "Scrolling loop utility",
+  "description": "RETIRED STUB — scrolling loop utility that was never implemented. Not published; see libs/scloop/README.md",
   "main": "index.js",
-  "types": "dist/index.d.ts",
-  "unpkg": "cjs/index.js",
   "module": "./index.js",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./cjs/index.js",
       "default": "./index.js"
     }
   },
   "files": [
     "index.js",
-    "dist",
-    "src",
-    "esm",
-    "cjs"
+    "src"
   ],
   "scripts": {
-    "tsc": "tsc",
-    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
-    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
     "test": "node --test"
-},
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hrgdavor/jsx6.git"
   },
   "keywords": [
     "DOM",
-    "IntersectionObserver",
-    "ResizeObserver",
-    "Performance",
-    "HTML"
+    "scroll",
+    "virtual"
   ],
   "author": "Davor hrg",
   "license": "MIT",
@@ -50,13 +39,9 @@
   "bugs": {
     "url": "https://hrgdavor/jsx6/issues"
   },
-  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/dom-observer/README.md",
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/scloop/README.md",
   "devDependencies": {
     "esbuild": "catalog:",
     "typescript": "catalog:"
-  },
-  "dependencies": {
-    "@jsx6/dom-observer": "workspace:*"
   }
 }
-

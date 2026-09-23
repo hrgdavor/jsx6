@@ -66,7 +66,7 @@ export class VirtualScroll {
             oldDomMap.delete(key)
             this.idDomMap.set(key, el)
         }
-        for(const [key, value] of oldDomMap) {
+        for(const value of oldDomMap.values()) {
             this.unusedPool.push(value)
         }
 

@@ -1,11 +1,14 @@
-import { observe, observeNow } from '@jsx6/signal'
+import { observeNow } from '@jsx6/signal'
 
 const dirty = new Set()
 let isRunning = false
+/** @type {Function} */
 let anim = func => func()
 
 if (typeof document !== 'undefined') {
-  anim = window.requestAnimationFrame
+  // Bind to the window on purpose: `const raf = window.requestAnimationFrame; raf(cb)` throws
+  // "Illegal invocation" in real browsers while happy-dom tolerates the detached call.
+  anim = window.requestAnimationFrame.bind(window)
 }
 
 /** Set runner other than the default requestAnimationFrame
@@ -76,17 +79,28 @@ export function signal2Text(node, $signal) {
   return textUpdater
 }
 
+/** Is a value a DOM node? (duck typed: `instanceof Node` fails across frames/iframes)
+ *
+ * @param {any} obj
+ * @returns {boolean}
+ */
+const isNode = obj => obj?.nodeType !== undefined
+
 /**
  *  - [null,undefined,false] will remove the attribute
  *  - false will set value to be attrName
- * @param {Node} node
+ *
+ * This is the canonical implementation for the family (plan/improvement-plan.md P3-1);
+ * `@jsx6/jsx6` re-exports it.
+ *
+ * @param {any} node DOM node, or a component/object exposing the node on its `el` property
  * @param {String} attrName attribute name
  * @param {any} newValue
  */
 export function setAttribute(node, attrName, newValue) {
   if (newValue === false || newValue === undefined) newValue = null
   if (newValue === true) newValue = attrName
-  //  if (!isNode(node) && isNode(node.el)) node = node.el
+  if (!isNode(node) && isNode(node?.el)) node = node.el
   if (node.getAttribute(attrName) !== newValue) {
     if (newValue === null) {
       node.removeAttribute(attrName)
@@ -97,5 +111,20 @@ export function setAttribute(node, attrName, newValue) {
 }
 
 function requireFunc(f, what = 'callback') {
-  if (typeof f !== 'function') throw new Error('function required for ' + what)
+  // JSX6E7 mirrors @jsx6/jsx6's error registry ("Function required"). The code is spelled out
+  // rather than imported so this package keeps depending only on @jsx6/signal.
+  if (typeof f !== 'function') throw new Error(`JSX6E7 function required for ${what}`)
+}
+
+/** Run the callback and log the error instead of breaking the rest of the batch
+ *
+ * @param {Function} f function to run
+ * @param {Array<any>} [args] arguments for the function
+ */
+function runFunc(f, args = []) {
+  try {
+    f(...args)
+  } catch (e) {
+    console.error(e, f, args)
+  }
 }

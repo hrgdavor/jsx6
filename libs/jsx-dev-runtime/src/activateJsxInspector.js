@@ -1,11 +1,18 @@
+/**
+ * Registers a contextmenu listener that marks the DOM elements created from JSX with their source location.
+ *
+ * @param {HTMLElement} [root] element the listener is registered on
+ */
 export function activateJsxInspector(root = globalThis?.document?.body) {
   root?.addEventListener('contextmenu', e => {
     if (!e.ctrlKey && !e.shiftKey) return
-    let target = e.target
+    // the listener is registered on a DOM root, so the event target is the element the user clicked
+    /** @type {Element} */
+    let target = /** @type {Element} */ (e.target)
     addJsxSrcAttribute(target.getRootNode())
     addJsxSrcAttribute(findShadowRoot(target))
     if (!e.ctrlKey) return
-    while (target && !target.hasAttribute?.('_src')) target = target.parentNode
+    while (target && !target.hasAttribute?.('_src')) target = /** @type {Element} */ (target.parentNode)
     if (target) {
       let root = globalThis.JSX_SRC_ROOT
       if (root) {

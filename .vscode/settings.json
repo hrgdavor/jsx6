@@ -10,5 +10,8 @@
   "typescript.inlayHints.parameterTypes.enabled": false,
   "typescript.inlayHints.variableTypes.enabled": false,
   "typescript.inlayHints.parameterNames.enabled": "none",
-  "typescript.inlayHints.variableTypes.suppressWhenTypeMatchesName": false
+  "typescript.inlayHints.variableTypes.suppressWhenTypeMatchesName": false,
+  // Local history kept 27 MB / 4,455 files inside the working tree and slowed every
+  // glob/grep/lint/format run (plan/improvement-plan.md P4-10).
+  "workbench.localHistory.enabled": false
 }

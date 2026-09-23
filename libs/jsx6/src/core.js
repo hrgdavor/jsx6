@@ -1,4 +1,4 @@
-import { JSX6E16_CUSTOM_ELEMENT_DEFINED, JSX6E7_REQUIRE_FUNC } from './errorCodes.js'
+import { JSX6E7_REQUIRE_FUNC } from './errorCodes.js'
 
 export const TRANS = {}
 
@@ -43,7 +43,8 @@ export const isFunc = f => typeof f === 'function'
 export const isStr = s => typeof s === 'string'
 export const isObj = o => typeof o === 'object'
 export const isObjNN = o => o !== null && typeof o === 'object'
-export const isNullish = o => o !== null && o === undefined
+/** True for both `null` and `undefined` (the previous version only matched `undefined`). */
+export const isNullish = o => o === null || o === undefined
 export const isArray = a => a instanceof Array
 
 /** Check if a value is a DOM Node. You may be tempted to use 'instanceof Node'
@@ -92,7 +93,6 @@ export const runFunc = (f, args = []) => {
 /** Call a function and catch any errors. Errors are printed using console.error.
  *
  * @param {Function} f the function to call
- * @param {Array} args arguments for the function
  */
 export const runFuncNoArg = f => {
   try {

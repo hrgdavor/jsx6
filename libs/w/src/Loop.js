@@ -1,15 +1,28 @@
-import { setValue, domWithScope, forInsert, h, insert } from '@jsx6/jsx6'
+import { setValue, domWithScope, forInsert, insert, toDomNode } from '@jsx6/jsx6'
 
 import { $State, observeNow, signal } from '@jsx6/signal'
 import { define } from './JsxW.js'
 
-const _remove = el => {
+const _remove = item => {
+  // Items are component objects carrying their node on `.el`, so the node has to be resolved —
+  // without this the detach was a silent no-op and removed items stayed in the DOM.
+  const el = toDomNode(item)
   el.parentNode?.removeChild(el)
 }
 
 /**
- * @typedef Loop_
- * @param {boolean} primitive is the value for each element a primitive, unlike when comonly it is an object with multiple keys
+ * Options accepted by the Loop constructor. Any additional properties are passed to the
+ * created items as attributes (`itemAttr`).
+ *
+ * @typedef {object} LoopOptions
+ * @property {*} [p] property group binding handled by the jsx runtime (not used by Loop itself)
+ * @property {*} [item] component or render function used to create a single loop item
+ * @property {Function} [builder] creates a single loop item, defaults to LoopItem
+ * @property {Function} [setter] sets the value of a loop item, defaults to setValue
+ * @property {*} [tpl] template function used by the loop items
+ * @property {*} [value] observable holding the array of items
+ * @property {boolean} [primitive] is the value for each element a primitive, unlike when comonly it is an object with multiple keys
+ * @property {boolean} [outside] insert the loop items outside of the loop element
  */
 
 export class Loop extends HTMLElement {
@@ -20,7 +33,20 @@ export class Loop extends HTMLElement {
   items = []
   allItems = []
   count = 0
+  /**
+   * parent the items are inserted into (the loop element itself unless `outside` is used)
+   * @type {ParentNode|null}
+   */
+  insertParent
+  /**
+   * marks the loop as connected, checked by getValue
+   * @type {boolean}
+   */
+  connected
+  /** value remembered by setValue, returned by getValue while the loop is not connected. @type {any} */
+  lastValue
 
+  /** @param {LoopOptions} [opts] */
   constructor({
     p,
     item,
@@ -28,7 +54,6 @@ export class Loop extends HTMLElement {
     setter = setValue,
     tpl,
     value,
-    /** @type {boolean} is the value for each element a primitive, unlike when comonly it is an object with multiple keys */
     primitive,
     outside = false,
     ...itemAttr
@@ -48,15 +73,17 @@ export class Loop extends HTMLElement {
     } else {
       this.insertParent = this
     }
-    observeNow(value, v => this.setValue(v), true)
+    observeNow(value, v => this.setValue(v))
   }
 
   connectedCallback() {
+    this.connected = true
     this.insertParent = this.parentNode
     this.items.forEach(c => insert(this.parentNode, c, this))
   }
 
   disconnectedCallback() {
+    this.connected = false
     delete this.insertParent
   }
 
@@ -64,6 +91,8 @@ export class Loop extends HTMLElement {
     // wait for connectedCallback, so
     // setvalue before parent is available will fail
     v = v || []
+    // Remember the raw value: getValue() falls back to it while the loop is detached.
+    this.lastValue = v
     v.forEach((d, i) => this.setItem(d, i))
     this.count = v.length
     this._fixItemList(true)
@@ -120,7 +149,7 @@ export class Loop extends HTMLElement {
     if (reindex) {
       var it = this.allItems
       for (var i = 0; i < it.length; i++) {
-        const el = it[i]
+        const el = toDomNode(it[i])
         el.loopIndex = i
         if (i < count && !el.parentNode) {
           this.insert(el)
@@ -182,13 +211,13 @@ export class Loop extends HTMLElement {
   moveItem(fromIndex, placeBefore) {
     var item = this.allItems.splice(fromIndex, 1)[0]
     if (fromIndex < placeBefore) placeBefore--
-    var elBefore = placeBefore < 0 ? null : (elBefore = this.allItems[placeBefore])
+    var elBefore = placeBefore < 0 ? null : toDomNode(this.allItems[placeBefore])
     if (placeBefore < 0) {
       this.allItems.push(item)
     } else {
       this.allItems.splice(placeBefore, 0, item)
     }
-    this.insert(item, elBefore)
+    this.insert(toDomNode(item), elBefore)
     this._fixItemList(true)
   }
 
@@ -214,7 +243,7 @@ export class Loop extends HTMLElement {
         var newItem = countReusable > 0 ? this.allItems.pop() : this.makeItem(toAdd[d], index)
         this.allItems.splice(index, 0, newItem)
         var next = this.allItems[index + 1]
-        this.insert(this.allItems[index], next ? next : null)
+        this.insert(toDomNode(this.allItems[index]), next ? toDomNode(next) : null)
         countReusable--
       }
       this.setItem(toAdd[d], index)
@@ -226,7 +255,8 @@ export class Loop extends HTMLElement {
       var removed = this.allItems.splice(index, deleteCount)
       for (var i = 0; i < removed.length; i++) {
         var tmp = removed[i]
-        this.insert(tmp)
+        // Detach only: the node stays in allItems for reuse. Inserting it first and removing it
+        // again would be two wasted DOM mutations (same defect as jsx6's Loop, P0-4).
         this.allItems.push(tmp)
         _remove(tmp)
       }
@@ -237,6 +267,7 @@ export class Loop extends HTMLElement {
 }
 
 export const LoopItem = ({ data, i, tpl, item, attr, primitive, loop }) => {
+  /** @type {any} component or plain object with value/state accessors and the generated `el` */
   let comp
   if (item.prototype) {
     comp = new item(attr, [])

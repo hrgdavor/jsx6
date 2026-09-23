@@ -52,7 +52,9 @@
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/lib/dom-observer/README.md",
   "devDependencies": {
+    "@happy-dom/global-registrator": "catalog:",
     "esbuild": "catalog:",
+    "happy-dom": "catalog:",
     "typescript": "catalog:"
   },
   "dependencies": {

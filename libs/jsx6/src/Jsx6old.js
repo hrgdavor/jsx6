@@ -1,3 +1,6 @@
+// @ts-nocheck
+// Deprecated legacy component class, documented for removal in the project improvement plan.
+// Kept only for backwards compatibility, so it is not worth type-annotating.
 import { domWithScope, insert } from './jsx2dom.js'
 import { insertAttr, h } from './jsx2dom.js'
 import { addClass } from './addClass.js'
@@ -5,6 +8,17 @@ import { addClass } from './addClass.js'
 import { $State } from '@jsx6/signal'
 
 /**
+ * Legacy component class, kept for backwards compatibility only.
+ *
+ * `jsx6` has three component models: this one (`Jsx6old`, a `tagName` based class), the `Jsx6`
+ * wrapper (which exposes the created node as `.el`) and `JsxW` from `@jsx6/w` (real custom
+ * elements). `JsxW`/`@jsx6/w` is the canonical model - its `Loop` and lifecycle are the ones
+ * that keep evolving - so new components must not be built on this class and bug fixes must not
+ * be duplicated here.
+ *
+ * @deprecated Legacy component model. Use `JsxW` from `@jsx6/w` instead; this class is a
+ *   removal candidate for the next major release (see `plan/improvement-plan.md`, work item
+ *   P3-2).
  * @class
  */
 export class Jsx6old {
@@ -106,7 +120,9 @@ export class Jsx6old {
   created() {}
 
   initTemplate() {
-    const state = this.$s
+    // Touch the lazy `$s` getter so the state proxy exists before the template runs (the local
+    // binding itself was unused).
+    void this.$s
     let def = domWithScope(this, () => this.tpl(h))
     if (def) {
       let parent = this.el

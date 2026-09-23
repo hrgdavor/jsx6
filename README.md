@@ -34,18 +34,36 @@ After the general intro into `JSX` another tutorial is needed to continue on the
 
 ## Development / contribution
 
-Before you start you need these global modules
-- `npm install -g pnpm` - https://pnpm.io/ - npm alternative
-- `npm install -g @microsoft/rush` - https://rushjs.io/ - monorepo management
-- `npm install -g vite` - https://vitejs.dev/ - project runner and bundler
-- `npm install -g esbuild` - https://esbuild.github.io/ - superfast bundler compiler
+This is a **Bun** workspace monorepo (`workspaces` + `catalog:` in the root `package.json`). Rush and
+pnpm are gone.
 
-The project is not initialized using `npm` like it may be usual. It is a monoremo of multiple sub-projects
-so Rush was chosen to manage it.
+Prerequisites:
+- [Bun](https://bun.sh/) (the workspace/install/test runner)
 
-After cloning the repository you need to initialize  project.
+After cloning the repository:
 
-In the base dir of the project run `rush update`, and it will download dependencies using pnpm and link internal dependencies inside the monorepo.
+```bash
+bun install
+```
+
+### There is no CI — `bun run check` is the gate
+
+This project deliberately has **no continuous integration**, no build server and no remote gate of
+any kind (see `plan/improvement-plan.md` decision D1). Everything is verified locally, so the local
+gate is the only thing standing between a mistake and a published package:
+
+```bash
+bun run check        # the full local gate — must pass before committing and before `bun pub`
+bun run check:fast   # faster subset: tests + JSDoc type check
+bun run test         # tests only, discovered across every package
+```
+
+`bun run check` runs, in order: unit tests in **every** package that has them, declaration emit
+(`tsc`), the `checkJs` type check, ESLint (including the custom `jsx6/signal-dependencies` rule),
+the dependency-catalog check, and a package-manifest audit that dry-runs `npm pack` for every
+publishable package. `scripts/publish.js` runs the gate itself and refuses to publish if it fails.
+
+Make sure `bun run check` passes before `bun pub`. There is no CI; this command is the only gate.
 
 # If you are doing SSR(Server side rendering) GTFO
 
@@ -57,16 +75,13 @@ I do not want any ugly compromises to suport SSR (that I luckily never personall
 
 # TSC troubleshooting
 
-`This is not the tsc command you are looking for`  typically occurs in environments using Microsoft Rush for monorepo management and TypeScript, when a project tries to run tsc.
+If `tsc` reports `This is not the tsc command you are looking for`, you are running the Windows
+"Service Control" `tsc.exe` instead of TypeScript's CLI. In this repository always run TypeScript
+through Bun, which resolves the workspace copy:
 
-in rush project first declare tsc (reduntant but required)
-
-```json
-{
-  "scripts": {
-    "tsc": "tsc",
-    "prepublishOnly": "rushx tsc"
-}
+```bash
+bun x tsc --noEmit -p libs/jsx6/tsconfig.json
 ```
 
-use: `rushx tsc` instead simply tsc
+The same applies to package scripts: declare `"tsc": "tsc"` in the package and run it with
+`bun run tsc` (or `bun x tsc`), never by calling a globally installed `tsc` directly.

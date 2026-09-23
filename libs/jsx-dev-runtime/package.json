@@ -2,7 +2,10 @@
   "name": "@jsx6/jsx-dev-runtime",
   "version": "1.8.18",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./index.js",
+    "./src/activateJsxInspector.js"
+  ],
   "description": "JSX dev runtime for jsx6",
   "main": "index.js",
   "unpkg": "cjs/index.js",
@@ -51,6 +54,7 @@
     "@jsx6/jsx6": "workspace:*"
   },
   "devDependencies": {
-    "esbuild": "catalog:"
+    "esbuild": "catalog:",
+    "typescript": "catalog:"
   }
 }

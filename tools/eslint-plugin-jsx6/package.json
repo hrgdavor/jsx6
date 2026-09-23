@@ -2,7 +2,15 @@
   "name": "eslint-plugin-jsx6",
   "version": "1.0.0",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "rules",
+    "!rules/**/*.test.js"
+  ],
+  "scripts": {
+    "test": "bun test"
+  },
   "peerDependencies": {
-    "eslint": "8.57.0"
+    "eslint": "catalog:"
   }
 }

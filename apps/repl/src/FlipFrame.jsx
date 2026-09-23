@@ -38,13 +38,18 @@ function fireEventListener(obj, name, params) {
 export class FlipFrame extends Jsx6old {
   initAttr(attr) {
     const iframeAttr = {
+      // SECURITY: `allow-same-origin` + `allow-scripts` is the combination MDN warns lets framed
+      // code escape its sandbox — and that is inherent here, because an in-browser REPL executes
+      // the user's own code. The parent also has to reach into `contentWindow.document` to reload
+      // and size the frame, which an opaque origin would forbid. Documented decision
+      // (plan/improvement-plan.md P4-12): serve the tutorial from a dedicated origin and keep this
+      // sandbox, rather than dropping allow-same-origin and losing the capability.
       sandbox: attr?.sandbox || 'allow-same-origin allow-scripts',
       src: attr?.src || 'about:blank',
       style: 'position:absolute; opacity:0; border:none',
     }
     this.iframes = [h('iframe', iframeAttr), h('iframe', iframeAttr)]
     this.frameIndex = 0
-    console.log('attr', attr, this.iframes)
     return attr
   }
 

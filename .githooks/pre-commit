@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Local pre-commit gate — opt-in, and deliberately local.
+#
+# This project has no CI/CD of any kind (plan/improvement-plan.md decision D1), so this hook is the
+# closest thing to an automatic check and it is entirely a developer-machine concern. Enable it with:
+#
+#     git config core.hooksPath .githooks
+#     chmod +x .githooks/pre-commit        # once, if your checkout lost the executable bit
+#
+# It runs the fast subset (tests + JSDoc type check) so commits stay quick; run `bun run check`
+# yourself before publishing — or just use `bun pub`, which runs the full gate and refuses to
+# publish when it fails.
+set -e
+
+bun run scripts/verify.js --quick

@@ -1,5 +1,5 @@
 import { expect, test, afterAll } from 'bun:test'
-import { domWithScope, getScope, h } from './jsx2dom.js'
+import { domWithScope, getScope, h, insert } from './jsx2dom.js'
 
 import { $State, $F, observe } from '@jsx6/signal'
 
@@ -16,10 +16,24 @@ test('simple', () => {
   expect(div.innerHTML).toEqual('test')
 })
 
+// P0-1: `insert()` used an undefined identifier (`ERR_REQUIRE_PARENT`) and threw a
+// ReferenceError instead of the intended parent-required error.
+test('insert without a parent reports the parent-required error', () => {
+  const errors = []
+  const realError = console.error
+  console.error = (...args) => errors.push(args.map(a => String(a)).join(' '))
+  try {
+    expect(() => insert(undefined, 'x')).toThrow()
+  } finally {
+    console.error = realError
+  }
+  expect(errors.length).toBe(1)
+  expect(errors[0]).toContain('JSX6E8')
+})
+
 test('updatable', () => {
   const $state = $State({ count: 1 })
   const generator = state => {
-    console.log('$stateX', state, $state().count, $state.count())
     if (state.count === 1) {
       return 'one'
     } else if (state.count === 2) {
@@ -28,19 +42,14 @@ test('updatable', () => {
       return h('B', null, 'number: ' + state.count)
     }
   }
-  observe($state, () => {
-    // console.log('$state', $state())
-  })
+  observe($state, () => {})
+
   let $body = $F(generator, $state)
-  observe($body, () => {
-    console.log('$body', $body() + '')
-  })
 
   let div = h('DIV', null, $body)
   expect(div.innerHTML).toEqual('one')
-  console.log('sssssssssssssssssss')
+
   $state.count = 2
-  console.log('CCCCCCCCCCCCCCCCCCCC ' + div.children.length)
   expect(div.innerHTML).toEqual('<b>number: 2</b>A')
 
   $state.count = 1

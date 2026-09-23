@@ -26,7 +26,7 @@ export const JSX6E6_MUST_CALL_BINDING = 6 // UNUSED
 export const JSX6E7_REQUIRE_FUNC = 7
 
 /** parent required */
-export const JSX6E8_REQUIRE_PARENT = 8 // - UNUSED
+export const JSX6E8_REQUIRE_PARENT = 8
 
 /** Event listener must be a function */
 export const JSX6E9_LISTENER_MUST_BE_FUNC = 9

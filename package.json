@@ -2,13 +2,15 @@
   "name": "jsx6-monorepo",
   "private": true,
   "scripts": {
-    "test1": "cd libs/jsx6 && bun test ",
-    "test2": "cd libs/signal && bun test && cd ../signal-clock && bun test",
-    "test": "npm run test1 && npm run test2 ",
+    "test": "bun run scripts/verify.js --tests-only",
+    "check": "bun run scripts/verify.js",
+    "check:fast": "bun run scripts/verify.js --quick",
     "lint": "eslint .",
     "bump": "bun run scripts/versions.js",
     "pub": "bun run scripts/publish.js --manual-replace --public",
-    "check-versions": "bun run scripts/check-versions.js"
+    "check-versions": "bun run scripts/check-versions.js",
+    "docs:build": "bun run scripts/build-docs.js",
+    "docs:check": "bun run scripts/check-docs.js"
   },
   "workspaces": [
     "libs/*",
@@ -23,12 +25,14 @@
     "@happy-dom/global-registrator": "~14.7.1",
     "happy-dom": "~14.7.1",
     "bun-types": "~1.0.24",
-    "@types/node": "latest",
+    "@types/node": "^20.19.9",
     "live-server": "^1.2.2",
     "@types/bun": "~1.0.2",
     "@trivago/prettier-plugin-sort-imports": "~3.3.0"
   },
-  "dependencies": {
-    "typescript": "^5.9.3"
+  "devDependencies": {
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:"
   }
 }

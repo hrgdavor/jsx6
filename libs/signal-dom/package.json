@@ -50,6 +50,7 @@
     "@jsx6/signal": "workspace:*"
   },
   "devDependencies": {
-    "esbuild": "catalog:"
+    "esbuild": "catalog:",
+    "typescript": "catalog:"
   }
 }
