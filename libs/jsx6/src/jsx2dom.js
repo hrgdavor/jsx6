@@ -304,7 +304,21 @@ export function forInsert(newChild) {
   return newChild
 }
 
-export function insert(parent, newChild, before) {
+/**
+ * Insert `newChild` into `parent`, optionally before the `before` node.
+ *
+ * `before` carries a `= undefined` default purely for TypeScript 7: it reduces a function's call
+ * arity only for a default value in the signature (a JSDoc `[before]` bracket is not enough), so
+ * without it every two-argument call in the workspace — the common case — is reported as an arity
+ * error. The default is behaviour-preserving, since omitted and explicitly-`undefined` already had
+ * to mean the same thing here (`before` is only ever passed through to `insertBefore`).
+ *
+ * @param {any} parent parent node (or anything `toDomNode` can convert)
+ * @param {any} newChild child to insert; `null`/`undefined` and arrays are handled here
+ * @param {any} [before] optional reference node to insert before
+ * @returns {any} the inserted node, or an array of them when `newChild` is an array
+ */
+export function insert(parent, newChild, before = undefined) {
   if (newChild === undefined || newChild === null) return
   if (!parent) throwErr(JSX6E8_REQUIRE_PARENT, { parent, newChild, before })
 

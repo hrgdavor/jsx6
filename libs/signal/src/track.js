@@ -28,14 +28,22 @@
  * `src/signal.js` and written inline by `src/computed.js` — no calls, no closures, no allocation.
  */
 // #region track-state
-export const trackState = { collector: null }
+/**
+ * `collector` is explicitly typed so both `collector.add(dep)` here and the
+ * `trackState.collector = tracked` assignment in `src/computed.js` are checked against the same
+ * shape. Left untyped, TypeScript 7 infers `collector` as `null` (the only value at declaration),
+ * and every later assignment or property access in the library becomes an error.
+ *
+ * @type {{ collector: Set<Function> | null }}
+ */
+export const trackState = /** @type {{ collector: Set<Function> | null }} */ ({ collector: null })
 // #endregion track-state
 
 /**
  * Convenience wrapper for callers that prefer a scoped form; it allocates a closure, so the hot path
  * (`src/computed.js`) does not use it.
  * @param {Set<Function>} into
- * @returns {function(): void}
+ * @returns {() => void}
  */
 export const collectStart = into => {
   const prev = trackState.collector

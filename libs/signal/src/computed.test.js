@@ -19,7 +19,7 @@ import { collectStart } from './track.js'
 /**
  * Runs `fn` with `console.error` captured, and returns the messages it logged. Used for the cycle
  * reports, which are errors by design but must not abort the caller.
- * @param {function(): void} fn
+ * @param {() => void} fn
  * @returns {Array<string>}
  */
 const captureConsoleError = fn => {

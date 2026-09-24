@@ -42,6 +42,51 @@ If using `JSX` and not `React` then you need a copy of `tsconfig.json` called fo
 
 [JSDoc](https://jsdoc.app) will be used to define types
 
+## TypeScript 7
+
+The repo is on TypeScript 7 (the native Go compiler, `typescript@^7.0.2`), pinned once in the root
+`catalog` and consumed as `catalog:` by every package. Run it the same way as before:
+
+```
+bun x tsc --noEmit -p tsconfig.json    # per lib, as `bun run check` does
+```
+
+Two things about TS 7 matter for a JSDoc-typed codebase. Both are silent under TS 5, and both are
+worked around in each lib's `tsconfig.json` rather than by annotating everything:
+
+1. **`noImplicitAny` / `noImplicitThis` are on by default for `checkJs`.** TS 5 left them off, so
+   every unannotated JS parameter or `this` becomes an error. Every lib sets both to `false` to keep
+   the historical checking strength. Raise them per-lib if you ever want that stricter checking.
+
+   `apps/repl` needs the same two flags for a different reason: its `paths` point at the libs'
+   *sources*, so its `tsc` (run by `scripts/publish.js`) type-checks those files through the app's
+   config and reports every unannotated parameter. `bun run pub` fails on this if they are missing.
+
+2. **A `@param` bracket no longer makes a parameter optional for call sites.** TS 7 computes a
+   function's call arity from its signature, and only a *default value* reduces it:
+
+   ```js
+   /** @param {any} a @param {any} b @param {any} [c] */
+   function f(a, b, c) {}      // f(1, 2)  -> TS7 error: Expected 3 arguments, but got 2
+   function g(a, b, c = undefined) {}   // g(1, 2)  -> fine
+   ```
+
+   So give genuinely optional parameters a `= undefined` (or other) default, and annotate *all*
+   parameters — a function whose JSDoc covers only the leading parameters is the common trigger.
+
+Two smaller syntax/diagnostic changes that came up while migrating:
+
+- `function(): T` inside JSDoc braces is rejected (`TS1005`); use the arrow form `() => T`.
+- A bare `Set` in a JSDoc type is rejected (`TS2314`); write `Set<any>` (or the real type argument).
+- `baseUrl` was removed (`TS5102`). `paths` alone now resolves relative to the `tsconfig.json`, and
+  dropping `baseUrl` changes the inferred `rootDir` — see `libs/w/tsconfig.json`, which type-checks
+  only (`noEmit`) because its `paths` point at other packages' *sources*.
+- `moduleResolution: "node16"` now requires an explicit matching `module` (`TS5110`) — see
+  `apps/nodditor/tsconfig.json`, which is ESM and therefore uses `"module": "node16"`.
+- TS 7 no longer narrows an optional value through an aliased boolean, e.g. `const has = x !== null`
+  then `if (has) x.foo` (`TS18048`). Compare the value itself, or collapse to a `??` default.
+- `catch (e)` bindings are `unknown` (`TS18046`); narrow with `e instanceof Error` before `e.message`.
+
 ## TypeScript interface, type
 
 It is more compact to write type definitions for data objects in TypeScript than in JSDoc so I write them in a file `_types.ts`

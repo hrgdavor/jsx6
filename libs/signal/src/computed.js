@@ -43,7 +43,7 @@ export const inBatch = () => batchDepth > 0
  * Run `fn` with computed recomputation and notification deferred until the outermost batch closes.
  * Exception-safe: a throw still closes the batch, so the graph can never be wedged.
  * @template T
- * @param {function(): T} fn
+ * @param {() => T} fn
  * @returns {T}
  */
 export const batch = fn => {
@@ -100,6 +100,7 @@ export function createComputed(
   const depSubs = new Map()
   // Reused per recompute: this module is on the hot path, so it must not allocate a Set per
   // recomputation (measured: allocating two Sets per recompute made a 4-deep chain 8x slower).
+  /** @type {Set<Function>} */
   const tracked = new Set()
   const wanted = new Set()
   // When no declared dependency exposes children, `wanted` is exactly `tracked` intersected with the

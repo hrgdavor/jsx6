@@ -20,14 +20,14 @@ bun install --frozen-lockfile  # what a clean checkout / verification should use
 
 If you know Rush, this is the translation table:
 
-| Rush | Now |
-|---|---|
-| `rush update` | `bun install` (`--frozen-lockfile` for the strict form) |
-| `rush build` | `bun run check --build`, or `bun run build` inside a package |
-| `rush test` | `bun run test` |
-| `rush check` | `bun run check` — but note it is **not** the same check: the workspace-integrity step fails on *version drift between manifests*, which is the part of `rush check` that used to catch mismatched pins |
-| `rush change`, `rush version --bump` | `bun run bump <version>` (`scripts/versions.js`) |
-| `rush publish` | `bun pub` (`scripts/publish.js`) |
+| Rush                                 | Now                                                          |
+| ------------------------------------ | ------------------------------------------------------------ |
+| `rush update`                        | `bun install` (`--frozen-lockfile` for the strict form)      |
+| `rush build`                         | `bun run check --build`, or `bun run build` inside a package |
+| `rush test`                          | `bun run test`                                               |
+| `rush check`                         | `bun run check` — but note it is **not** the same check: the workspace-integrity step fails on *version drift between manifests*, which is the part of `rush check` that used to catch mismatched pins |
+| `rush change`, `rush version --bump` | `bun run bump <version>` (`scripts/versions.js`)             |
+| `rush publish`                       | `bun pub` (`scripts/publish.js`)                             |
 
 `npm` is still used for exactly one thing: `npm pack --dry-run --json` inside the manifest audit,
 because it is the reference packer and the only one with machine-readable output. It is a dev-only
@@ -59,16 +59,16 @@ git config core.hooksPath .githooks
 
 The full gate (`scripts/verify.js`) runs, in order:
 
-| Step | What it does |
-|---|---|
-| tests | `bun test` in **every** package that has tests (discovered by glob, not hardcoded) |
-| declaration emit | `tsc -p tsconfig.json` per lib, so `dist/*.d.ts` is always producible |
-| type check | `tsc --noEmit` per lib with `checkJs` on (catches undefined-identifier bugs) |
-| oxlint | `libs/`, `tools/` and `scripts/` with `--deny-warnings`, including the custom `jsx6/signal-dependencies` JS-plugin rule (loaded via `jsPlugins`; warning-severity findings stop the gate) |
-| oxfmt | `oxfmt --check` — every file in the tree is already canonically formatted, so `bun run format` stays a no-op |
+| Step                | What it does                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| tests               | `bun test` in **every** package that has tests (discovered by glob, not hardcoded) |
+| declaration emit    | `tsc -p tsconfig.json` per lib, so `dist/*.d.ts` is always producible              |
+| type check          | `tsc --noEmit` per lib with `checkJs` on (catches undefined-identifier bugs)       |
+| oxlint              | `libs/`, `tools/` and `scripts/` with `--deny-warnings`, including the custom `jsx6/signal-dependencies` JS-plugin rule (loaded via `jsPlugins`; warning-severity findings stop the gate) |
+| oxfmt               | `oxfmt --check` — every file in the tree is already canonically formatted, so `bun run format` stays a no-op |
 | dependency versions | `scripts/check-versions.js` — every catalog-managed dependency must use `catalog:` |
-| docs sync | `scripts/check-docs.js` — the committed `docs/demistify/` site matches a build from `apps/repl/static/` (single source of truth) |
-| manifest audit | `scripts/check-manifests.js` — declared entry points exist, are covered by `files`, resolve to real dependencies, match `MODULE_VERSIONING.md` **and `scripts/versions.json`**, ship no test files, and are actually present in `npm pack --dry-run` output |
+| docs sync           | `scripts/check-docs.js` — the committed `docs/demistify/` site matches a build from `apps/repl/static/` (single source of truth) |
+| manifest audit      | `scripts/check-manifests.js` — declared entry points exist, are covered by `files`, resolve to real dependencies, match `MODULE_VERSIONING.md` **and `scripts/versions.json`**, ship no test files, and are actually present in `npm pack --dry-run` output |
 | workspace integrity | `scripts/check-workspace.js` — no Rush artifacts, exactly one lockfile, internal deps are `workspace:*`, and no dependency is pinned to two different versions across the workspace |
 
 Useful flags: `--quick`, `--tests-only`, `--build` (build every lib bundle first, so the tarball

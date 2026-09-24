@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
+    // TypeScript 7 defaults `noImplicitAny` to true for `checkJs`; TypeScript 5 did not.
+    // This repo is JSDoc-typed, so keep the historical (looser) behaviour.
     "noImplicitAny": false,
+    // Same story for `this`: TypeScript 7 defaults `noImplicitThis` to true for `checkJs`.
+    "noImplicitThis": false,
     "target": "ESNext",
     "jsxImportSource": "@jsx6",
     // Tells TypeScript to read JS files, as
@@ -14,17 +18,14 @@
     "moduleResolution": "bundler",
     "lib": ["esnext", "dom"],
     "skipLibCheck": true,
-    // Types should go into this directory.
-    // Removing this would place the .d.ts files
-    // next to the .js files
-    "outDir": "dist",
-    // Generate d.ts files
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    // go to js file when using IDE functions like
-    // "Go to Definition" in VSCode
-    "declarationMap": true,
-    "baseUrl": ".",
+    // This package type-checks only; it emits no declarations.
+    //
+    // The `paths` below resolve the workspace packages to their *sources*, so declaration emit
+    // would have to write declarations for `libs/jsx6` and `libs/signal` into this package's
+    // `outDir` — which TypeScript rejects (TS6059). That was already true under TypeScript 5.9, and
+    // `files` in package.json ships `index.js`/`src` only, so no consumer ever saw a `dist/` here.
+    "noEmit": true,
+    // TypeScript 7 removed `baseUrl`; `paths` alone now resolves relative to this file.
     // vscode does not recognize workspace for some reason
     "paths": {
       "@jsx6/signal": ["../signal/index.js"],

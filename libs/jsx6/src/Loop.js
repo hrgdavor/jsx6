@@ -577,8 +577,10 @@ export class Loop {
     return this.count
   }
 
-  splice(index, deleteCount) {
-    var toAdd = Array.prototype.splice.call(arguments, 2)
+  splice(index, deleteCount, ...toAdd) {
+    // `toAdd` is a plain rest parameter rather than a hand-rolled slice of `arguments`: TypeScript 7
+    // types `arguments` as `IArguments`, whose `splice.call(target, start, deleteCount)` signature
+    // rejects the two-argument form this method is called with. Same values, same behaviour.
 
     // items not used and hidden for reuse later
     var countReusable = this.allItems.length - this.count

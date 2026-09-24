@@ -37,12 +37,12 @@ export class Loop extends HTMLElement {
    * parent the items are inserted into (the loop element itself unless `outside` is used)
    * @type {ParentNode|null}
    */
-  insertParent
+  insertParent = null
   /**
    * marks the loop as connected, checked by getValue
    * @type {boolean}
    */
-  connected
+  connected = false
   /** value remembered by setValue, returned by getValue while the loop is not connected. @type {any} */
   lastValue
 
@@ -84,7 +84,9 @@ export class Loop extends HTMLElement {
 
   disconnectedCallback() {
     this.connected = false
-    delete this.insertParent
+    // Was `delete this.insertParent`, which TypeScript 7 rejects (the property is not optional).
+    // Assigning `null` keeps the same falsy state the `!this.insertParent` guard below relies on.
+    this.insertParent = null
   }
 
   setValue(v = []) {
@@ -231,8 +233,10 @@ export class Loop extends HTMLElement {
     return this.count
   }
 
-  splice(index, deleteCount) {
-    var toAdd = Array.prototype.splice.call(arguments, 2)
+  splice(index, deleteCount, ...toAdd) {
+    // `toAdd` is a plain rest parameter rather than a hand-rolled slice of `arguments`: TypeScript 7
+    // types `arguments` as `IArguments`, whose `splice.call(target, start, deleteCount)` signature
+    // rejects the two-argument form this method is called with. Same values, same behaviour.
 
     // items not used and hidden for reuse later
     var countReusable = this.allItems.length - this.count

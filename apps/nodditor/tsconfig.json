@@ -10,6 +10,9 @@
     "rootDir": ".",
     "declaration": true,
     "declarationMap": true,
+    // TypeScript 7 rejects `moduleResolution: "node16"` with an unspecified `module` (TS5110);
+    // `node16` is the matching value for this package, which is ESM (`"type": "module"`).
+    "module": "node16",
     "moduleResolution": "node16"
   },
   "include": ["index.js", "src"]

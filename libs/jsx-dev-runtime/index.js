@@ -84,9 +84,11 @@ function jsxDEV(tag, { children, ...attr } = {}, key, isStatic, source) {
     if (isNode(out)) out._source = source
     return out
   } catch (e) {
+    // TypeScript 7 types `catch` bindings as `unknown`; narrow before reading `.message`.
+    const message = e instanceof Error ? e.message : String(e)
     console.log(
       'ERROR while creating DOM from JSX\n' +
-        e.message +
+        message +
         '\n  at: JSX (' +
         source?.fileName +
         ':' +

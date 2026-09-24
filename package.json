@@ -27,7 +27,7 @@
   ],
   "catalog": {
     "esbuild": "^0.17.18",
-    "typescript": "^5.0.4",
+    "typescript": "^7.0.2",
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
     "alien-signals": "^3.2.1",

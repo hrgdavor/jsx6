@@ -82,7 +82,7 @@ export const readSignal = obj => {
   try {
     return { value: obj() }
   } catch (e) {
-    return { error: (e && e.message) || String(e) }
+    return { error: (e instanceof Error && e.message) || String(e) }
   }
 }
 
@@ -157,7 +157,7 @@ const callerSite = () => {
  *   asString?: boolean,
  *   showCallSite?: boolean,
  * }} [options]
- * @returns {function(): void} uninstall
+ * @returns {() => void} uninstall
  */
 export const installConsoleInspection = (options = {}) => {
   const target = options.console ?? globalThis.console

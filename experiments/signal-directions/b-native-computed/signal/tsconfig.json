@@ -7,6 +7,10 @@
     "allowJs": true,
     // Type check JS via JSDoc annotations (see typescript.notes.md)
     "checkJs": true,
+    // TypeScript 7 defaults `noImplicitAny` to true for `checkJs`; TypeScript 5 did not.
+    // This repo is JSDoc-typed, so keep the historical (looser) behaviour: otherwise every
+    // unannotated JS parameter becomes an error and the gate stops being meaningful.
+    "noImplicitAny": false,
     // Workspace imports resolve through package.json "exports" maps, and DOM types are needed
     // for the browser-facing code.
     "module": "esnext",

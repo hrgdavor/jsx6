@@ -3,6 +3,11 @@
     "types": ["bun-types", "@types/bun"],
     "skipLibCheck": true,
     "allowJs": true,
+    // The `paths` below point at the workspace libs' *sources*, so this config type-checks those
+    // files too. TypeScript 7 defaults `noImplicitAny`/`noImplicitThis` to true for JS, which the
+    // libs' own configs switch back off (see typescript.notes.md); match them here.
+    "noImplicitAny": false,
+    "noImplicitThis": false,
     "jsxImportSource": "@jsx6",
     "jsx": "preserve",
     // enable latest features

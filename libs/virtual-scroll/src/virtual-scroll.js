@@ -5,9 +5,9 @@
  * @property {Array<any>} items - The full array of data items to render.
  * @property {number} [buffer=0] - Number of items to render above/below the viewport.
  * @property {number} [offsetTop=0] - Vertical offset for the start of the list.
- * @property {function(): HTMLElement} createItem - Factory function to create a new list item DOM element.
- * @property {function(HTMLElement, any): void} updateItemContent - Function to bind data to a recycled DOM element.
- * @property {function(any): string|number} [getKey] - Function to get a unique identifier for an item. Defaults to item.id.
+ * @property {() => HTMLElement} createItem - Factory function to create a new list item DOM element.
+ * @property {(HTMLElement, any) => void} updateItemContent - Function to bind data to a recycled DOM element.
+ * @property {(any) => string|number} [getKey] - Function to get a unique identifier for an item. Defaults to item.id.
  */
 
 /**

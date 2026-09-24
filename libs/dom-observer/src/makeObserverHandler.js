@@ -13,8 +13,13 @@
  * The part of an `IntersectionObserver`/`ResizeObserver` used by the handler. The concrete
  * observer is created by the caller, so only the members shared by both are typed here.
  *
+ * `observe` takes `any` for its options on purpose: the handler forwards them untouched and
+ * never inspects them, and the two concrete observers take unrelated option types. Typing them
+ * as the `ObserverOptions` union makes the assignment in `observeResize.js` a parameter
+ * contravariance error under TypeScript 7 (which checks method assignability more strictly).
+ *
  * @typedef {Object} AttachedObserver
- * @property {(el: Element, options?: ObserverOptions) => void} observe
+ * @property {(el: Element, options?: any) => void} observe
  * @property {(el: Element) => void} unobserve
  */
 
@@ -25,7 +30,7 @@
  *
  * @typedef {((entries: Array<IntersectionObserverEntry | ResizeObserverEntry>) => void) & {
  *   observe: (el: Element, callback: Function, options?: ObserverOptions) => (() => void),
- *   observer?: AttachedObserver,
+ *   observer: AttachedObserver,
  * }} ObserverHandler
  */
 
@@ -42,12 +47,19 @@ export const makeObserverHandler = name => {
           try {
             if (fn) fn(entry)
           } catch (e) {
-            console.error(`problem calling ${name} listener:  ${e.message}`, fn, e)
+            // TypeScript 7 types `catch` bindings as `unknown`; narrow before reading `.message`.
+            const message = e instanceof Error ? e.message : String(e)
+            console.error(`problem calling ${name} listener:  ${message}`, fn, e)
           }
         })
       })
     }
   )
+
+  // The concrete observer is attached by the caller (see `observeResize.js`) and is shared by
+  // every callback registered for the same options. It is dereferenced in the assert below and
+  // in `observe`/the removal closure only after that assignment.
+  listener.observer = /** @type {AttachedObserver} */ (/** @type {unknown} */ (undefined))
 
   listener.observe = (el, callback, options) => {
     const observer = listener.observer

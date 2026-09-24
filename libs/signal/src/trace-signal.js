@@ -77,7 +77,7 @@ const safe = fn => {
   try {
     return { value: fn() }
   } catch (e) {
-    return { error: (e && e.message) || String(e) }
+    return { error: (e instanceof Error && e.message) || String(e) }
   }
 }
 
@@ -212,6 +212,7 @@ export const traceSignal = (inner, options = {}) => {
    * around the state never sees it. That trap now reports every child write
    * (`src/state-write-observer.js`); this wrapper keeps the reports that belong to *its* state.
    */
+  /** @type {null | (() => void)} */
   let unwatchStateWrites = null
   if (innerIsState) {
     const children = inner[stateChildrenSymbol]
@@ -304,6 +305,7 @@ export const traceSignal = (inner, options = {}) => {
  * can keep it. This is the only route: `$State` closes over its callable and exposes no other handle.
  */
 const unwrapProxy = proxy => {
+  /** @type {object | null} */
   let inner = null
   try {
     const outer = Proxy.revocable(proxy, {

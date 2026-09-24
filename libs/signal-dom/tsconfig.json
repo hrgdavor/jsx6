@@ -4,6 +4,12 @@
     "skipLibCheck": true,
     "allowJs": true,
     "checkJs": true,
+    // TypeScript 7 defaults `noImplicitAny` to true for `checkJs`; TypeScript 5 did not.
+    // This repo is JSDoc-typed, so keep the historical (looser) behaviour: otherwise every
+    // unannotated JS parameter becomes an error and the gate stops being meaningful.
+    "noImplicitAny": false,
+    // Same story for `this`: TypeScript 7 defaults `noImplicitThis` to true for `checkJs`.
+    "noImplicitThis": false,
     // Workspace imports resolve through package.json "exports" maps, and DOM types are needed
     // for the browser-facing code.
     "module": "esnext",

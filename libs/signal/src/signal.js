@@ -12,9 +12,9 @@
  * @template T
  * @typedef {Object} SignalDef
  * @prop {Signal<T>} $signal
- * @prop {function():void} fireChanged
+ * @prop {() => void} fireChanged
  * @prop {Set<Function>} listeners
- * @prop {function(T):boolean|undefined} setValue
+ * @prop {(T) => boolean|undefined} setValue
  *
  */
 

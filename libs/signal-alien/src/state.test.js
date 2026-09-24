@@ -6,8 +6,8 @@
  * @prop {number} y
  *
  * @typedef {Object} TestState
- * @prop {function(number):number} x
- * @prop {function(number):number} y
+ * @prop {(number) => number} x
+ * @prop {(number) => number} y
  */
 import { expect, test } from 'bun:test'
 import { $State, mergeValue } from './state.js'

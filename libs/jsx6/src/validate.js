@@ -76,13 +76,17 @@ export const genRequired = (field, rule) => {
   }
 }
 
-/** Sync validation of only synchronous rules from ValidationRule.
+/**
+ * Sync validation of only synchronous rules from ValidationRule.
  * It ignores `validate` function in the rule, as that function could be async.
  * if `validate` function is present you should
  *
+ * `field` is required (not optional): every caller passes it, and `genRequired` requires it, so
+ * marking it optional here only produced a "possibly undefined" mismatch at the call below.
+ *
  * @param {any} v
  * @param {ValidationRule} rule
- * @param {string|number} [field]
+ * @param {string|number} field
  * @returns {ValidationResult|undefined}
  */
 function validateSimple(v, rule = {}, field) {
@@ -101,17 +105,22 @@ function validateSimple(v, rule = {}, field) {
     }
   }
 
+  // `selectableMin`/`selectableMax` are `null` when unset. The comparisons below use these instead
+  // of the destructured `min`/`max`, because TypeScript 7 no longer narrows `number|undefined`
+  // through an aliased boolean (`hasMin`/`hasMax`) — only through a direct check on the value.
   var hasMin = min !== void 0 && min !== null
   var hasMax = max !== void 0 && max !== null
   if (hasMin || hasMax) {
+    const selectableMin = /** @type {number|null} */ (hasMin ? min : null)
+    const selectableMax = /** @type {number|null} */ (hasMax ? max : null)
     v = parseFloat(v)
     var prep = { type: 'invalid_range', value: v, min, max, field }
-    if (hasMax && hasMin) {
-      if (v < min || v > max) prep.message = 'must_be_between'
-    } else if (hasMax) {
-      if (v > max) prep.message = 'max_allowed_value'
-    } else if (hasMin) {
-      if (v < min) prep.message = 'min_allowed_value'
+    if (selectableMax !== null && selectableMin !== null) {
+      if (v < selectableMin || v > selectableMax) prep.message = 'must_be_between'
+    } else if (selectableMax !== null) {
+      if (v > selectableMax) prep.message = 'max_allowed_value'
+    } else if (selectableMin !== null) {
+      if (v < selectableMin) prep.message = 'min_allowed_value'
     }
     if (prep.message) return prep
   }

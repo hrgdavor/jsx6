@@ -1,6 +1,6 @@
 {
   "name": "@jsx6/signal-alien",
-  "version": "1.8.18",
+  "version": "1.19.0",
   "type": "module",
   "sideEffects": false,
   "description": "the jsx6 signal contract implemented on alien-signals, plus two-way interop between them",

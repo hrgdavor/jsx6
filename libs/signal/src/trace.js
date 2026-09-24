@@ -193,9 +193,9 @@ export const describeName = $signal => {
  * @param {{
  *   kind?: 'signal'|'computed',
  *   origin?: boolean|object, // `true` to capture a creation site here, or an already-captured site
- *   listeners?: Set|null,    // the live listener set of the signal
+ *   listeners?: Set<any>|null, // the live listener set of the signal
  *   getter?: Function,       // for a computed: the function it was built from
- *   deps?: function(): any,  // for a computed: current dependencies, as `{ tracked, declared }`
+ *   deps?: () => any,        // for a computed: current dependencies, as `{ tracked, declared }`
  * }} [info]
  */
 export const attachTrace = ($signal, info = {}) => {

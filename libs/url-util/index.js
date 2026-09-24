@@ -75,7 +75,10 @@ const sp = () => getMain().searchParams
  */
 export function urlInit(name, def, searchParams = sp()) {
   if (searchParams.has(name)) {
-    return searchParams.get(name)
+    // `get` is typed `string|null` and `has` has already established presence; a present parameter
+    // never reads back as `null` (a bare `?name` reads as the empty string). The cast states that,
+    // instead of widening this function's declared `string` return to include `null`.
+    return /** @type {string} */ (searchParams.get(name))
   } else {
     searchParams.set(name, def)
     return def
@@ -101,7 +104,7 @@ export function urlSet(name, value, searchParams = sp()) {
  *
  * @param {string} name
  * @param {URLSearchParams} [searchParams]
- * @returns {string}
+ * @returns {string|null} `null` when the parameter is absent
  */
 export const urlGet = (name, searchParams = sp()) => searchParams.get(name)
 
@@ -124,13 +127,14 @@ export const urlGetBool = (name, searchParams = sp()) => urlBool(searchParams.ge
 
 /** change url parameter and replace current url in addressbar
  *
- * @param {*} name - parameter name
- * @param {*} value - parameter value
+ * @param {string} name - parameter name
+ * @param {string} value - parameter value
  * @returns {void}
  */
 export const urlReplace = (name, value) => {
   urlSet(name, value)
-  window.history.replaceState(null, null, getMain().toString())
+  // `''` rather than `null` for the unused url argument: TypeScript 7 types it `string|URL` here.
+  window.history.replaceState(null, '', getMain().toString())
 }
 
 /** change url parameter and reload the page

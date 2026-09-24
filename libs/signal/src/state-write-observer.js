@@ -41,7 +41,7 @@ export const hasStateWriteObservers = () => stateWriteObservers !== null
  *
  * @param {(child: Function, value: any) => void} observer receives the **raw child signal** (so a
  *   caller can match it by identity) and the value being written
- * @returns {function(): void} unregister
+ * @returns {() => void} unregister
  */
 export const onStateWrite = observer => {
   if (typeof observer !== 'function') throw 'state write observer must be a function'
