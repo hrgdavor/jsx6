@@ -1,0 +1,63 @@
+{
+  "appDir": "D:\\wrk\\jsx6\\experiments\\signal-directions\\d-dual-surface\\.tmp\\app-build\\b-native-computed",
+  "bootMs": 29.0313,
+  "bootError": null,
+  "checks": [
+    {
+      "name": "bundle boots without throwing",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "renders static children",
+      "pass": true,
+      "detail": "test1111BLAdingUserEditor3namearray:1AComponent:Hello world.test ...()AComponent:jozoAComponent:mirkoshared value -and here: TPL:jozo2----TPL:mirko2----NotAComponent / trueBla"
+    },
+    {
+      "name": "renders a Jsx6 component",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "renders a function component",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "loop items were set via the scope (p attribute)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "scope captured editor parts",
+      "pass": true,
+      "detail": "editor,editor3,comp1,loop,loop2,jozo"
+    },
+    {
+      "name": "x-value inputs rendered",
+      "pass": true,
+      "detail": "3 inputs"
+    },
+    {
+      "name": "x-if reacts to a signal write",
+      "pass": true,
+      "detail": "0 → 2 hidden elements"
+    },
+    {
+      "name": "Loop re-renders after an async signal write",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "a Promise used as a JSX child resolves into the DOM",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "passed": 10,
+  "failed": 0,
+  "errors": [],
+  "warnings": [],
+  "logCount": 6,
+  "bodySnippet": "test1111BLAdingUserEditor3namearray:1AComponent:Hello world.test ...promise_done(boink)AComponent:jozoAComponent:mirkoshared value -and here: TPL:jozo2----TPL:mirko2----NotAComponent / trueBla"
+}

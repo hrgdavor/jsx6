@@ -1,0 +1,50 @@
+{
+  "id": "c-alien-backend",
+  "meta": {
+    "id": "c-alien-backend",
+    "name": "C — alien-signals as backend behind the jsx6 adapter",
+    "backend": "copied core rewritten on alien-signals 3.2.1",
+    "capabilities": [
+      "core",
+      "union-deps",
+      "computed",
+      "computed:auto",
+      "computed:dynamic-deps",
+      "computed:eager",
+      "dispose",
+      "batch",
+      "batch:core",
+      "interop",
+      "interop:no-bridge-needed",
+      "computed:alien-only"
+    ],
+    "deps": ["alien-signals 3.2.1 (vendored; a real release would declare it in dependencies + catalog)"],
+    "sourceRoot": "signal",
+    "notes": "the only direction that ships a new runtime dependency. Eager `$S`/`$F` are kept (a root effect keeps each eager computed hot), so long-lived components behave as before. Opaque duck-typed deps (trans.js) fall back to the legacy derived path — the one place C is not fully alien-driven."
+  },
+  "passed": 43,
+  "failed": 0,
+  "skipped": 2,
+  "failures": [],
+  "skips": ["alien-surface.effect-and-scope", "interop.unbridged-does-not-track"],
+  "loc": 437,
+  "sharedLoc": 123,
+  "micro": {
+    "writeRead": 31.000700000000023,
+    "fanout": 32.625,
+    "chain": 15.732399999999984,
+    "diamond": 17.550399999999968,
+    "computed": 4.896499999999946,
+    "churn": 11.111899999999991,
+    "stateMerge": 15.366899999999987,
+    "batch": 6.162500000000023
+  },
+  "macro": {
+    "mountMs": 7.369799999999941,
+    "updateMs": 8.126899999999978,
+    "unmountMs": 0.9783999999999651,
+    "mountHeapKb": 3690,
+    "retainedHeapKb": 660,
+    "text": null
+  }
+}

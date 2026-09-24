@@ -1,0 +1,52 @@
+{
+  "id": "a-compat",
+  "meta": {
+    "id": "a-compat",
+    "name": "A — compatibility / interop layer",
+    "backend": "untouched current core + alien bridge",
+    "capabilities": ["core", "interop", "interop:bridge-required", "batch"],
+    "deps": ["alien-signals 3.2.1 (vendored, optional peer in a real release)"],
+    "sourceRoot": ".",
+    "notes": "does not change the core and therefore cannot auto-track: `$C` is absent, and a jsx6 signal read inside an alien computed must be bridged first (documented limitation). `batch` coalesces only the alien effect queue — it cannot defer the untouched core's own listener fan-out, which is why it does not claim `batch:core`."
+  },
+  "passed": 31,
+  "failed": 0,
+  "skipped": 14,
+  "failures": [],
+  "skips": [
+    "union-deps.omitted-dep",
+    "computed.auto-track",
+    "computed.lazy-memo",
+    "computed.read-only",
+    "computed.eager",
+    "computed.notifies-observers",
+    "computed.alien-auto-track",
+    "computed.dynamic-deps",
+    "computed.state-child",
+    "batch.single-notify",
+    "batch.exception-safe",
+    "computed.dispose",
+    "alien-surface.effect-and-scope",
+    "interop.unbridged-tracks-natively"
+  ],
+  "loc": 35,
+  "sharedLoc": 123,
+  "micro": {
+    "writeRead": 15.846599999999995,
+    "fanout": 30.95059999999995,
+    "chain": 5.58299999999997,
+    "diamond": 7.566800000000001,
+    "computed": null,
+    "churn": 8.55559999999997,
+    "stateMerge": 5.0342999999999165,
+    "batch": 3.119799999999941
+  },
+  "macro": {
+    "mountMs": 6.886499999999955,
+    "updateMs": 6.967199999999934,
+    "unmountMs": 0.9631999999999152,
+    "mountHeapKb": 3293,
+    "retainedHeapKb": 642,
+    "text": null
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "target": "ESNext",
+    // Tells TypeScript to read JS files, as
+    // normally they are ignored as source files
+    "allowJs": true,
+    // Type check JS via JSDoc annotations (see typescript.notes.md)
+    "checkJs": true,
+    // Workspace imports resolve through package.json "exports" maps, and DOM types are needed
+    // for the browser-facing code.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext", "dom"],
+    "skipLibCheck": true,
+    // Types should go into this directory.
+    // Removing this would place the .d.ts files
+    // next to the .js files
+    "outDir": "dist",
+    // Generate d.ts files
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    // go to js file when using IDE functions like
+    // "Go to Definition" in VSCode
+    "declarationMap": true
+  },
+  "include": ["index.js", "src/**/*.js"],
+  "exclude": ["**/*.test.js"]
+}

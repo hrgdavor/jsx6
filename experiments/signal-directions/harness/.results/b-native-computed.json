@@ -1,0 +1,60 @@
+{
+  "id": "b-native-computed",
+  "meta": {
+    "id": "b-native-computed",
+    "name": "B — computed + auto-tracking + batch in the current core",
+    "backend": "copied current core (own graph, no dependency)",
+    "capabilities": [
+      "core",
+      "union-deps",
+      "computed",
+      "computed:auto",
+      "computed:dynamic-deps",
+      "computed:eager",
+      "dispose",
+      "batch",
+      "batch:core"
+    ],
+    "deps": [],
+    "sourceRoot": "signal",
+    "notes": "no dependency at all. `$C` is lazy, `$CE`/`$S`/`$F` are eager union-dependency computeds. Dependency edges reuse the existing listener Set; `batch` defers computed settle/notify in dependency order. No interop with alien-signals (that is A/E/F/C)."
+  },
+  "passed": 33,
+  "failed": 0,
+  "skipped": 12,
+  "failures": [],
+  "skips": [
+    "computed.alien-auto-track",
+    "batch.alien-path",
+    "alien-surface.effect-and-scope",
+    "interop.toAlien",
+    "interop.unbridged-does-not-track",
+    "interop.unbridged-tracks-natively",
+    "interop.toSignal",
+    "interop.observe-alien-directly",
+    "interop.effect-reads-jsx6",
+    "interop.footgun-safe",
+    "interop.alien-dep-in-derived",
+    "interop.state-child-inside-alien"
+  ],
+  "loc": 518,
+  "sharedLoc": 123,
+  "micro": {
+    "writeRead": 15.948000000000008,
+    "fanout": 33.03969999999998,
+    "chain": 5.8881000000000085,
+    "diamond": 9.360099999999989,
+    "computed": 1.9627000000000407,
+    "churn": 9.32159999999999,
+    "stateMerge": 7.46309999999994,
+    "batch": 3.972900000000095
+  },
+  "macro": {
+    "mountMs": 7.239000000000033,
+    "updateMs": 6.54950000000008,
+    "unmountMs": 0.9871000000000549,
+    "mountHeapKb": 3774,
+    "retainedHeapKb": 681,
+    "text": null
+  }
+}

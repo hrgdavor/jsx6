@@ -1,0 +1,61 @@
+{
+  "id": "baseline",
+  "meta": {
+    "id": "baseline",
+    "name": "baseline — unmodified @jsx6/signal",
+    "backend": "current eager core",
+    "capabilities": ["core"],
+    "deps": [],
+    "loc": 0,
+    "notes": "the control: workspace link to libs/signal, never copied, never edited"
+  },
+  "passed": 22,
+  "failed": 0,
+  "skipped": 23,
+  "failures": [],
+  "skips": [
+    "union-deps.omitted-dep",
+    "computed.auto-track",
+    "computed.lazy-memo",
+    "computed.read-only",
+    "computed.eager",
+    "computed.notifies-observers",
+    "computed.alien-auto-track",
+    "computed.dynamic-deps",
+    "computed.state-child",
+    "batch.single-notify",
+    "batch.alien-path",
+    "batch.exception-safe",
+    "computed.dispose",
+    "alien-surface.effect-and-scope",
+    "interop.toAlien",
+    "interop.unbridged-does-not-track",
+    "interop.unbridged-tracks-natively",
+    "interop.toSignal",
+    "interop.observe-alien-directly",
+    "interop.effect-reads-jsx6",
+    "interop.footgun-safe",
+    "interop.alien-dep-in-derived",
+    "interop.state-child-inside-alien"
+  ],
+  "loc": 10,
+  "sharedLoc": 123,
+  "micro": {
+    "writeRead": 16.30080000000001,
+    "fanout": 30.726699999999994,
+    "chain": 5.392500000000041,
+    "diamond": 7.3827,
+    "computed": null,
+    "churn": 8.927700000000073,
+    "stateMerge": 4.813300000000027,
+    "batch": null
+  },
+  "macro": {
+    "mountMs": 5.9816999999999325,
+    "updateMs": 7.156700000000001,
+    "unmountMs": 0.9287999999999101,
+    "mountHeapKb": 2947,
+    "retainedHeapKb": 630,
+    "text": null
+  }
+}

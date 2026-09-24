@@ -1,0 +1,55 @@
+{
+  "id": "f-bridge-hybrid",
+  "meta": {
+    "id": "f-bridge-hybrid",
+    "name": "F — bridge-only hybrid ($C over bridged deps)",
+    "backend": "untouched current core + alien computed over bridges",
+    "capabilities": [
+      "core",
+      "interop",
+      "interop:bridge-required",
+      "batch",
+      "computed",
+      "computed:alien-only"
+    ],
+    "deps": ["alien-signals 3.2.1 (vendored, optional peer in a real release)"],
+    "sourceRoot": ".",
+    "notes": "~15 lines on top of A. Lazy only (no eager mode), explicit dependencies required for jsx6 signals, no dispose (standalone alien computeds retain deps), ~26 % bridge overhead."
+  },
+  "passed": 35,
+  "failed": 0,
+  "skipped": 10,
+  "failures": [],
+  "skips": [
+    "union-deps.omitted-dep",
+    "computed.auto-track",
+    "computed.eager",
+    "computed.dynamic-deps",
+    "computed.state-child",
+    "batch.single-notify",
+    "batch.exception-safe",
+    "computed.dispose",
+    "alien-surface.effect-and-scope",
+    "interop.unbridged-tracks-natively"
+  ],
+  "loc": 38,
+  "sharedLoc": 123,
+  "micro": {
+    "writeRead": 16.64670000000001,
+    "fanout": 31.343699999999984,
+    "chain": 6.849499999999978,
+    "diamond": 7.48660000000001,
+    "computed": 7.186400000000049,
+    "churn": 7.309399999999982,
+    "stateMerge": 5.723800000000097,
+    "batch": 3.383000000000038
+  },
+  "macro": {
+    "mountMs": 6.407100000000014,
+    "updateMs": 7.087400000000002,
+    "unmountMs": 0.9257000000000062,
+    "mountHeapKb": 3287,
+    "retainedHeapKb": 642,
+    "text": null
+  }
+}
