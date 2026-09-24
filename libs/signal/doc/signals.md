@@ -27,34 +27,22 @@ const $sum = $F((a, b)=>a + b, $a, $b)
 const sum = (a,b)=>a + b // this is also nice for reusability
 const $sum = $F(sum, $a, $b)
 
-// automagic is more readable, but not implemented in this library
-// you do not need to declare dependencies, they are tracked during execution
-const $sum = $S(()=>$a() + $b())
+// automagic: dependencies are tracked during execution, no list needed
+const $sum = $C(()=>$a() + $b())      // lazy and memoized
+const $sumEager = $CE(()=>$a() + $b()) // same, but recomputes on every change
 ```
 
-**Manual** composition is easier to implement and arguably easier to reason about. It will be the initial implementation (and likely the only one here).
+**Manual** composition is easier to implement and arguably easier to reason about, and it was the initial
+implementation. **Automatic** tracking was added later (`$C`/`$CE`, see `src/track.js` and
+`src/computed.js`) and is opt-in: `$S`/`$F` keep their manual dependency lists *and* honour tracked reads,
+so the effective dependency set is the union of both. That makes an omitted dependency harmless rather
+than silently wrong, while every previously working call site behaves exactly as before.
 
-**Manual** composition usage is very similar to `printf` in regard that firs parameter is a template to produce a value (in this case, the template is a function) and rest parameters are the signals that are used by that function to produce new value. 
+Automatic tracking only covers this library's own signals, because it works by recording reads inside the
+signal getter. A duck-typed fake signal, a Promise or an Observable cannot be tracked that way and still
+needs to be declared.
 
-**Manual composer** function (in our case `$S`) only needs to:
-
-- create a new signal
-- take initial value of all dependent signals
-- pass the values to template function to produce the derived value
-- listen for changes on all dependent signals and produce new derived value on change
-
-**Prettier validation**
-A prettier plugin could be made to help writing signals and catch errors. 
-
-```js
-// if you write
-const $sum = $S(()=>$a() + $b())
-// prettier could fix it by adding: , $a, $b
-const $sum = $S(()=>$a() + $b(), $a, $b)
-```
-
-this  would work well, and would not slow down or complicate the build process. 
-
-**Auto-magic composer** needs to setup a trap, then call the function and catch access to any signal during the call, and subscribe to changes. This may sound simple to implement to some developers, but I personally imagine it being difficult to implement well, and also debug if something goes wrong. 
+The whole effort — usage, how dependencies are found, the implementation internals, and the change
+record with its measurements — is documented in [`computed/`](computed/README.md).
 
 **Auto-magic compiled** can be done better using compiler like Svelte, or babel/SWC plugin, but I am strictly avoiding compiler customizations in favour of compile speed delivered for example by `esbuild` that does not support transforming the code. A compromise could be made to create a SWC plugin that can convert some nicer syntax to above mentioned manual syntax. In that case I would still prefer to limit processing only to some files (example: `*.signals.js`) to only do slow compiling those files. It could be the case SWC is speedy enough to not notice a difference from esbuild, then a SWC plugin to convert code would be a nice benefit without a noticeable downside.

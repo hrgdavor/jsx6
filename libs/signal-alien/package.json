@@ -1,0 +1,67 @@
+{
+  "name": "@jsx6/signal-alien",
+  "version": "1.8.18",
+  "type": "module",
+  "sideEffects": false,
+  "description": "the jsx6 signal contract implemented on alien-signals, plus two-way interop between them",
+  "main": "./index.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "cjs/index.js",
+  "module": "./index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./cjs/index.js",
+      "default": "./index.js",
+      "import": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "dist",
+    "src",
+    "!src/**/*.test.js",
+    "esm",
+    "cjs"
+  ],
+  "scripts": {
+    "tsc": "tsc",
+    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
+    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
+    "test": "bun test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrgdavor/jsx6.git"
+  },
+  "keywords": [
+    "DOM",
+    "JSX",
+    "signal",
+    "alien-signals",
+    "computed",
+    "Performance"
+  ],
+  "author": "Davor hrg",
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/hrgdavor/jsx6/blob/master/LICENSE.md"
+    }
+  ],
+  "bugs": {
+    "url": "https://hrgdavor/jsx6/issues"
+  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/libs/signal-alien/README.md",
+  "dependencies": {
+    "alien-signals": "catalog:"
+  },
+  "devDependencies": {
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "bun-types": "catalog:",
+    "@types/node": "catalog:",
+    "@happy-dom/global-registrator": "catalog:"
+  }
+}

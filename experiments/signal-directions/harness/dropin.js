@@ -28,7 +28,40 @@ const DIRS = resolve(HERE, '..')
 const ROOT = resolve(DIRS, '../..')
 const OUT = join(DIRS, 'DROPIN.md')
 
-const CANDIDATES = ['b-native-computed', 'c-alien-backend']
+/**
+ * Candidates are resolved as package roots or experiment directories. The reference is always the
+ * shipped `libs/signal` (which is B, graduated in place), so this answers the question that matters
+ * after graduation: can the real `@jsx6/signal-alien` package replace the real `@jsx6/signal`?
+ *
+ * `capabilities` is declared here rather than read from a `meta` export, because a shipped package
+ * must not carry experiment scaffolding in its public surface.
+ */
+const C = ['core', 'union-deps', 'computed', 'computed:auto', 'computed:dynamic-deps', 'computed:eager', 'dispose', 'batch', 'batch:core']
+const C_ALIEN = [...C, 'interop', 'interop:no-bridge-needed', 'computed:alien-only']
+
+const CANDIDATES = [
+  {
+    id: 'libs/signal-alien',
+    dir: join(ROOT, 'libs/signal-alien'),
+    entry: join(ROOT, 'libs/signal-alien/index.js'),
+    capabilities: C_ALIEN,
+  },
+  {
+    id: 'c-alien-backend',
+    dir: join(DIRS, 'c-alien-backend'),
+    entry: join(DIRS, 'c-alien-backend/index.js'),
+    capabilities: C_ALIEN,
+  },
+  {
+    id: 'b-native-computed',
+    dir: join(DIRS, 'b-native-computed'),
+    entry: join(DIRS, 'b-native-computed/index.js'),
+    capabilities: C,
+  },
+]
+
+/** The core inside a candidate: `<dir>/signal` for an experiment direction, else the package root. */
+const coreDirOf = dir => (existsSync(join(dir, 'signal/index.js')) ? join(dir, 'signal') : dir)
 
 /** Everything the published package promises: exports, plus the package.json contract fields. */
 const SHIPPED = JSON.parse(readFileSync(join(ROOT, 'libs/signal/package.json'), 'utf8'))
@@ -46,8 +79,8 @@ const GENERATED_PATHS = ['dist/index.d.ts', 'esm/index.js', 'cjs/index.js']
  * from `libs/signal` (they are build configuration, not implementation), then declarations and both
  * bundles are produced. This is what proves a drop-in candidate can still be published.
  */
-const buildCandidate = (id, dir) => {
-  const signalDir = join(dir, 'signal')
+const buildCandidate = (id, coreDir) => {
+  const signalDir = coreDir
   for (const file of ['package.json', 'tsconfig.json']) {
     const target = join(signalDir, file)
     if (!existsSync(target)) copyFileSync(join(ROOT, 'libs/signal', file), target)
@@ -67,7 +100,13 @@ const buildCandidate = (id, dir) => {
 const declaredNames = text => {
   if (!text) return new Set()
   const names = new Set()
-  for (const m of text.matchAll(/export declare (?:function|const|let|var|class|type|interface) (\w+)/g)) names.add(m[1])
+  // A `.d.ts` is already ambient, so tsc emits both `export declare function f()` and `export const x`
+  // — and sometimes a bare `declare const x` collected into a trailing `export { ... }`. Handle all.
+  const decl = /(?:^|\n)\s*export\s+(?:declare\s+)?(?:function|const|let|var|class|type|interface)\s+(\w+)/g
+  for (const m of text.matchAll(decl)) names.add(m[1])
+  for (const m of text.matchAll(/(?:^|\n)\s*declare\s+(?:function|const|let|var|class|type|interface)\s+(\w+)/g)) {
+    names.add(m[1])
+  }
   for (const m of text.matchAll(/export \{([^}]+)\}/g)) {
     for (const part of m[1].split(',')) {
       const name = part.trim().split(/\s+as\s+/).pop().trim()
@@ -100,13 +139,29 @@ const runContract = async api => {
 
 const baselineMod = await import(join(ROOT, 'libs/signal/index.js'))
 const baselineTypes = typesOf(baselineMod)
-const baselineContract = await runContract({ ...baselineMod, meta: { id: 'baseline', capabilities: ['core'] } })
+// The shipped core now *is* B, so its capability set is B's — that is what candidates must not regress.
+const baselineCapabilities = [
+  'core',
+  'union-deps',
+  'computed',
+  'computed:auto',
+  'computed:dynamic-deps',
+  'computed:eager',
+  'dispose',
+  'batch',
+  'batch:core',
+]
+const baselineContract = await runContract({
+  ...baselineMod,
+  meta: { id: 'shipped', capabilities: baselineCapabilities },
+})
 const baseNames = declaredNames(readFileSync(join(ROOT, 'libs/signal/dist/index.d.ts'), 'utf8'))
 
 const rows = []
-for (const id of CANDIDATES) {
-  const mod = await import(`../${id}/index.js`)
+for (const { id, dir, entry, capabilities } of CANDIDATES) {
+  const mod = await import(entry)
   const types = typesOf(mod)
+  const core = coreDirOf(dir)
 
   const missingNames = SHIPPED_ENTRY_EXPORTS.filter(n => !(n in types))
   const typeMismatch = SHIPPED_ENTRY_EXPORTS.filter(n => n in types && types[n] !== baselineTypes[n]).map(n => ({
@@ -118,16 +173,16 @@ for (const id of CANDIDATES) {
 
   const deep = SOURCE_PATHS.map(p => {
     const inShipped = existsSync(join(ROOT, 'libs/signal', p))
-    const inCandidate = existsSync(join(DIRS, id, 'signal', p))
+    const inCandidate = existsSync(join(core, p))
     return { path: p, inShipped, inCandidate, ok: !inShipped || inCandidate }
   })
 
-  const build = buildCandidate(id, join(DIRS, id))
+  const build = buildCandidate(id, core)
   const candNames = declaredNames(build.dts)
   const dtsMissing = [...baseNames].filter(n => !candNames.has(n))
   const dtsAdded = [...candNames].filter(n => !baseNames.has(n))
 
-  const contract = await runContract(mod)
+  const contract = await runContract({ ...mod, meta: { ...mod.meta, capabilities: capabilities || baselineCapabilities } })
   const byId = Object.fromEntries(contract.map(r => [r.id, r]))
   const regressions = baselineContract
     .filter(b => b.status === 'passed' && byId[b.id]?.status === 'failed')
@@ -135,10 +190,9 @@ for (const id of CANDIDATES) {
   const added = contract.filter(c => c.status === 'passed' && baselineContract.find(b => b.id === c.id)?.status !== 'passed').map(c => c.id)
   const stillMissing = contract.filter(c => c.status === 'skipped').map(c => c.id)
 
-  // The untouched test suite, run in the candidate's copied core.
-  const testDir = join(DIRS, id, 'signal')
+  // The candidate's own suite: the shipped 30 tests (copied byte-identically) plus its new ones.
   const tests = spawnSync('bun', ['test'], {
-    cwd: testDir,
+    cwd: core,
     stdio: 'inherit',
     shell: process.platform === 'win32',
   })

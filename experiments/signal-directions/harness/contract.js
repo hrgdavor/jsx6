@@ -38,6 +38,75 @@ const fakeSignal = api => {
 
 /** @type {Case[]} */
 export const cases = [
+  {
+    id: 'core.computed-throws',
+    requires: ['computed', 'computed:eager'],
+    // Found while building the console demo, in direction C only: alien-signals settles a computed whose
+    // getter threw as *clean, value `undefined`*, so a second read silently handed back `undefined` — and
+    // the failure surfaced from alien's own dirty-check during a dependency *write*, so writing a signal
+    // could throw. The plain core never settles after a throw, and it defers a failing eager
+    // recomputation to the reader. Both are contract.
+    run(api) {
+      const caught = fn => {
+        try {
+          fn()
+          return null
+        } catch (e) {
+          return e
+        }
+      }
+      const reports = (fn, message, why) => {
+        const e = caught(fn)
+        ok(e && String(e.message).includes(message), why || `expected a "${message}" failure`)
+      }
+      const boom = () => {
+        throw new Error('boom')
+      }
+
+      // An unconditional failure is reported on every read, never forgotten.
+      const $bad = api.$C(boom)
+      reports(() => $bad(), 'boom', 'the first read reports the failure')
+      reports(() => $bad(), 'boom', 'and so does the second one')
+
+      // A conditional failure recovers when a write fixes the cause.
+      const $on = api.signal(true)
+      const $cond = api.$C(() => {
+        if ($on()) throw new Error('cond')
+        return 'fine'
+      })
+      reports(() => $cond(), 'cond', 'a conditional failure reports')
+      $on(false)
+      eq($cond(), 'fine', 'and recovers once the cause is fixed')
+      $on(true)
+      reports(() => $cond(), 'cond', 'and reports again when it breaks again')
+
+      // A failing eager recomputation must not make the *write* throw: the reader gets the error.
+      const $gate = api.signal(false)
+      const $hot = api.$CE(() => {
+        if ($gate()) throw new Error('hot')
+        return 'ok'
+      })
+      eq($hot(), 'ok', 'the eager computed starts healthy')
+      const writeError = caught(() => $gate(true))
+      ok(!writeError, `a dependency write must not throw (threw ${writeError?.message})`)
+      reports(() => $hot(), 'hot', 'the read reports it instead')
+      $gate(false)
+      eq($hot(), 'ok', 'and it recovers when the cause is fixed')
+
+      // A computed reading a failing computed reports it too, every time.
+      const $child = api.$C(boom)
+      const $parent = api.$C(() => $child() + 1)
+      reports(() => $parent(), 'boom', 'the parent reports the child failure')
+      reports(() => $parent(), 'boom', 'again on the next read')
+
+      // Creating an eager computed whose getter already fails throws, so a caller never holds a broken one.
+      reports(
+        () => api.$CE(boom),
+        'boom',
+        'an eager computed that fails at creation throws',
+      )
+    },
+  },
   // ------------------------------------------------------------------ core: the K1–K10 contract
   {
     id: 'core.callable',

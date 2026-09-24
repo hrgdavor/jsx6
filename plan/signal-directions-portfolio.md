@@ -628,20 +628,38 @@ must pass `bun run check --build`.
 
 ## 14. Decision protocol and next steps
 
-**Steer received and recorded:** a variant where jsx6 signals gain native `computed` support is
-acceptable **even if it is not alien-compatible**, provided there is also a **drop-in replacement
-variant based on alien-signals that supports what jsx6 signals currently provide**. That is exactly the
-B + C pair, and both are now verified rather than asserted:
+**Decision taken and implemented.**
+
+| outcome | what |
+|---|---|
+| **B graduated in place** | `libs/signal` now ships `$C`/`$CE`/`batch`/`dispose` and union-dependency `$S`/`$F`, with **no new dependency**. `libs/signal-alien`'s README and `RESULTS.md` quantify the cost (+1.0 kB gzip over 1.8.18 for the whole computed axis). |
+| **C graduated as a new package** | **`libs/signal-alien`**, a **lockstep** member (same version, released together), implementing the same contract on alien-signals plus two-way interop. Its README documents the size breakdown: 4.2 kB gzip total = ~1.8 kB alien-signals + ~2.4 kB jsx6-side (B is 2.2 kB). |
+| **A/E/F not shipped** | kept in `experiments/` as the interop evidence; their value was in the comparison. F is now largely redundant (the core has `computed` natively). |
+| **D** | kept: `app-compare.js` + `dropin.js` are the regression harness for the two shipped cores. |
+
+**A real bug was found by the graduation, and fixed:** `$S`/`$F` with a declared dependency whose
+callback read the collector cannot see — the duck-typed translation signal in `libs/jsx6/src/trans.js`
+is exactly this shape — subscribed to **nothing**, because the "already subscribed" fast path compared
+the tracked set only. Language switches would have stopped updating `$T(...)`. Fixed in
+`libs/signal/src/computed.js` (`depsAlreadySubscribed` now checks declared deps too) with two
+regression tests; the copied 1.8.18 suite plus the new tests are green, and the A-direction interop
+case that surfaced it now passes.
+
+**Steer that led here:** a variant where jsx6 signals gain native `computed` support is acceptable
+**even if it is not alien-compatible**, provided there is also a **drop-in replacement variant based on
+alien-signals that supports what jsx6 signals currently provide**. Both are now verified rather than
+asserted:
 
 | claim | evidence (generated) |
 |---|---|
 | B gives jsx6 signals native `computed`, with **no dependency** and no interop requirement | `USAGE-AND-SIZE.md` §1 (T4–T7, T12), `RESULTS.md`, contract 33/33 |
-| B is a drop-in replacement for `@jsx6/signal` | `DROPIN.md`: 42/42 exports matching, 0 behavioural regressions, `tsc` (declarations + `checkJs`) clean, esm+cjs build, 30/30 shipped tests |
-| C is an **alien-based** drop-in replacement that supports everything jsx6 provides today | `DROPIN.md` (same checks, 43 contract cases pass) + `APP-RESULTS.md` (unmodified `apps/repl` on the aliased core, 10/10 checks, 0 console errors) |
-| the only respect in which C is not a drop-in *package* | it adds a runtime dependency (alien-signals) and a bare specifier in the raw `index.js` entry; the bundled `esm`/`cjs` entries inline it |
+| B is a drop-in replacement for the previous core | `DROPIN.md`: 46 shipped names all present, 0 regressions, `tsc` (declarations + `checkJs`) clean, esm+cjs build, the 1.8.18 suite green |
+| C is an **alien-based** drop-in replacement that supports everything jsx6 provides today | `DROPIN.md` (same checks; `libs/signal-alien` row) + `APP-RESULTS.md` (unmodified `apps/repl` on the aliased core, 10/10, 0 console errors) |
+| the only respect in which C is not a drop-in *package* | it adds a runtime dependency (alien-signals, pinned through the workspace catalog) and a bare specifier in the raw `index.js` entry; the bundled `esm`/`cjs` entries inline it |
 
-**Protocol.** Freeze `contract.md` (facade, interop matrix, benches, rubric, thresholds) before
-writing any direction code — done. Implement A, B, F (+ E, C) — done. Apply §4.5 mechanically:
+**Protocol (kept for reference).** Freeze `contract.md` (facade, interop matrix, benches, rubric,
+thresholds) before writing any direction code — done. Implement A, B, F (+ E, C) — done. Apply §4.5
+mechanically:
 
 | Outcome | Action |
 |---|---|
@@ -650,18 +668,23 @@ writing any direction code — done. Implement A, B, F (+ E, C) — done. Apply 
 | Conditional | keep in `experiments/` behind an opt-in entry for one release, then re-measure |
 | Kill | delete the directory; record the measurement that killed it so it is not re-proposed |
 
-**Next steps (updated after the implementations landed).**
+**Next steps.**
 
-1. ~~Approve the harness contract~~ — done; it is frozen in `experiments/signal-directions/contract.md`.
+1. ~~Approve the harness contract~~ — done; frozen in `experiments/signal-directions/contract.md`.
 2. ~~Implement B, A, F, E, C and D~~ — done; all six directions exist and pass the frozen contract.
-3. **Graduate B and C together, as two shipped surfaces.** B becomes the default core (`computed`
-   native, no dependency); C ships behind an explicit opt-in entry (a subpath such as
-   `@jsx6/signal/alien` or a sibling package) for users who want the alien-backed core. The drop-in
-   verification says both satisfy the existing contract, so the choice can be per-project.
-4. **Before publishing C**, do the two packaging steps `DROPIN.md` names: add alien-signals to the
-   root `catalog` and to `libs/signal`'s `dependencies`, and decide the CDN story for the raw
-   `index.js` entry (bare specifier) — the bundled `esm`/`cjs` entries already inline it.
-5. **Keep the reports as the regression harness.** `dropin.js` + `app-compare.js` + the copied 30-test
-   suites are the cheapest guard against a future alien-signals major (portfolio C15).
-6. Re-run the decision review after a release of real use, per §4.5 thresholds, and prune whichever of
+3. ~~Graduate B and C~~ — done: B in place in `libs/signal`, C as `libs/signal-alien` in the lockstep
+   group. `bun run check --build` is green (tests, declaration emit, `tsc --noEmit`, bundle builds,
+   oxlint, oxfmt, versions, docs sync, manifest audit, workspace integrity).
+4. **Version bump is the remaining release step.** The packages deliberately still carry `1.8.18`:
+   the feature is implemented and verified, but bumping the lockstep group (and re-publishing
+   `docs/demistify`, already rebuilt for the new core) is a release action, not part of the
+   implementation. `bun run bump <version>` moves all nine lockstep packages plus
+   `MODULE_VERSIONING.md`.
+5. **CDN note for C.** The raw `index.js` entry now contains a bare `alien-signals` specifier; the
+   bundled `esm`/`cjs` entries inline it. Point CDN users at the bundled entry (noted in
+   `libs/signal-alien/README.md`).
+6. **Keep the reports as the regression harness.** `dropin.js` + `app-compare.js` + the copied
+   test suites are the cheapest guard against a future alien-signals major (portfolio C15) — and the
+   place where the duck-typed-dependency bug below was caught.
+7. Re-run the decision review after a release of real use, per §4.5 thresholds, and prune whichever of
    A/E/F was not adopted.

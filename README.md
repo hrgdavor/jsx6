@@ -20,6 +20,20 @@ https://github.com/hrgdavor/jsx6/tree/main/libs/dom-observer
 
 Performance for multiple ResizeObserver and IntersectionObserver can degrade if a new observer is created for each listener case, but some can be reused and it has become clear that It is better to reuse them instead of creating new for each observed element.
 
+### Signal implementations
+
+Two interchangeable cores, released together (lockstep), so a project can switch between them:
+
+* [`@jsx6/signal`](libs/signal/README.md) — the default. Eager, immediate propagation, plus `$C`
+  (lazy computed), `$CE` (eager computed), `batch()` and `dispose()`. **No dependencies.**
+* [`@jsx6/signal-alien`](libs/signal-alien/README.md) — the same contract implemented on
+  [alien-signals](https://github.com/stackblitz/alien-signals), for projects that want alien's graph
+  itself, plus two-way interop between alien nodes and jsx6 signals. Drop-in replacement, ~2 kB gzip
+  larger, one runtime dependency.
+
+How they were chosen, and what each costs, is measured and recorded in
+[experiments/signal-directions](experiments/signal-directions/README.md).
+
 ## About JSX in general 
 
 https://hrgdavor.github.io/jsx6/demistify/ 

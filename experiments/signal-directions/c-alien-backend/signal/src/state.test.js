@@ -44,7 +44,10 @@ test('basics', () => {
 test('specials', () => {
   let $s = $State({ x: 1, y: 2 })
 
-  expect($s[Symbol.toPrimitive]()).toEqual({ x: 1, y: 2 })
+  // `Symbol.toPrimitive` must return a primitive, or every coercion of a state throws
+  // `TypeError: Symbol.toPrimitive returned an object`. The snapshot object is what `toJSON()` (and
+  // calling the state) gives you.
+  expect($s[Symbol.toPrimitive]('string')).toEqual('{"x":1,"y":2}')
   expect($s.toJSON()).toEqual({ x: 1, y: 2 })
 
   $s.x++

@@ -7,6 +7,7 @@ import {
   isObservable,
 } from './src/observe.js'
 import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
+import { createComputed } from './src/computed.js'
 
 /** Utility that that returns signal value if the parameter is a signal/function and the parameter otherwise.
  * This is especially useful when you want to handle cases whare you allow either a signal or a raw value
@@ -15,16 +16,19 @@ import { prepareSignal, signal, asSignal, staticSignal } from './src/signal.js'
  * @returns any
  */
 export const signalValue = $signal => (typeof $signal === 'function' ? $signal() : $signal)
-/** Internal helper to create a derived signal
- * @param {Array<Function>} signals
+/**
+ * Internal helper to create a derived signal.
+ *
+ * This is the union-dependency eager computed: the dependency set is the declared list **plus** every
+ * read tracked while `getValue` ran, so existing call sites keep their exact behaviour while an
+ * omitted dependency is no longer a bug.
+ *
+ * @param {Array<Function>} signals declared dependencies
  * @param {Function} getValue
  * @returns {Function} $signal
  */
 function createDerivedSignal(signals, getValue) {
-  const { $signal } = prepareSignal(getValue())
-  const updater = () => $signal(getValue())
-  signals.forEach(b => subscribe(b, updater))
-  return $signal
+  return createComputed(getValue, { eager: true, declaredDeps: signals })
 }
 
 /**
@@ -145,3 +149,20 @@ export {
 }
 export * from './src/state.js'
 export * from './src/makeContext.js'
+// Debugging: `installConsoleInspection()` makes `console.log($sig)` show a value, with no change at the
+// call site and no cost on any signal path. See `src/debug.js`.
+export {
+  describeSignal,
+  hasConsoleInspection,
+  installConsoleInspection,
+  isSignalish,
+  readSignal,
+  signalKind,
+  signalLabel,
+  signalName,
+  uninstallConsoleInspection,
+} from './src/debug.js'
+
+// ---------------------------------------------------------------- added by this direction
+// Only the user-facing additions are public; `createComputed` stays internal (reachable via `src/`).
+export { $C, $CE, batch, dispose } from './src/computed.js'

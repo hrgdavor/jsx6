@@ -77,7 +77,15 @@ export const meta = {
   id: 'f-bridge-hybrid',
   name: 'F — bridge-only hybrid ($C over bridged deps)',
   backend: 'untouched current core + alien computed over bridges',
-  capabilities: ['core', 'interop', 'interop:bridge-required', 'batch', 'computed', 'computed:alien-only'],
+  capabilities: [
+    'core',
+    'union-deps',
+    'interop',
+    'interop:bridge-required',
+    'batch',
+    'computed',
+    'computed:alien-only',
+  ],
   deps: ['alien-signals 3.2.1 (vendored, optional peer in a real release)'],
   sourceRoot: '.',
   notes:

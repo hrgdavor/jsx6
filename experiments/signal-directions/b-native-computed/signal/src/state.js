@@ -98,8 +98,12 @@ export function $State(initial) {
   // if we try to serialize the state, user need not worry, value goes into json
   specialProps.set('toJSON', getValue)
   specialProps.set(mergeValueSymbol, updateValue)
-  // allows for tricks like $s.count++
-  specialProps.set(Symbol.toPrimitive, getValue)
+  // `$s.count++` works because the *child* signal has its own `Symbol.toPrimitive`; on the state proxy
+  // this hook exists only so coercion does something sensible. It must return a **primitive** — handing
+  // back the snapshot object made every coercion (`String($s)`, `` `${$s}` ``, `+$s`, `$s + ''`) throw
+  // `TypeError: Symbol.toPrimitive returned an object`, which is useless in a template literal or the
+  // console. A string hint now gets the JSON snapshot; a number hint gets NaN.
+  specialProps.set(Symbol.toPrimitive, hint => (hint === 'number' ? NaN : JSON.stringify(getValue())))
 
   let statePproxy = new Proxy($state, {
     set: function (_, prop, value) {

@@ -2,18 +2,21 @@
   "id": "baseline",
   "meta": {
     "id": "baseline",
-    "name": "baseline — unmodified @jsx6/signal",
-    "backend": "current eager core",
-    "capabilities": ["core"],
+    "name": "baseline — frozen @jsx6/signal 1.8.18 (pre-graduation control)",
+    "backend": "pre-graduation eager core (snapshot)",
+    "capabilities": [
+      "core"
+    ],
     "deps": [],
     "loc": 0,
-    "notes": "the control: workspace link to libs/signal, never copied, never edited"
+    "notes": "frozen snapshot of libs/signal as it was at 1.8.18, taken before B was graduated in place; the control every report compares against. Not edited afterwards."
   },
   "passed": 22,
   "failed": 0,
-  "skipped": 23,
+  "skipped": 24,
   "failures": [],
   "skips": [
+    "core.computed-throws",
     "union-deps.omitted-dep",
     "computed.auto-track",
     "computed.lazy-memo",
@@ -38,22 +41,22 @@
     "interop.alien-dep-in-derived",
     "interop.state-child-inside-alien"
   ],
-  "loc": 10,
-  "sharedLoc": 123,
+  "loc": 339,
+  "sharedLoc": 116,
   "micro": {
-    "writeRead": 16.30080000000001,
-    "fanout": 30.726699999999994,
-    "chain": 5.392500000000041,
-    "diamond": 7.3827,
+    "writeRead": 16.830900000000014,
+    "fanout": 30.992800000000045,
+    "chain": 5.3472000000000435,
+    "diamond": 7.424699999999973,
     "computed": null,
-    "churn": 8.927700000000073,
-    "stateMerge": 4.813300000000027,
+    "churn": 8.756899999999973,
+    "stateMerge": 4.73739999999998,
     "batch": null
   },
   "macro": {
-    "mountMs": 5.9816999999999325,
-    "updateMs": 7.156700000000001,
-    "unmountMs": 0.9287999999999101,
+    "mountMs": 6.124599999999987,
+    "updateMs": 7.122499999999945,
+    "unmountMs": 0.9382000000000517,
     "mountHeapKb": 2947,
     "retainedHeapKb": 630,
     "text": null

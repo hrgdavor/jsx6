@@ -71,6 +71,7 @@ function prepareSignal(value, name) {
     }
   };
   Object.defineProperty($signal, ValueSymbol, { get: $signal });
+  Object.defineProperty($signal, "value", { get: $signal, configurable: true });
   if (name) {
     $signal.label = name;
     Object.defineProperty($signal, "name", { value: name });
@@ -137,6 +138,7 @@ function createComputed(getValue, { eager = false, declaredDeps = [], name, coll
   let computing = false;
   let collected = false;
   let depth = 0;
+  let cycleReported = false;
   const $computed = (...args) => {
     if (args.length)
       return void 0;
@@ -180,6 +182,10 @@ function createComputed(getValue, { eager = false, declaredDeps = [], name, coll
   const depsAlreadySubscribed = () => {
     if (hasAggregateDep)
       return false;
+    for (const dep of declaredDeps) {
+      if (dep && dep[subscribeSymbol] && !depSubs.has(dep))
+        return false;
+    }
     if (tracked.size !== depSubs.size)
       return false;
     for (const dep of tracked)
@@ -214,8 +220,15 @@ function createComputed(getValue, { eager = false, declaredDeps = [], name, coll
     }
   };
   const recompute = (notify) => {
-    if (computing)
+    if (computing) {
+      if (!cycleReported) {
+        cycleReported = true;
+        console.error(
+          `computed: ${name || "a computed signal"} was read while it was computing \u2014 cyclic dependency; returning the previous value`
+        );
+      }
       return false;
+    }
     computing = true;
     const recollect = collectDeps === "always" || !collected;
     const prevCollector = trackState.collector;
@@ -262,7 +275,12 @@ function createComputed(getValue, { eager = false, declaredDeps = [], name, coll
     depSubs.clear();
     dirty = true;
   };
-  $computed[subscribeSymbol] = publish[subscribeSymbol];
+  $computed[subscribeSymbol] = (u) => {
+    const unsubscribe = publish[subscribeSymbol](u);
+    if (!collected || dirty)
+      recompute(false);
+    return unsubscribe;
+  };
   $computed[triggerSymbol] = () => {
     dirty = true;
     node.settle();
@@ -274,6 +292,7 @@ function createComputed(getValue, { eager = false, declaredDeps = [], name, coll
   };
   $computed.dispose = dispose2;
   $computed.__computed = true;
+  Object.defineProperty($computed, "value", { get: $computed, configurable: true });
   Object.defineProperty($computed, "__depth", {
     get: () => depth,
     configurable: true
@@ -371,7 +390,7 @@ function $State(initial) {
   specialProps.set(stateChildrenSymbol, signals);
   specialProps.set("toJSON", getValue);
   specialProps.set(mergeValueSymbol, updateValue);
-  specialProps.set(Symbol.toPrimitive, getValue);
+  specialProps.set(Symbol.toPrimitive, (hint) => hint === "number" ? NaN : JSON.stringify(getValue()));
   let statePproxy = new Proxy($state, {
     set: function(_, prop, value) {
       getSignal(prop)(value);

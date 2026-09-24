@@ -2,11 +2,27 @@
 
 This directory implements the **direction portfolio** from
 [plan/signal-directions-portfolio.md](../../plan/signal-directions-portfolio.md) as six standalone,
-independently runnable modules. Nothing in `libs/`, `apps/`, `tools/` or any manifest was changed:
-every direction that needed to modify the signal core **copied** it first.
+independently runnable modules. The experiments themselves only ever **copied** the signal core —
+nothing in `libs/` was edited to build them.
 
-The point is comparison by measurement, not by argument. `RESULTS.md` is generated, not written by
-hand.
+## Status: two directions have been graduated
+
+The portfolio has been decided and implemented for real. The experiments stay as the evidence and as
+the regression harness for what shipped:
+
+| shipped | where | what |
+|---|---|---|
+| **B** — native `computed` in the core | `libs/signal` (in place, version unchanged) | `$C`, `$CE`, `batch`, `dispose`, union-dependency `$S`/`$F`, no new dependency |
+| **C** — alien-signals backend | **`libs/signal-alien`** (new package, lockstep group) | the same contract implemented on alien-signals, plus two-way interop |
+
+Because B was graduated **in place**, `baseline/` no longer re-exports the workspace package: that link
+would have silently turned the control into a second copy of B and made every "vs baseline" column
+meaningless. The 1.8.18 sources are therefore **frozen** in `baseline/signal/` and re-exported, and the
+quantity that answers "what did graduation change?" is `b-native-computed` (which is now what
+`libs/signal` ships) against `baseline` (what it shipped before).
+
+`dropin.js` and `d-dual-surface/` resolve the **real packages**, not the copies: the drop-in verdict and
+the app results are about `libs/signal` and `libs/signal-alien`.
 
 ## Run it
 
@@ -14,10 +30,15 @@ hand.
 bun experiments/signal-directions/harness/compare.js          # contract + benches → RESULTS.md
 bun experiments/signal-directions/harness/report.js           # usage examples + sizes + interop → USAGE-AND-SIZE.md
 bun experiments/signal-directions/harness/dropin.js           # drop-in verification → DROPIN.md
+bun experiments/signal-directions/harness/size-packages.js    # shipped-package bundle sizes
 bun experiments/signal-directions/d-dual-surface/app-compare.js  # real app → APP-RESULTS.md
 bun experiments/signal-directions/harness/run-cli.js a-compat # contract only, one direction
 cd experiments/signal-directions/b-native-computed/signal && bun test   # copied baseline suite
 ```
+
+Not part of this comparison, but in the same experiments area: [`../signal-inspect/`](../signal-inspect/README.md)
+serves a dev-console demo page (`bun experiments/signal-inspect/serve.js`) with one signal of every shape
+on both shipped cores.
 
 Every report is **generated**: task outcomes are executed, bundles are bundled and gzipped, interop
 statuses are observed, and drop-in claims are checked against the shipped package's own surface and

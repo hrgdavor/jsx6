@@ -12,15 +12,24 @@
       "computed:alien-only",
       "alien-surface"
     ],
-    "deps": ["alien-signals 3.2.1 (vendored, optional peer in a real release)"],
+    "deps": [
+      "alien-signals 3.2.1 (vendored, optional peer in a real release)"
+    ],
     "sourceRoot": ".",
     "notes": "no core change at all. `$C`/`$watch`/`$scope`/`$trigger` are alien primitives, so they track alien values only — a jsx6 signal has to be bridged with toAlien() first. No dependency-list form, no eager mode, no repo-shaped dispose."
   },
-  "passed": 33,
-  "failed": 0,
-  "skipped": 12,
-  "failures": [],
+  "passed": 32,
+  "failed": 1,
+  "skipped": 13,
+  "failures": [
+    {
+      "id": "core.state-snapshot",
+      "status": "failed",
+      "reason": "expected {\"x\":1,\"y\":2}, got \"{\\\"x\\\":1,\\\"y\\\":2}\""
+    }
+  ],
   "skips": [
+    "core.computed-throws",
     "union-deps.omitted-dep",
     "computed.auto-track",
     "computed.lazy-memo",
@@ -34,24 +43,24 @@
     "computed.dispose",
     "interop.unbridged-tracks-natively"
   ],
-  "loc": 41,
-  "sharedLoc": 123,
+  "loc": 53,
+  "sharedLoc": 116,
   "micro": {
-    "writeRead": 15.838000000000022,
-    "fanout": 32.67349999999999,
-    "chain": 5.35590000000002,
-    "diamond": 7.411000000000001,
+    "writeRead": 16.539799999999985,
+    "fanout": 33.22629999999998,
+    "chain": 5.581700000000012,
+    "diamond": 8.417100000000005,
     "computed": null,
-    "churn": 8.124300000000062,
-    "stateMerge": 5.109100000000012,
-    "batch": 3.1458999999999833
+    "churn": 10.57490000000007,
+    "stateMerge": 8.810100000000034,
+    "batch": 3.481800000000021
   },
   "macro": {
-    "mountMs": 6.755600000000072,
-    "updateMs": 7.122100000000046,
-    "unmountMs": 1.0095000000000027,
-    "mountHeapKb": 3286,
-    "retainedHeapKb": 647,
+    "mountMs": 8.675200000000018,
+    "updateMs": 7.699399999999969,
+    "unmountMs": 1.0471000000000004,
+    "mountHeapKb": 4257,
+    "retainedHeapKb": 711,
     "text": null
   }
 }

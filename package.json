@@ -16,7 +16,9 @@
     "pub": "bun run scripts/publish.js --public",
     "check-versions": "bun run scripts/check-versions.js",
     "docs:build": "bun run scripts/build-docs.js",
-    "docs:check": "bun run scripts/check-docs.js"
+    "docs:check": "bun run scripts/check-docs.js",
+    "docs:inject": "bunx @hrg/inject-examples libs/signal/doc/computed",
+    "docs:inject:check": "bunx @hrg/inject-examples --check libs/signal/doc/computed"
   },
   "workspaces": [
     "libs/*",
@@ -28,6 +30,7 @@
     "typescript": "^5.0.4",
     "oxfmt": "^0.70.0",
     "oxlint": "^1.85.0",
+    "alien-signals": "^3.2.1",
     "@happy-dom/global-registrator": "~14.7.1",
     "happy-dom": "~14.7.1",
     "bun-types": "~1.0.24",

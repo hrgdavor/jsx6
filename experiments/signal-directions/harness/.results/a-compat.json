@@ -4,17 +4,31 @@
     "id": "a-compat",
     "name": "A — compatibility / interop layer",
     "backend": "untouched current core + alien bridge",
-    "capabilities": ["core", "interop", "interop:bridge-required", "batch"],
-    "deps": ["alien-signals 3.2.1 (vendored, optional peer in a real release)"],
+    "capabilities": [
+      "core",
+      "union-deps",
+      "interop",
+      "interop:bridge-required",
+      "batch"
+    ],
+    "deps": [
+      "alien-signals 3.2.1 (vendored, optional peer in a real release)"
+    ],
     "sourceRoot": ".",
     "notes": "does not change the core and therefore cannot auto-track: `$C` is absent, and a jsx6 signal read inside an alien computed must be bridged first (documented limitation). `batch` coalesces only the alien effect queue — it cannot defer the untouched core's own listener fan-out, which is why it does not claim `batch:core`."
   },
   "passed": 31,
-  "failed": 0,
+  "failed": 1,
   "skipped": 14,
-  "failures": [],
+  "failures": [
+    {
+      "id": "core.state-snapshot",
+      "status": "failed",
+      "reason": "expected {\"x\":1,\"y\":2}, got \"{\\\"x\\\":1,\\\"y\\\":2}\""
+    }
+  ],
   "skips": [
-    "union-deps.omitted-dep",
+    "core.computed-throws",
     "computed.auto-track",
     "computed.lazy-memo",
     "computed.read-only",
@@ -29,24 +43,24 @@
     "alien-surface.effect-and-scope",
     "interop.unbridged-tracks-natively"
   ],
-  "loc": 35,
-  "sharedLoc": 123,
+  "loc": 40,
+  "sharedLoc": 116,
   "micro": {
-    "writeRead": 15.846599999999995,
-    "fanout": 30.95059999999995,
-    "chain": 5.58299999999997,
-    "diamond": 7.566800000000001,
+    "writeRead": 16.657700000000006,
+    "fanout": 31.263500000000022,
+    "chain": 5.73090000000002,
+    "diamond": 8.212900000000047,
     "computed": null,
-    "churn": 8.55559999999997,
-    "stateMerge": 5.0342999999999165,
-    "batch": 3.119799999999941
+    "churn": 9.605000000000018,
+    "stateMerge": 8.308200000000056,
+    "batch": 3.425799999999981
   },
   "macro": {
-    "mountMs": 6.886499999999955,
-    "updateMs": 6.967199999999934,
-    "unmountMs": 0.9631999999999152,
-    "mountHeapKb": 3293,
-    "retainedHeapKb": 642,
+    "mountMs": 8.42089999999996,
+    "updateMs": 6.940399999999954,
+    "unmountMs": 1.0026000000000295,
+    "mountHeapKb": 4265,
+    "retainedHeapKb": 710,
     "text": null
   }
 }

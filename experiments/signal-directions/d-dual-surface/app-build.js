@@ -32,32 +32,61 @@ export const ENTRIES = ['index.jsx', 'editor.jsx', 'demistify.jsx', 'random.tric
  * esbuild plugin that redirects `@jsx6/signal` (and `@jsx6/signal/...`) to a copied core.
  * @param {string} dir absolute path of the direction directory (contains `signal/index.js`)
  */
+/**
+ * Known app targets. `dir` is resolved relative to this file; `core` is the entry module that replaces
+ * `@jsx6/signal`, and is detected so both layouts work: an experiment direction keeps its core in
+ * `<dir>/signal/`, a real package has it at its root.
+ *
+ *   pre-1.9            the frozen 1.8.18 control (aliased)
+ *   shipped            no alias at all — the app resolves @jsx6/signal through the workspace, i.e. B
+ *   signal-alien       the new @jsx6/signal-alien package (aliased)
+ *   b-native-computed  the B reference implementation in experiments/
+ *   c-alien-backend    the C reference implementation in experiments/
+ */
+export const APP_TARGETS = {
+  'pre-1.9': { dir: '../baseline', marker: { needle: 'signalAlienSource', expect: false } },
+  shipped: { dir: null, marker: { needle: 'signalStateChildren', expect: true } },
+  'signal-alien': { dir: '../../../libs/signal-alien', marker: { needle: 'signalAlienSource', expect: true } },
+  'b-native-computed': { dir: '../b-native-computed', marker: { needle: 'signalStateChildren', expect: true } },
+  'c-alien-backend': { dir: '../c-alien-backend', marker: { needle: 'signalAlienSource', expect: true } },
+}
+
+/** The entry module of a target's core: `<dir>/signal/index.js` or `<dir>/index.js`. */
+export const coreEntryOf = dir => {
+  const copied = join(dir, 'signal/index.js')
+  return existsSync(copied) ? copied : join(dir, 'index.js')
+}
+
 export const aliasPlugin = dir => {
-  const core = join(dir, 'signal/index.js')
+  const core = coreEntryOf(dir)
   const filter = /^@jsx6\/signal(\/.*)?$/
   return {
     name: 'jsx6-signal-alias',
     setup(build) {
       build.onResolve({ filter }, args => {
         if (!existsSync(core)) {
-          throw new Error(`direction has no copied core: ${core}`)
+          throw new Error(`target has no core entry: ${core}`)
         }
         if (args.path === '@jsx6/signal') return { path: core }
-        return { path: join(dir, 'signal', args.path.slice('@jsx6/signal'.length)) }
+        const sub = args.path.slice('@jsx6/signal'.length)
+        const copied = join(dir, 'signal', sub)
+        return { path: existsSync(copied) ? copied : join(dir, sub) }
       })
     },
   }
 }
 
-/** Resolve a direction id to its directory, or null for the un-aliased baseline. */
+/** Resolve an app target id to its directory, or null for `shipped` (the un-aliased workspace core). */
 export const directionDir = id => {
-  if (id === 'baseline' || id === 'none') return null
-  const dir = join(HERE, '..', id)
-  if (!existsSync(join(dir, 'signal/index.js'))) {
-    throw new Error(
-      `direction "${id}" has no copied core (only B and C do). Aliasing a real app against A/E/F ` +
-        `would only redirect the entry module, not the core, so it would not be a fair comparison.`,
-    )
+  if (id === 'none') return null
+  const target = APP_TARGETS[id]
+  if (!target) {
+    throw new Error(`unknown app target "${id}" — known: ${Object.keys(APP_TARGETS).join(', ')}`)
+  }
+  if (!target.dir) return null
+  const dir = join(HERE, target.dir)
+  if (!existsSync(coreEntryOf(dir))) {
+    throw new Error(`target "${id}" has no core entry (${coreEntryOf(dir)})`)
   }
   return resolve(dir)
 }

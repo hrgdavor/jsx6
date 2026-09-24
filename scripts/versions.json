@@ -5,6 +5,7 @@
       "libs/jsx-runtime",
       "libs/jsx-dev-runtime",
       "libs/signal",
+      "libs/signal-alien",
       "libs/signal-clock",
       "libs/signal-dom",
       "libs/w",

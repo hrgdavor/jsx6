@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>signal inspection demo — dev console</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --line: color-mix(in srgb, currentColor 20%, transparent);
+        --accent: #0a7;
+      }
+      body {
+        margin: 0 auto;
+        padding: 1.5rem clamp(1rem, 4vw, 3rem) 4rem;
+        max-width: 62rem;
+        font: 15px/1.55 ui-sans-serif, system-ui, sans-serif;
+      }
+      h1 {
+        font-size: 1.35rem;
+        margin: 0 0 0.25rem;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 2rem 0 0.5rem;
+      }
+      p,
+      li {
+        margin: 0.4rem 0;
+      }
+      code,
+      kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.92em;
+        background: color-mix(in srgb, currentColor 8%, transparent);
+        padding: 0.1em 0.35em;
+        border-radius: 4px;
+      }
+      .cores {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 1rem 0;
+      }
+      button {
+        font: inherit;
+        font-size: 0.9rem;
+        padding: 0.35rem 0.7rem;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      button[aria-pressed='true'] {
+        border-color: var(--accent);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 0.5rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.3rem 0.6rem 0.3rem 0;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      td.name {
+        font-family: ui-monospace, monospace;
+        white-space: nowrap;
+      }
+      td.val {
+        font-family: ui-monospace, monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .note {
+        border-left: 3px solid var(--accent);
+        padding-left: 0.75rem;
+        margin: 1rem 0;
+      }
+      .muted {
+        opacity: 0.75;
+      }
+      ol {
+        padding-left: 1.4rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Signal inspection demo</h1>
+    <p class="muted">
+      Open DevTools and expand the logged signals, or type the names below. Everything on this page is
+      also on <code>window</code>.
+    </p>
+
+    <div class="cores">
+      <strong>core:</strong>
+      <button id="core-signal" type="button" aria-pressed="true">@jsx6/signal</button>
+      <button id="core-alien" type="button" aria-pressed="false">@jsx6/signal-alien</button>
+      <span class="muted" id="core-note"></span>
+    </div>
+
+    <h2>Live values</h2>
+    <p class="muted">
+      Rendered with <code>observeNow</code>, so this table is the proof the values are real — not a
+      mock. Each row also has the object you can expand in the console.
+    </p>
+    <table id="values">
+      <thead>
+        <tr>
+          <th>global</th>
+          <th>kind</th>
+          <th>rendered value</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Buttons</h2>
+    <p>
+      <button id="write" type="button">write $count</button>
+      <button id="log" type="button">log a snapshot <em>and</em> the signal</button>
+      <button id="facts" type="button">print enumeration facts</button>
+      <button id="logs" type="button">re-log every signal</button>
+      <button id="console" type="button">toggle console inspection</button>
+      <button id="cyclic" type="button">create a cyclic computed</button>
+      <button id="dispose" type="button">dispose $double</button>
+      <button id="alienNode" type="button">make an alien computed</button>
+    </p>
+
+    <div class="note">
+      <p>
+        <strong>How <code>console.log($sig)</code> is made readable.</strong> A signal is a function, and
+        Chrome renders a function value as a clickable source snippet: it lists none of the function's own
+        properties and does not run custom formatters for it. So no property on a signal — and no
+        formatter — can make a <em>bare</em> signal readable there.
+      </p>
+      <p>
+        This page uses <code>installConsoleInspection()</code>: the console methods are wrapped, so a
+        signal argument is replaced by a described object
+        (<code>{signal, kind, value, read, raw}</code>). Your call site does not change, there is no cost
+        on any signal read or write, and nothing needs enabling. It stays opt-in in real projects, because
+        it patches global console methods. The wrapper is what DevTools attributes each entry to, so
+        <code>showCallSite: true</code> appends the real <code>(logged from …)</code> location, and
+        <code>console.log.original</code> is kept.
+      </p>
+      <p>
+        A proxy handle per signal would let DevTools' own formatters read it — that was built and measured
+        at <strong>+1208 %</strong> on a 2M write+read loop and <strong>+2373 %</strong> on computed reads,
+        so it was removed rather than shipped behind a flag. The zero-mechanism fallback always works:
+        <code>console.log($count.value)</code>, the non-enumerable getter, or
+        <code>demo.describe($count)</code> for the described object by hand.
+      </p>
+    </div>
+
+    <h2>What to try in the console</h2>
+    <ol>
+      <li>
+        <code>console.log($count)</code>, <code>console.log($double)</code>, <code>console.log($user)</code>
+        — as written, and each shows <code>{signal, kind, value, read, raw}</code> with the value.
+      </li>
+      <li>
+        Press <strong>toggle console inspection</strong> to see the difference: with it off, a signal logs
+        as the function it is (function source in Chrome).
+      </li>
+      <li>
+        Press <strong>log a snapshot and the signal</strong>, then <strong>write $count</strong> a few
+        times, then expand the earlier log entry: the snapshot stays at the old number, the signal entry
+        shows the current one. That is the difference between <code>console.log($count())</code> and
+        <code>console.log($count)</code>.
+      </li>
+      <li>
+        Press <strong>print enumeration facts</strong>: <code>value</code> is non-enumerable, so
+        <code>Object.keys</code>, spread and <code>JSON.stringify</code> never see it. (<code>get</code>
+        <em>is</em> enumerable — that is pre-existing.)
+      </li>
+      <li>
+        Try <code>core.signal(5)</code> then expand what it returns; or
+        <code>core.$C(() =&gt; $count() * 100)</code> for a computed created from the console.
+      </li>
+      <li>
+        Press <strong>create a cyclic computed</strong> and read it: the guard returns the previous value
+        and reports the cycle once, instead of hanging or overflowing the stack.
+      </li>
+      <li>
+        Inspect <code>$user</code> (a <code>$State</code>): it is a proxy, so read fields as
+        <code>$user.name.value</code>, or the snapshot as <code>$user()</code>.
+      </li>
+      <li>
+        <code>$static</code> is a <code>staticSignal</code> and deliberately has no
+        <code>value</code> — <code>describeSignal</code> still reads it (it calls the signal), so compare
+        its entry with <code>$count</code>'s.
+      </li>
+    </ol>
+
+    <div class="note">
+      <p>
+        <strong>Other globals:</strong> <code>core</code> (the active core module),
+        <code>cores</code> (both cores), <code>signals</code> (every demo signal by name),
+        <code>demo</code> (the small API this page uses).
+      </p>
+    </div>
+
+    <script type="module" src="/demo.js"></script>
+  </body>
+</html>

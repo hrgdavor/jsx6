@@ -39,6 +39,25 @@ function _observe(obj, callback, trigger2 = false, passValue = false) {
 }
 var isObservable = (obj) => !!(obj && (obj[subscribeSymbol] || typeof obj.then === "function" || typeof obj.subscribe === "function"));
 
+// c-alien-backend/signal/src/alien.js
+var alien_exports = {};
+__export(alien_exports, {
+  computed: () => computed,
+  effect: () => effect,
+  effectScope: () => effectScope,
+  endBatch: () => endBatch,
+  getActiveSub: () => getActiveSub,
+  getBatchDepth: () => getBatchDepth,
+  isComputed: () => isComputed,
+  isEffect: () => isEffect,
+  isEffectScope: () => isEffectScope,
+  isSignal: () => isSignal,
+  setActiveSub: () => setActiveSub,
+  signal: () => signal,
+  startBatch: () => startBatch,
+  trigger: () => trigger
+});
+
 // vendor/alien-signals/index.mjs
 var alien_signals_exports = {};
 __export(alien_signals_exports, {
@@ -649,6 +668,7 @@ function prepareSignal(value, name) {
     }
   };
   Object.defineProperty($signal, ValueSymbol, { get: $signal });
+  Object.defineProperty($signal, "value", { get: $signal, configurable: true });
   Object.defineProperty($signal, srcSymbol, { get: () => src });
   if (name) {
     $signal.label = name;
@@ -697,6 +717,11 @@ function createComputedSignal(getValue, { eager = false, declaredDeps = [], name
   let node;
   let pushStop;
   let pushStarted = false;
+  let computing = false;
+  let deferred;
+  let deferErrors = false;
+  let lastValue;
+  let cycleReported = false;
   const readDeclared = () => {
     for (const dep of declaredDeps) {
       if (typeof dep !== "function")
@@ -710,8 +735,22 @@ function createComputedSignal(getValue, { eager = false, declaredDeps = [], name
   };
   const ensure = () => {
     if (!node)
-      node = computed(() => (readDeclared(), getValue()));
+      node = computed(() => (readDeclared(), readGuarded()));
     return node;
+  };
+  const readGuarded = () => {
+    computing = true;
+    try {
+      const value = getValue();
+      lastValue = value;
+      deferred = void 0;
+      return value;
+    } catch (e) {
+      deferred = e;
+      return lastValue;
+    } finally {
+      computing = false;
+    }
   };
   const ensurePush = () => {
     if (pushStarted)
@@ -720,7 +759,13 @@ function createComputedSignal(getValue, { eager = false, declaredDeps = [], name
     const inner = ensure();
     let first = true;
     pushStop = rootEffect(() => {
+      const creating = !deferErrors;
       inner();
+      if (deferred) {
+        if (creating)
+          throw deferred;
+        return void 0;
+      }
       if (first) {
         first = false;
         return void 0;
@@ -728,11 +773,25 @@ function createComputedSignal(getValue, { eager = false, declaredDeps = [], name
       listeners.forEach(runFuncNoArg);
       return void 0;
     });
+    deferErrors = true;
   };
   const $computed = (...args) => {
     if (args.length)
       return void 0;
-    return ensure()();
+    if (computing && !cycleReported) {
+      cycleReported = true;
+      console.error(
+        `computed: ${name || "a computed signal"} was read while it was computing \u2014 cyclic dependency; returning the previous value`
+      );
+    }
+    const value = ensure()();
+    if (deferred) {
+      const error = deferred;
+      deferred = void 0;
+      node = void 0;
+      throw error;
+    }
+    return value;
   };
   $computed[subscribeSymbol] = (u) => {
     if (typeof u !== "function")
@@ -752,6 +811,7 @@ function createComputedSignal(getValue, { eager = false, declaredDeps = [], name
   };
   $computed.__computed = true;
   Object.defineProperty($computed, srcSymbol, { get: () => ensure(), configurable: true });
+  Object.defineProperty($computed, "value", { get: $computed, configurable: true });
   if (name) {
     $computed.label = name;
     Object.defineProperty($computed, "name", { value: name });
@@ -845,7 +905,7 @@ function $State(initial) {
   specialProps.set(stateSymbol, true);
   specialProps.set("toJSON", getValue);
   specialProps.set(mergeValueSymbol, updateValue);
-  specialProps.set(Symbol.toPrimitive, getValue);
+  specialProps.set(Symbol.toPrimitive, (hint) => hint === "number" ? NaN : JSON.stringify(getValue()));
   let statePproxy = new Proxy($state, {
     set: function(_, prop, value) {
       getSignal(prop)(value);
@@ -862,15 +922,141 @@ function mergeValue($state, nv = {}) {
   return $state[mergeValueSymbol]?.(nv);
 }
 
+// c-alien-backend/signal/src/compat.js
+var subscribeSymbol2 = Symbol.for("signalSubscribe");
+var triggerSymbol2 = Symbol.for("signalTrigger");
+var alienSourceSymbol = Symbol.for("alienSource");
+var isAlienSignal = (value) => typeof value === "function" && isSignal(value);
+var isAlienComputed = (value) => typeof value === "function" && isComputed(value);
+var isAlienNode = (value) => isAlienSignal(value) || isAlienComputed(value);
+var isSignalLike = (value) => !!(value && value[subscribeSymbol2]);
+var untracked = (fn) => {
+  const prev = setActiveSub(void 0);
+  try {
+    return fn();
+  } finally {
+    setActiveSub(prev);
+  }
+};
+var rootEffect2 = (fn) => {
+  const prev = setActiveSub(void 0);
+  try {
+    return effect(fn);
+  } finally {
+    setActiveSub(prev);
+  }
+};
+var instances = /* @__PURE__ */ new WeakMap();
+function makeCompat(core) {
+  const existing = instances.get(core.signal);
+  if (existing)
+    return existing;
+  const bridges = /* @__PURE__ */ new WeakMap();
+  const mirrors = /* @__PURE__ */ new WeakMap();
+  function toAlien($sig) {
+    if (isAlienNode($sig))
+      return $sig;
+    if (!$sig || typeof $sig !== "function")
+      return $sig;
+    let bridged = bridges.get($sig);
+    if (bridged)
+      return bridged;
+    const node = signal(untracked(() => $sig()));
+    const unsubscribe = $sig[subscribeSymbol2]?.(() => untracked(() => node($sig())));
+    node[alienSourceSymbol] = $sig;
+    const alienNode = (
+      /** @type {any} */
+      node
+    );
+    alienNode.dispose = () => {
+      if (typeof unsubscribe === "function")
+        unsubscribe();
+      alienNode.dispose = void 0;
+      bridges.delete($sig);
+    };
+    bridges.set($sig, node);
+    return node;
+  }
+  function toSignal3(node, name) {
+    if (!isAlienNode(node))
+      return node;
+    let $mirror = mirrors.get(node);
+    if ($mirror)
+      return $mirror;
+    $mirror = core.signal(void 0, name);
+    $mirror.dispose = rootEffect2(() => {
+      $mirror(node());
+      return void 0;
+    });
+    mirrors.set(node, $mirror);
+    return $mirror;
+  }
+  const normalizeDeps = (deps) => deps.map((d) => isAlienNode(d) ? toSignal3(d) : d);
+  function observeAlien(node, callback, trigger2, passValue) {
+    if (!callback)
+      return void 0;
+    let first = true;
+    return rootEffect2(() => {
+      const value = node();
+      if (first) {
+        first = false;
+        if (trigger2) {
+          if (passValue)
+            callback(value);
+          else
+            callback();
+        }
+        return void 0;
+      }
+      if (passValue)
+        callback(value);
+      else
+        callback();
+      return void 0;
+    });
+  }
+  const observe4 = (obj, callback, trigger2 = false) => isAlienNode(obj) ? observeAlien(obj, callback, trigger2, true) : core.observe(obj, callback, trigger2);
+  const observeNow3 = (obj, callback) => observe4(obj, callback, true);
+  const subscribe4 = (obj, callback, trigger2 = false) => isAlienNode(obj) ? observeAlien(obj, callback, trigger2, false) : core.subscribe(obj, callback, trigger2);
+  const isObservable4 = (obj) => isAlienNode(obj) || core.isObservable(obj);
+  const batch2 = (fn) => {
+    startBatch();
+    try {
+      return fn();
+    } finally {
+      endBatch();
+    }
+  };
+  const api = {
+    alien: alien_exports,
+    isAlienSignal,
+    isAlienComputed,
+    isAlienNode,
+    isSignalLike,
+    toAlien,
+    toSignal: toSignal3,
+    normalizeDeps,
+    observe: observe4,
+    observeNow: observeNow3,
+    subscribe: subscribe4,
+    isObservable: isObservable4,
+    batch: batch2,
+    /** Stop a mirror created by `toSignal`, or tear down a bridge created by `toAlien`. */
+    dispose: (node) => node?.dispose?.()
+  };
+  instances.set(core.signal, api);
+  return api;
+}
+
 // c-alien-backend/signal/index.js
-var isAlienNode = (x) => typeof x === "function" && (isSignal(x) || isComputed(x));
-var isObservableAny = (x) => isObservable(x) || isAlienNode(x);
+var isAlienNode2 = (x) => typeof x === "function" && (isSignal(x) || isComputed(x));
+var isObservableAny = (x) => isObservable(x) || isAlienNode2(x);
 var signalValue = ($signal) => typeof $signal === "function" ? $signal() : $signal;
-var isOpaqueDep = (dep) => !!dep && isObservable(dep) && !dep[srcSymbol] && !dep[stateSymbol];
+var isOpaqueDep = (dep) => !!dep && isObservable2(dep) && !dep[srcSymbol] && !dep[stateSymbol];
 function createLegacyDerivedSignal(deps, getValue) {
   const { $signal } = prepareSignal(getValue());
   const updater = () => $signal(getValue());
-  deps.forEach((b) => subscribe(b, updater));
+  deps.forEach((b) => subscribe2(b, updater));
   return $signal;
 }
 function createDerivedSignal(deps, getValue) {
@@ -901,16 +1087,30 @@ var callbackForTemplateString = (arr, signals) => () => {
   }
   return out2.join("");
 };
+var compat = makeCompat({
+  signal: signal2,
+  observe,
+  subscribe,
+  isObservable
+});
+var alien = compat.alien;
+var toSignal = compat.toSignal;
+var isAlienSignal2 = compat.isAlienSignal;
+var isAlienComputed2 = compat.isAlienComputed;
+var observe2 = compat.observe;
+var observeNow = compat.observeNow;
+var subscribe2 = compat.subscribe;
+var isObservable2 = compat.isObservable;
 
 // _shared/alien-compat.js
-var subscribeSymbol2 = Symbol.for("signalSubscribe");
-var triggerSymbol2 = Symbol.for("signalTrigger");
-var alienSourceSymbol = Symbol.for("alienSource");
-var isAlienSignal = (value) => typeof value === "function" && isSignal(value);
-var isAlienComputed = (value) => typeof value === "function" && isComputed(value);
-var isAlienNode2 = (value) => isAlienSignal(value) || isAlienComputed(value);
-var isSignalLike = (value) => !!(value && value[subscribeSymbol2]);
-var untracked = (fn) => {
+var subscribeSymbol3 = Symbol.for("signalSubscribe");
+var triggerSymbol3 = Symbol.for("signalTrigger");
+var alienSourceSymbol2 = Symbol.for("alienSource");
+var isAlienSignal3 = (value) => typeof value === "function" && isSignal(value);
+var isAlienComputed3 = (value) => typeof value === "function" && isComputed(value);
+var isAlienNode3 = (value) => isAlienSignal3(value) || isAlienComputed3(value);
+var isSignalLike2 = (value) => !!(value && value[subscribeSymbol3]);
+var untracked2 = (fn) => {
   const prev = setActiveSub(void 0);
   try {
     return fn();
@@ -918,7 +1118,7 @@ var untracked = (fn) => {
     setActiveSub(prev);
   }
 };
-var rootEffect2 = (fn) => {
+var rootEffect3 = (fn) => {
   const prev = setActiveSub(void 0);
   try {
     return effect(fn);
@@ -926,24 +1126,24 @@ var rootEffect2 = (fn) => {
     setActiveSub(prev);
   }
 };
-var instances = /* @__PURE__ */ new WeakMap();
-function makeCompat(core) {
-  const existing = instances.get(core.signal);
+var instances2 = /* @__PURE__ */ new WeakMap();
+function makeCompat2(core) {
+  const existing = instances2.get(core.signal);
   if (existing)
     return existing;
   const bridges = /* @__PURE__ */ new WeakMap();
   const mirrors = /* @__PURE__ */ new WeakMap();
   function toAlien($sig) {
-    if (isAlienNode2($sig))
+    if (isAlienNode3($sig))
       return $sig;
     if (!$sig || typeof $sig !== "function")
       return $sig;
     let bridged = bridges.get($sig);
     if (bridged)
       return bridged;
-    const node = signal(untracked(() => $sig()));
-    const unsubscribe = $sig[subscribeSymbol2]?.(() => untracked(() => node($sig())));
-    node[alienSourceSymbol] = $sig;
+    const node = signal(untracked2(() => $sig()));
+    const unsubscribe = $sig[subscribeSymbol3]?.(() => untracked2(() => node($sig())));
+    node[alienSourceSymbol2] = $sig;
     node.dispose = () => {
       if (typeof unsubscribe === "function")
         unsubscribe();
@@ -953,26 +1153,26 @@ function makeCompat(core) {
     bridges.set($sig, node);
     return node;
   }
-  function toSignal2(node, name) {
-    if (!isAlienNode2(node))
+  function toSignal3(node, name) {
+    if (!isAlienNode3(node))
       return node;
     let $mirror = mirrors.get(node);
     if ($mirror)
       return $mirror;
     $mirror = core.signal(void 0, name);
-    $mirror.dispose = rootEffect2(() => {
+    $mirror.dispose = rootEffect3(() => {
       $mirror(node());
       return void 0;
     });
     mirrors.set(node, $mirror);
     return $mirror;
   }
-  const normalizeDeps = (deps) => deps.map((d) => isAlienNode2(d) ? toSignal2(d) : d);
+  const normalizeDeps = (deps) => deps.map((d) => isAlienNode3(d) ? toSignal3(d) : d);
   function observeAlien(node, callback, trigger2, passValue) {
     if (!callback)
       return void 0;
     let first = true;
-    return rootEffect2(() => {
+    return rootEffect3(() => {
       const value = node();
       if (first) {
         first = false;
@@ -991,10 +1191,10 @@ function makeCompat(core) {
       return void 0;
     });
   }
-  const observe3 = (obj, callback, trigger2 = false) => isAlienNode2(obj) ? observeAlien(obj, callback, trigger2, true) : core.observe(obj, callback, trigger2);
-  const observeNow3 = (obj, callback) => observe3(obj, callback, true);
-  const subscribe3 = (obj, callback, trigger2 = false) => isAlienNode2(obj) ? observeAlien(obj, callback, trigger2, false) : core.subscribe(obj, callback, trigger2);
-  const isObservable3 = (obj) => isAlienNode2(obj) || core.isObservable(obj);
+  const observe4 = (obj, callback, trigger2 = false) => isAlienNode3(obj) ? observeAlien(obj, callback, trigger2, true) : core.observe(obj, callback, trigger2);
+  const observeNow3 = (obj, callback) => observe4(obj, callback, true);
+  const subscribe4 = (obj, callback, trigger2 = false) => isAlienNode3(obj) ? observeAlien(obj, callback, trigger2, false) : core.subscribe(obj, callback, trigger2);
+  const isObservable4 = (obj) => isAlienNode3(obj) || core.isObservable(obj);
   const batch2 = (fn) => {
     startBatch();
     try {
@@ -1005,41 +1205,41 @@ function makeCompat(core) {
   };
   const api = {
     alien: alien_signals_exports,
-    isAlienSignal,
-    isAlienComputed,
-    isAlienNode: isAlienNode2,
-    isSignalLike,
+    isAlienSignal: isAlienSignal3,
+    isAlienComputed: isAlienComputed3,
+    isAlienNode: isAlienNode3,
+    isSignalLike: isSignalLike2,
     toAlien,
-    toSignal: toSignal2,
+    toSignal: toSignal3,
     normalizeDeps,
-    observe: observe3,
+    observe: observe4,
     observeNow: observeNow3,
-    subscribe: subscribe3,
-    isObservable: isObservable3,
+    subscribe: subscribe4,
+    isObservable: isObservable4,
     batch: batch2,
     /** Stop a mirror created by `toSignal`, or tear down a bridge created by `toAlien`. */
     dispose: (node) => node?.dispose?.()
   };
-  instances.set(core.signal, api);
+  instances2.set(core.signal, api);
   return api;
 }
 
 // c-alien-backend/index.js
-var compat = makeCompat({
+var compat2 = makeCompat2({
   signal: signal2,
-  observe,
-  subscribe,
-  isObservable
+  observe: observe2,
+  subscribe: subscribe2,
+  isObservable: isObservable2
 });
-var alien = compat.alien;
-var isAlienSignal2 = compat.isAlienSignal;
-var isAlienComputed2 = compat.isAlienComputed;
-var isAlienNode3 = compat.isAlienNode;
-var toSignal = compat.toSignal;
-var observe2 = compat.observe;
-var observeNow2 = compat.observeNow;
-var subscribe2 = compat.subscribe;
-var isObservable2 = compat.isObservable;
+var alien2 = compat2.alien;
+var isAlienSignal4 = compat2.isAlienSignal;
+var isAlienComputed4 = compat2.isAlienComputed;
+var isAlienNode4 = compat2.isAlienNode;
+var toSignal2 = compat2.toSignal;
+var observe3 = compat2.observe;
+var observeNow2 = compat2.observeNow;
+var subscribe3 = compat2.subscribe;
+var isObservable3 = compat2.isObservable;
 var dispose2 = (node) => node?.dispose?.();
 
 // harness/.results/bundles/c-alien-backend-plain.js.entry.js
@@ -1052,9 +1252,9 @@ var $fromState = $S(() => $s.x() * 2, $s);
 mergeValue($s, { x: 2 });
 observeNow2($sum, () => {
 });
-observe2($a, () => {
+observe3($a, () => {
 });
-globalThis.__size = [$sum(), $filtered(), $s.x(), $fromState(), isObservable2($sum)];
+globalThis.__size = [$sum(), $filtered(), $s.x(), $fromState(), isObservable3($sum)];
 var out = [];
 out.push($C(() => $a() + $b())());
 out.push($CE(() => $s.x() * 2, $s)());

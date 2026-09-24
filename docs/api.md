@@ -36,13 +36,20 @@ Signals are functions: call with no argument to read, with a value to write.
 - subscription: `observe`, `observeNow`, `subscribe`, `subscribeSymbol`, `triggerSymbol`
 - derived: `$S`, `$F`, `$If`, `$Map`, `$Any`, `$AnyValue`, `$And`, `$AndB`, `$Or`, `$OrB`,
   `$EQ`, `$EQX`, `$NEQ`, `$NEQX`, `$NOT`, `$BOOL`
+- computed: `$C` (lazy, memoized, auto-tracking), `$CE` (eager), `batch`, `dispose`
 - filters used with `$F`: `VALUE`, `EQ`, `EQX`, `NEQ`, `NEQX`, `NOT`, `BOOL`
 - from `src/state.js` / `src/makeContext.js`: `$State`, `mergeValue`, `makeContext`, …
 
-**Contract worth knowing:** derived signals are eager and fine-grained — `$S`/`$F` recompute on every
-dependency change, with no topological ordering (multi-source updates can expose intermediate
-values). The dependency lists are manual, which is why `eslint-plugin-jsx6`'s
-`jsx6/signal-dependencies` rule exists. See `plan/improvement-plan.md` P2-4.
+**Contract worth knowing:** `$S`/`$F` are eager and their dependency set is the **union** of the declared
+list and the reads tracked while the callback runs, so an omitted dependency is no longer a silent bug
+(the `jsx6/signal-dependencies` rule is now a style guide). They still recompute on every dependency
+change; `$C` is the lazy, memoized alternative and `$CE` the eager one. Notification remains
+value-guarded (`===`), so an unchanged value never wakes a listener, and `batch()` removes the
+intermediate values a multi-source update would otherwise expose. Signals and computeds also carry a
+non-enumerable `value` getter for dev-console inspection. The full design, implementation and change
+record is documented in [libs/signal/doc/computed/](../libs/signal/doc/computed/README.md) — starting
+with [usage](../libs/signal/doc/computed/usage.md) and
+[changes](../libs/signal/doc/computed/changes.md).
 
 ## `@jsx6/jsx6`
 

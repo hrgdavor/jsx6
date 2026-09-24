@@ -11,6 +11,10 @@ Current Version: **1.8.18**
 - `@jsx6/jsx-runtime` (libs/jsx-runtime)
 - `@jsx6/jsx-dev-runtime` (libs/jsx-dev-runtime)
 - `@jsx6/signal` (libs/signal)
+- `@jsx6/signal-alien` (libs/signal-alien) — the same signal contract implemented on top of
+  alien-signals, a drop-in replacement for `@jsx6/signal` that additionally interops with alien nodes.
+  In lockstep because consumers switch between the two cores per project, so their APIs and types have
+  to move together
 - `@jsx6/signal-clock` (libs/signal-clock)
 - `@jsx6/signal-dom` (libs/signal-dom)
 - `@jsx6/w` (libs/w)

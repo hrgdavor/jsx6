@@ -1,4 +1,4 @@
-// ../../libs/signal/src/observe.js
+// baseline/signal/src/observe.js
 var subscribeSymbol = Symbol.for("signalSubscribe");
 var triggerSymbol = Symbol.for("signalTrigger");
 var observeNow = ($signal, callback) => observe($signal, callback, true);
@@ -34,7 +34,7 @@ function _observe(obj, callback, trigger = false, passValue = false) {
 }
 var isObservable = (obj) => !!(obj && (obj[subscribeSymbol] || typeof obj.then === "function" || typeof obj.subscribe === "function"));
 
-// ../../libs/signal/src/signal.js
+// baseline/signal/src/signal.js
 var ValueSymbol = Symbol.for("signalValue");
 var noOp = function() {
 };
@@ -90,7 +90,7 @@ var runFuncNoArg = (f) => {
   }
 };
 
-// ../../libs/signal/src/state.js
+// baseline/signal/src/state.js
 var mergeValueSymbol = Symbol.for("signalMergeValue");
 function $State(initial) {
   let internals = {};
@@ -183,7 +183,7 @@ function mergeValue($state, nv = {}) {
   return $state[mergeValueSymbol]?.(nv);
 }
 
-// ../../libs/signal/index.js
+// baseline/signal/index.js
 var signalValue = ($signal) => typeof $signal === "function" ? $signal() : $signal;
 function createDerivedSignal(signals, getValue) {
   const { $signal } = prepareSignal(getValue());

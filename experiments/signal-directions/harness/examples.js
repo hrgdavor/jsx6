@@ -81,14 +81,14 @@ $sum()        // 21`,
 const $sum = $C((a, b) => a + b, $a, $b)
 $b(20)
 $sum()        // 21`,
-      'a-compat': `// compat does not change $S/$F tracking: still stale
+      'a-compat': `// the compat layer re-exports the shipped core, which tracks omitted reads itself
 const $sum = $S(() => $a() + $b(), $a)
 $b(20)
-$sum()        // 3 — stale`,
+$sum()        // 21 — inherited from @jsx6/signal, not added by the compat layer`,
     },
     expect: {
       baseline: '3 (stale)',
-      'a-compat': '3 (stale)',
+      'a-compat': 21,
       'b-native-computed': 21,
       'c-alien-backend': 21,
       'e-alien-native': 21,
@@ -98,12 +98,6 @@ $sum()        // 3 — stale`,
       const $a = api.signal(1)
       const $b = api.signal(2)
       switch (api.meta.id) {
-        case 'b-native-computed':
-        case 'c-alien-backend': {
-          const $sum = api.$S(() => $a() + $b(), $a)
-          $b(20)
-          return $sum()
-        }
         case 'e-alien-native': {
           const $sum = api.$C(() => api.toAlien($a)() + api.toAlien($b)())
           api.toAlien($b)(20)
@@ -117,7 +111,9 @@ $sum()        // 3 — stale`,
         default: {
           const $sum = api.$S(() => $a() + $b(), $a)
           $b(20)
-          return `${$sum()} (stale)`
+          // A union-dependency core repairs the omission; the frozen 1.8.18 control does not — and
+          // A inherits the capability because it re-exports the shipped core.
+          return api.meta.capabilities.includes('union-deps') ? $sum() : `${$sum()} (stale)`
         }
       }
     },

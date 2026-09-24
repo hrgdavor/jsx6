@@ -1,25 +1,48 @@
+/**
+ * @jsx6/signal-alien — the jsx6 signal contract implemented on top of alien-signals.
+ *
+ * Same public API as `@jsx6/signal` (verified as a drop-in replacement: export surface, behaviour,
+ * emitted types and the shipped test suite), with alien-signals as the storage and the propagation
+ * graph, plus the interop layer that makes the two worlds usable together in both directions.
+ *
+ * Layer map — which code comes from where:
+ *
+ *   src/signal.js    jsx6 side: the callable signal, the `===` change check, the listener Set, the
+ *                    `Symbol.for` protocol, label/name/devtools affordances. Only the *storage* is
+ *                    alien (`alien.signal`), which is what lets alien track bare reads with no bridge.
+ *   src/computed.js  jsx6 side: `$C`/`$CE`/`batch`/`dispose` as a thin surface over `alien.computed`
+ *                    and a root `alien.effect` that pushes into the jsx6 listener Set.
+ *   src/compat.js    interop: `toAlien`/`toSignal` bridges and alien-aware `observe`/`subscribe`.
+ *   src/alien.js     the single import of the dependency.
+ *   src/observe.js, src/state.js, src/makeContext.js
+ *                    jsx6 side, unchanged from `@jsx6/signal` except that `$State` batches through
+ *                    alien's `startBatch`/`endBatch`.
+ *
+ * See README.md for the bundle-size breakdown of this jsx6-side code versus alien-signals itself.
+ */
+
 import {
-  observe,
-  observeNow,
-  subscribe,
+  observe as coreObserve,
+  subscribe as coreSubscribe,
   triggerSymbol,
   subscribeSymbol,
-  isObservable,
+  isObservable as coreIsObservable,
 } from './src/observe.js'
 import { prepareSignal, signal, asSignal, staticSignal, srcSymbol } from './src/signal.js'
 import { createComputedSignal } from './src/computed.js'
 import { stateSymbol } from './src/state.js'
-import { isSignal as isAlienSignal, isComputed as isAlienComputed } from './src/alien.js'
+import { isSignal as alienIsSignal, isComputed as alienIsComputed } from './src/alien.js'
+import { makeCompat } from './src/compat.js'
 
 /** An alien-signals node used as a dependency or a value. */
-const isAlienNode = x => typeof x === 'function' && (isAlienSignal(x) || isAlienComputed(x))
+const isAlienNode = x => typeof x === 'function' && (alienIsSignal(x) || alienIsComputed(x))
 /**
  * Because this core *is* alien-backed, an alien node is a legitimate observable here — the original
  * code's `isObservable` cannot know that (it only understands the symbol protocol and `.then`/
  * `.subscribe`), so `$F(fn, alienValue)` would otherwise take the static branch and hand back the node
  * itself as the value.
  */
-const isObservableAny = x => isObservable(x) || isAlienNode(x)
+const isObservableAny = x => coreIsObservable(x) || isAlienNode(x)
 
 /** Utility that that returns signal value if the parameter is a signal/function and the parameter otherwise.
  * This is especially useful when you want to handle cases whare you allow either a signal or a raw value
@@ -163,22 +186,53 @@ export const $AndB = ($sa, $sb) => $F((a, b) => !!(a && b), $sa, $sb)
 
 export const $Map = (map, $signal) => $F(v => map[v] || v, $signal)
 
-export {
-  observe,
-  observeNow,
-  subscribe,
-  signal,
-  prepareSignal,
-  triggerSymbol,
-  subscribeSymbol,
-  asSignal,
-  staticSignal,
-  isObservable,
-}
+// ---------------------------------------------------------------- the jsx6 contract
+export { signal, prepareSignal, triggerSymbol, subscribeSymbol, asSignal, staticSignal }
 export * from './src/state.js'
 export * from './src/makeContext.js'
 
-// ---------------------------------------------------------------- added by this direction
+// ---------------------------------------------------------------- new: the computed axis
 // Only the user-facing additions are exported from the package entry; the factory and the internal
-// source marker stay reachable through `src/` (which the manifest ships) but are not public API.
+// source markers stay reachable through `src/` (which the manifest ships) but are not public API.
 export { $C, $CE, batch, dispose } from './src/computed.js'
+// Debugging: console interception so console.log($sig) shows a value. See src/debug.js.
+export {
+  describeSignal,
+  hasConsoleInspection,
+  installConsoleInspection,
+  isSignalish,
+  readSignal,
+  signalKind,
+  signalLabel,
+  signalName,
+  uninstallConsoleInspection,
+} from './src/debug.js'
+
+// ---------------------------------------------------------------- new: alien interop
+const compat = makeCompat({
+  signal,
+  observe: coreObserve,
+  subscribe: coreSubscribe,
+  isObservable: coreIsObservable,
+})
+
+/** alien-signals itself, re-exported so consumers do not pull in a second copy. */
+export const alien = compat.alien
+
+/**
+ * Zero-cost bridging: this package's signals are alien-backed, so the alien node *is* the mirror. Only
+ * foreign (non-`@jsx6/signal-alien`) signals need the listener-based bridge from the compat layer.
+ */
+export const toAlien = node => node?.[srcSymbol] || compat.toAlien(node)
+/** alien node -> jsx6 signal, cached per node. Needed for `$S`/`$F` dependencies on alien values. */
+export const toSignal = compat.toSignal
+export const isAlienSignal = compat.isAlienSignal
+export const isAlienComputed = compat.isAlienComputed
+export { isAlienNode }
+
+// These four carry the alien-aware implementations (the core's versions are imported under `core*`
+// names above), which is what makes `{$computed}` usable where JSX expects a signal.
+export const observe = compat.observe
+export const observeNow = compat.observeNow
+export const subscribe = compat.subscribe
+export const isObservable = compat.isObservable

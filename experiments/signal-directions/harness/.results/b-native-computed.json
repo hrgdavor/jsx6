@@ -20,9 +20,15 @@
     "notes": "no dependency at all. `$C` is lazy, `$CE`/`$S`/`$F` are eager union-dependency computeds. Dependency edges reuse the existing listener Set; `batch` defers computed settle/notify in dependency order. No interop with alien-signals (that is A/E/F/C)."
   },
   "passed": 33,
-  "failed": 0,
+  "failed": 1,
   "skipped": 12,
-  "failures": [],
+  "failures": [
+    {
+      "id": "core.state-snapshot",
+      "status": "failed",
+      "reason": "expected {\"x\":1,\"y\":2}, got \"{\\\"x\\\":1,\\\"y\\\":2}\""
+    }
+  ],
   "skips": [
     "computed.alien-auto-track",
     "batch.alien-path",
@@ -37,24 +43,24 @@
     "interop.alien-dep-in-derived",
     "interop.state-child-inside-alien"
   ],
-  "loc": 518,
-  "sharedLoc": 123,
+  "loc": 682,
+  "sharedLoc": 116,
   "micro": {
-    "writeRead": 15.948000000000008,
-    "fanout": 33.03969999999998,
-    "chain": 5.8881000000000085,
-    "diamond": 9.360099999999989,
-    "computed": 1.9627000000000407,
-    "churn": 9.32159999999999,
-    "stateMerge": 7.46309999999994,
-    "batch": 3.972900000000095
+    "writeRead": 17.564400000000006,
+    "fanout": 34.55970000000002,
+    "chain": 5.894600000000025,
+    "diamond": 8.932499999999948,
+    "computed": 1.997000000000071,
+    "churn": 7.226400000000012,
+    "stateMerge": 7.847700000000032,
+    "batch": 3.8110000000000355
   },
   "macro": {
-    "mountMs": 7.239000000000033,
-    "updateMs": 6.54950000000008,
-    "unmountMs": 0.9871000000000549,
-    "mountHeapKb": 3774,
-    "retainedHeapKb": 681,
+    "mountMs": 8.126499999999965,
+    "updateMs": 6.886799999999994,
+    "unmountMs": 0.9492000000000189,
+    "mountHeapKb": 3855,
+    "retainedHeapKb": 671,
     "text": null
   }
 }

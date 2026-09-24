@@ -39,6 +39,9 @@ function _observe(obj, callback, trigger2 = false, passValue = false) {
 }
 var isObservable = (obj) => !!(obj && (obj[subscribeSymbol] || typeof obj.then === "function" || typeof obj.subscribe === "function"));
 
+// ../../libs/signal/src/track.js
+var trackState = { collector: null };
+
 // ../../libs/signal/src/signal.js
 var ValueSymbol = Symbol.for("signalValue");
 var noOp = function() {
@@ -62,14 +65,19 @@ function prepareSignal(value, name) {
     return true;
   }
   const $signal = (...args) => {
-    if (args.length === 0)
+    if (args.length === 0) {
+      const collector = trackState.collector;
+      if (collector !== null)
+        collector.add($signal);
       return value;
+    }
     if (setValue(args[0])) {
       fireChanged();
       return true;
     }
   };
   Object.defineProperty($signal, ValueSymbol, { get: $signal });
+  Object.defineProperty($signal, "value", { get: $signal, configurable: true });
   if (name) {
     $signal.label = name;
     Object.defineProperty($signal, "name", { value: name });
@@ -95,6 +103,215 @@ var runFuncNoArg = (f) => {
   }
 };
 
+// ../../libs/signal/src/computed.js
+var stateChildrenSymbol = Symbol.for("signalStateChildren");
+var batchDepth = 0;
+var pending = /* @__PURE__ */ new Set();
+var batch = (fn) => {
+  batchDepth++;
+  try {
+    return fn();
+  } finally {
+    batchDepth--;
+    if (batchDepth === 0)
+      flushPending();
+  }
+};
+var flushPending = () => {
+  let guard = 0;
+  while (pending.size) {
+    if (++guard > 1e3) {
+      console.error("computed: possible dependency cycle, dropping pending recomputations", pending.size);
+      pending.clear();
+      return;
+    }
+    const items = [...pending];
+    pending.clear();
+    items.sort((a, b) => a.depth - b.depth);
+    for (const item of items)
+      item.settle();
+  }
+};
+function createComputed(getValue, { eager = false, declaredDeps = [], name, collectDeps = declaredDeps.length ? "first" : "always" } = {}) {
+  const internals = prepareSignal(void 0);
+  const publish = internals.$signal;
+  const listeners = internals.listeners;
+  const depSubs = /* @__PURE__ */ new Map();
+  const tracked = /* @__PURE__ */ new Set();
+  const wanted = /* @__PURE__ */ new Set();
+  const hasAggregateDep = declaredDeps.some((dep) => dep && dep[stateChildrenSymbol]);
+  let dirty = true;
+  let computing = false;
+  let collected = false;
+  let depth = 0;
+  let cycleReported = false;
+  const $computed = (...args) => {
+    if (args.length)
+      return void 0;
+    if (dirty)
+      recompute(false);
+    return publish();
+  };
+  const invalidate = () => {
+    dirty = true;
+    if (batchDepth) {
+      pending.add(node);
+      return;
+    }
+    if (!eager && !listeners.size)
+      return;
+    recompute(true);
+  };
+  const buildWanted = () => {
+    wanted.clear();
+    for (const dep of tracked)
+      wanted.add(dep);
+    for (const dep of declaredDeps)
+      if (dep && dep[subscribeSymbol])
+        wanted.add(dep);
+    for (const dep of declaredDeps) {
+      const children = dep && dep[stateChildrenSymbol];
+      if (!children)
+        continue;
+      for (const p in children)
+        wanted.delete(children[p]);
+    }
+  };
+  const wantedMatchesSubs = () => {
+    if (wanted.size !== depSubs.size)
+      return false;
+    for (const dep of wanted)
+      if (!depSubs.has(dep))
+        return false;
+    return true;
+  };
+  const depsAlreadySubscribed = () => {
+    if (hasAggregateDep)
+      return false;
+    for (const dep of declaredDeps) {
+      if (dep && dep[subscribeSymbol] && !depSubs.has(dep))
+        return false;
+    }
+    if (tracked.size !== depSubs.size)
+      return false;
+    for (const dep of tracked)
+      if (!depSubs.has(dep))
+        return false;
+    return true;
+  };
+  const syncDeps = () => {
+    for (const [dep, unsubscribe] of [...depSubs]) {
+      if (wanted.has(dep))
+        continue;
+      if (typeof unsubscribe === "function")
+        unsubscribe();
+      depSubs.delete(dep);
+    }
+    let maxDepth = 0;
+    for (const dep of wanted) {
+      if (!depSubs.has(dep))
+        depSubs.set(dep, subscribeSafe(dep));
+      const depDepth = dep.__depth;
+      if (depDepth > maxDepth)
+        maxDepth = depDepth;
+    }
+    depth = maxDepth + 1;
+  };
+  const subscribeSafe = (dep) => {
+    try {
+      return dep[subscribeSymbol](invalidate);
+    } catch (e) {
+      console.error(e, dep);
+      return void 0;
+    }
+  };
+  const recompute = (notify) => {
+    if (computing) {
+      if (!cycleReported) {
+        cycleReported = true;
+        console.error(
+          `computed: ${name || "a computed signal"} was read while it was computing \u2014 cyclic dependency; returning the previous value`
+        );
+      }
+      return false;
+    }
+    computing = true;
+    const recollect = collectDeps === "always" || !collected;
+    const prevCollector = trackState.collector;
+    let next;
+    if (recollect) {
+      tracked.clear();
+      trackState.collector = tracked;
+    }
+    try {
+      next = getValue();
+    } finally {
+      if (recollect)
+        trackState.collector = prevCollector;
+      computing = false;
+    }
+    collected = true;
+    if (recollect && !depsAlreadySubscribed()) {
+      buildWanted();
+      if (!wantedMatchesSubs())
+        syncDeps();
+    }
+    dirty = false;
+    const changed = internals.setValue(next) === true;
+    if (changed && notify && listeners.size)
+      internals.fireChanged();
+    return changed;
+  };
+  const node = {
+    get depth() {
+      return depth;
+    },
+    settle() {
+      if (!dirty)
+        return;
+      if (!eager && !listeners.size)
+        return;
+      recompute(true);
+    }
+  };
+  const dispose2 = () => {
+    for (const unsubscribe of depSubs.values())
+      if (typeof unsubscribe === "function")
+        unsubscribe();
+    depSubs.clear();
+    dirty = true;
+  };
+  $computed[subscribeSymbol] = (u) => {
+    const unsubscribe = publish[subscribeSymbol](u);
+    if (!collected || dirty)
+      recompute(false);
+    return unsubscribe;
+  };
+  $computed[triggerSymbol] = () => {
+    dirty = true;
+    node.settle();
+  };
+  $computed[Symbol.toPrimitive] = $computed.get = () => {
+    if (dirty)
+      recompute(false);
+    return publish();
+  };
+  $computed.dispose = dispose2;
+  $computed.__computed = true;
+  Object.defineProperty($computed, "value", { get: $computed, configurable: true });
+  Object.defineProperty($computed, "__depth", {
+    get: () => depth,
+    configurable: true
+  });
+  if (name) {
+    $computed.label = name;
+    Object.defineProperty($computed, "name", { value: name });
+  }
+  if (eager)
+    node.settle();
+  return $computed;
+}
+
 // ../../libs/signal/src/state.js
 var mergeValueSymbol = Symbol.for("signalMergeValue");
 function $State(initial) {
@@ -119,35 +336,39 @@ function $State(initial) {
     return out2;
   }
   function updateValue(nv = {}, skipFire) {
-    let changed = false;
-    batchLevel++;
-    try {
-      for (let p in nv) {
-        if (getSignal(p)(nv[p]))
-          changed = true;
+    return batch(() => {
+      let changed = false;
+      batchLevel++;
+      try {
+        for (let p in nv) {
+          if (getSignal(p)(nv[p]))
+            changed = true;
+        }
+      } finally {
+        batchLevel--;
       }
-    } finally {
-      batchLevel--;
-    }
-    if (!skipFire && changed)
-      fireChanged();
-    return changed;
+      if (!skipFire && changed)
+        fireChanged();
+      return changed;
+    });
   }
   function setValue(nv = {}) {
-    batchLevel++;
-    let changed = false;
-    try {
-      changed = updateValue(nv, true);
-      for (let p in signals) {
-        if (!(p in nv) && signals[p](void 0))
-          changed = true;
+    return batch(() => {
+      batchLevel++;
+      let changed = false;
+      try {
+        changed = updateValue(nv, true);
+        for (let p in signals) {
+          if (!(p in nv) && signals[p](void 0))
+            changed = true;
+        }
+      } finally {
+        batchLevel--;
       }
-    } finally {
-      batchLevel--;
-    }
-    if (changed)
-      fireChanged();
-    return changed;
+      if (changed)
+        fireChanged();
+      return changed;
+    });
   }
   function getInternal(p, initialValue) {
     let internal = internals[p];
@@ -169,9 +390,10 @@ function $State(initial) {
     return () => listeners.delete(u);
   });
   specialProps.set(triggerSymbol, fireChanged);
+  specialProps.set(stateChildrenSymbol, signals);
   specialProps.set("toJSON", getValue);
   specialProps.set(mergeValueSymbol, updateValue);
-  specialProps.set(Symbol.toPrimitive, getValue);
+  specialProps.set(Symbol.toPrimitive, (hint) => hint === "number" ? NaN : JSON.stringify(getValue()));
   let statePproxy = new Proxy($state, {
     set: function(_, prop, value) {
       getSignal(prop)(value);
@@ -191,10 +413,7 @@ function mergeValue($state, nv = {}) {
 // ../../libs/signal/index.js
 var signalValue = ($signal) => typeof $signal === "function" ? $signal() : $signal;
 function createDerivedSignal(signals, getValue) {
-  const { $signal } = prepareSignal(getValue());
-  const updater = () => $signal(getValue());
-  signals.forEach((b) => subscribe(b, updater));
-  return $signal;
+  return createComputed(getValue, { eager: true, declaredDeps: signals });
 }
 function $S(template, ...signals) {
   if (!signals.length)
@@ -447,7 +666,7 @@ function createReactiveSystem({ update, notify, unwatched }) {
 var HasChildEffect = 64;
 var cycle = 0;
 var runDepth = 0;
-var batchDepth = 0;
+var batchDepth2 = 0;
 var notifyIndex = 0;
 var queuedLength = 0;
 var activeSub;
@@ -504,13 +723,13 @@ function setActiveSub(sub) {
   return prevSub;
 }
 function getBatchDepth() {
-  return batchDepth;
+  return batchDepth2;
 }
 function startBatch() {
-  ++batchDepth;
+  ++batchDepth2;
 }
 function endBatch() {
-  if (!--batchDepth) {
+  if (!--batchDepth2) {
     flush();
   }
 }
@@ -613,7 +832,7 @@ function trigger(fn) {
         shallowPropagate(subs);
       }
     }
-    if (!batchDepth) {
+    if (!batchDepth2) {
       flush();
     }
   }
@@ -733,7 +952,7 @@ function signalOper(...value) {
       const subs = this.subs;
       if (subs !== void 0) {
         propagate(subs, !!runDepth);
-        if (!batchDepth) {
+        if (!batchDepth2) {
           flush();
         }
       }
@@ -888,7 +1107,7 @@ function makeCompat(core) {
   const observeNow3 = (obj, callback) => observe3(obj, callback, true);
   const subscribe3 = (obj, callback, trigger2 = false) => isAlienNode(obj) ? observeAlien(obj, callback, trigger2, false) : core.subscribe(obj, callback, trigger2);
   const isObservable3 = (obj) => isAlienNode(obj) || core.isObservable(obj);
-  const batch2 = (fn) => {
+  const batch3 = (fn) => {
     startBatch();
     try {
       return fn();
@@ -909,7 +1128,7 @@ function makeCompat(core) {
     observeNow: observeNow3,
     subscribe: subscribe3,
     isObservable: isObservable3,
-    batch: batch2,
+    batch: batch3,
     /** Stop a mirror created by `toSignal`, or tear down a bridge created by `toAlien`. */
     dispose: (node) => node?.dispose?.()
   };
@@ -936,7 +1155,7 @@ var isAlienSignal2 = compat2.isAlienSignal;
 var isAlienComputed2 = compat2.isAlienComputed;
 var isAlienNode2 = compat2.isAlienNode;
 var dispose = compat2.dispose;
-var batch = compat2.batch;
+var batch2 = compat2.batch;
 var observe2 = compat2.observe;
 var observeNow2 = compat2.observeNow;
 var subscribe2 = compat2.subscribe;

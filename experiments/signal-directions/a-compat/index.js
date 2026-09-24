@@ -59,7 +59,7 @@ export const meta = {
   id: 'a-compat',
   name: 'A — compatibility / interop layer',
   backend: 'untouched current core + alien bridge',
-  capabilities: ['core', 'interop', 'interop:bridge-required', 'batch'],
+  capabilities: ['core', 'union-deps', 'interop', 'interop:bridge-required', 'batch'],
   deps: ['alien-signals 3.2.1 (vendored, optional peer in a real release)'],
   sourceRoot: '.',
   notes:

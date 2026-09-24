@@ -85,10 +85,12 @@ export function prepareSignal(value, name) {
   const $signal = (...args) => {
     // getter
     if (args.length === 0) {
+      // #region read-hook
       // Dependency-tracking hook, inlined on purpose: one monomorphic property read on the hot path,
       // and nothing else while no computed is evaluating.
       const collector = trackState.collector
       if (collector !== null) collector.add($signal)
+      // #endregion read-hook
       return value
     }
 
@@ -100,6 +102,13 @@ export function prepareSignal(value, name) {
   }
 
   Object.defineProperty($signal, ValueSymbol, { get: $signal }) // allows getting velue in Chrome dev tools
+  // Console inspection: expanding a signal in the dev console shows its current value next to a `value`
+  // label. The getter *is* the signal, so the value is read when the console expands the object, not
+  // when it was logged — that is the point (a snapshot would be stale by the time you look at it), and
+  // it is why `$signal()` remains the way to log a value at a specific moment. Non-enumerable, so it
+  // stays out of Object.keys, spread, `for...in` and JSON, and `value` is never a supported read in
+  // application code.
+  Object.defineProperty($signal, 'value', { get: $signal, configurable: true })
   if (name) {
     $signal.label = name
     Object.defineProperty($signal, 'name', { value: name })

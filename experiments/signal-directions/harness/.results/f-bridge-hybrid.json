@@ -6,22 +6,31 @@
     "backend": "untouched current core + alien computed over bridges",
     "capabilities": [
       "core",
+      "union-deps",
       "interop",
       "interop:bridge-required",
       "batch",
       "computed",
       "computed:alien-only"
     ],
-    "deps": ["alien-signals 3.2.1 (vendored, optional peer in a real release)"],
+    "deps": [
+      "alien-signals 3.2.1 (vendored, optional peer in a real release)"
+    ],
     "sourceRoot": ".",
     "notes": "~15 lines on top of A. Lazy only (no eager mode), explicit dependencies required for jsx6 signals, no dispose (standalone alien computeds retain deps), ~26 % bridge overhead."
   },
   "passed": 35,
-  "failed": 0,
+  "failed": 1,
   "skipped": 10,
-  "failures": [],
+  "failures": [
+    {
+      "id": "core.state-snapshot",
+      "status": "failed",
+      "reason": "expected {\"x\":1,\"y\":2}, got \"{\\\"x\\\":1,\\\"y\\\":2}\""
+    }
+  ],
   "skips": [
-    "union-deps.omitted-dep",
+    "core.computed-throws",
     "computed.auto-track",
     "computed.eager",
     "computed.dynamic-deps",
@@ -32,24 +41,24 @@
     "alien-surface.effect-and-scope",
     "interop.unbridged-tracks-natively"
   ],
-  "loc": 38,
-  "sharedLoc": 123,
+  "loc": 51,
+  "sharedLoc": 116,
   "micro": {
-    "writeRead": 16.64670000000001,
-    "fanout": 31.343699999999984,
-    "chain": 6.849499999999978,
-    "diamond": 7.48660000000001,
-    "computed": 7.186400000000049,
-    "churn": 7.309399999999982,
-    "stateMerge": 5.723800000000097,
-    "batch": 3.383000000000038
+    "writeRead": 17.159099999999995,
+    "fanout": 32.226,
+    "chain": 5.7847000000000435,
+    "diamond": 8.45799999999997,
+    "computed": 7.627700000000004,
+    "churn": 8.735099999999989,
+    "stateMerge": 8.05880000000002,
+    "batch": 3.386099999999942
   },
   "macro": {
-    "mountMs": 6.407100000000014,
-    "updateMs": 7.087400000000002,
-    "unmountMs": 0.9257000000000062,
-    "mountHeapKb": 3287,
-    "retainedHeapKb": 642,
+    "mountMs": 8.783999999999992,
+    "updateMs": 8.152199999999993,
+    "unmountMs": 1.0984000000000833,
+    "mountHeapKb": 4255,
+    "retainedHeapKb": 707,
     "text": null
   }
 }

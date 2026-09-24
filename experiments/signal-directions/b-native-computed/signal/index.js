@@ -149,6 +149,19 @@ export {
 }
 export * from './src/state.js'
 export * from './src/makeContext.js'
+// Debugging: `installConsoleInspection()` makes `console.log($sig)` show a value, with no change at the
+// call site and no cost on any signal path. See `src/debug.js`.
+export {
+  describeSignal,
+  hasConsoleInspection,
+  installConsoleInspection,
+  isSignalish,
+  readSignal,
+  signalKind,
+  signalLabel,
+  signalName,
+  uninstallConsoleInspection,
+} from './src/debug.js'
 
 // ---------------------------------------------------------------- added by this direction
 // Only the user-facing additions are public; `createComputed` stays internal (reachable via `src/`).
