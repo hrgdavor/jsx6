@@ -82,25 +82,6 @@ a proxy — inspect a field with `$s.field.value`, or print the state itself (`S
 form). See
 [usage.md#inspecting-signals-in-the-dev-console](doc/computed/usage.md#inspecting-signals-in-the-dev-console).
 
-## Tracing one signal
-
-`traceSignal($sig)` wraps a signal so its activations can be dumped, and `traceSignals()` opens a session
-that attaches the facts only the implementation has — creation site, listener set, and a computed's
-getter and dependencies. Both are opt-in, and **nothing is captured while they are off**.
-
-```js
-import { signal, $C, traceSignal } from '@jsx6/signal'
-
-const $total = traceSignal($C(() => $a() + $b()), { label: 'total' })
-
-$total() // [trace] read computed total = 3  deps: ["a","b"]
-$total.show() // a plain object whose `getter` is the compute function — clickable to its source
-```
-
-The wrapper is a drop-in signal, `$State` writes are reported per changed field, and `show()` is the
-answer to "where is this computed defined?" — a signal is a function, and DevTools cannot expand a
-function value. Full guide: [`doc/trace/usage.md`](doc/trace/usage.md).
-
 ## Cost
 
 The whole computed/batching/tracking axis adds **+1.0 kB gzip** to a bundle that uses the core API —

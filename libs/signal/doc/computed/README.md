@@ -26,6 +26,10 @@ samples come from
 | [changes.md](./changes.md) | what changed file by file, what deliberately did not, the cost, and what was rejected |
 | [alien-core.md](./alien-core.md) | the sibling implementation on alien-signals, and how to move between the two |
 
+Debugging has its own page, because it is about *one signal* rather than the computed axis:
+[`doc/trace/usage.md`](../trace/usage.md) covers `traceSignal`, clickable source references, `$State`
+write reports, and the `traceSignals()` session — all opt-in, all inert while unused.
+
 ## The one-paragraph summary
 
 `@jsx6/signal` keeps its original design: eager, synchronous, immediate propagation with `===` change

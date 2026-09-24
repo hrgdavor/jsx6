@@ -1,7 +1,6 @@
 import { subscribeSymbol, triggerSymbol } from './observe.js'
 import { prepareSignal, runFuncNoArg } from './signal.js'
 import { batch, stateChildrenSymbol } from './computed.js'
-import { hasStateWriteObservers, notifyStateWrite } from './state-write-observer.js'
 
 export const mergeValueSymbol = Symbol.for('signalMergeValue')
 
@@ -108,12 +107,7 @@ export function $State(initial) {
 
   let statePproxy = new Proxy($state, {
     set: function (_, prop, value) {
-      const child = getSignal(prop)
-      // Report only a write that actually changed the value: `setValue`'s `===` guard is the signal's
-      // own truth, and a debugger claiming a write that changed nothing would be lying about the
-      // graph. The read is only taken while someone is observing (see `src/state-write-observer.js`).
-      if (hasStateWriteObservers() && !Object.is(child(), value)) notifyStateWrite(child, value)
-      child(value)
+      getSignal(prop)(value)
       // if (getSignal(prop)(value)) fireChanged()
       return true
     },

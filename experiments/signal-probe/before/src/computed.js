@@ -25,7 +25,6 @@
 import { subscribeSymbol, triggerSymbol } from './observe.js'
 import { prepareSignal } from './signal.js'
 import { trackState } from './track.js'
-import { attachTrace, captureFrom, signalsTraced } from './trace.js'
 
 /**
  * Exposed by `$State`: the child signals of a state proxy. Used by the coverage rule below so that a
@@ -301,28 +300,6 @@ export function createComputed(
     $computed.label = name
     Object.defineProperty($computed, 'name', { value: name })
   }
-
-  // #region trace-computed
-  /**
-   * Tracing record for a computed: the function it was built from (the clickable source reference),
-   * the live listener set, and the current dependency set.
-   *
-   * `getter` is `getValue` — the user's own function — and not `$computed`, because a reference to
-   * `$computed` only ever points at `createComputed` in this file. Attached only while tracing.
-   *
-   * The creation site is captured here for the same reason `prepareSignal` captures one: this is where
-   * the computed is made, and a caller that wraps it later can no longer tell where that was.
-   */
-  if (signalsTraced) {
-    attachTrace($computed, {
-      kind: 'computed',
-      origin: captureFrom(new Error().stack),
-      listeners,
-      getter: getValue,
-      deps: () => ({ tracked: [...tracked], declared: declaredDeps }),
-    })
-  }
-  // #endregion trace-computed
 
   if (eager) node.settle()
 

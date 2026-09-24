@@ -163,33 +163,6 @@ export {
   uninstallConsoleInspection,
 } from './src/debug.js'
 
-// Tracing internals: opt-in, and inert until `traceSignals(true)`. They expose the creation site, the
-// listener set behind `subscribe`, and (for computeds) the getter and dependency set — the facts a
-// debugger wrapper needs and nothing else. See `src/trace.js`.
-export {
-  attachTrace,
-  captureFrom,
-  captureSite,
-  captureSiteSkipping,
-  describeName,
-  ensureTrace,
-  metaSymbol,
-  signalTrace,
-  signalsTraced,
-  traceOptions,
-  traceSignals,
-} from './src/trace.js'
-
-// `traceSignal` — a wrapper signal that reports its own activations, and the reason the internals
-// above exist. Use it to debug one signal without paying anything anywhere else. See
-// `src/trace-signal.js`.
-export { traceSignal } from './src/trace-signal.js'
-
-// State write observation: `$State` writes go through the proxy's `set` trap onto the raw child
-// signal, so a wrapper cannot see them by itself. Inert (one null check in the trap) until something
-// registers. See `src/state-write-observer.js`.
-export { hasStateWriteObservers, onStateWrite } from './src/state-write-observer.js'
-
 // ---------------------------------------------------------------- added by this direction
 // Only the user-facing additions are public; `createComputed` stays internal (reachable via `src/`).
 export { $C, $CE, batch, dispose } from './src/computed.js'

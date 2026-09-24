@@ -17,8 +17,8 @@
     "check-versions": "bun run scripts/check-versions.js",
     "docs:build": "bun run scripts/build-docs.js",
     "docs:check": "bun run scripts/check-docs.js",
-    "docs:inject": "bunx @hrg/inject-examples libs/signal/doc/computed",
-    "docs:inject:check": "bunx @hrg/inject-examples --check libs/signal/doc/computed"
+    "docs:inject": "bunx @hrg/inject-examples libs/signal/doc/computed libs/signal/doc/trace",
+    "docs:inject:check": "bunx @hrg/inject-examples --check libs/signal/doc/computed libs/signal/doc/trace"
   },
   "workspaces": [
     "libs/*",
