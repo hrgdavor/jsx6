@@ -21,7 +21,8 @@ copyTask('static', outDir, { include: [], exclude: [], watch, filters: [] })
 
 /**************************** BUILD JS  *************/
 
-// both dev and production build use version that loads language dynamically: ChatBox.js
+// dev builds keep the JSX dev runtime (better error messages) and get a footer that hands the
+// bundle the source root (used by the in-browser inspector); production builds get neither
 let devOptions = dev ? { jsxDev: true, footer: { js: srcPath() } } : {}
 await buildScript('./src', outDir, 'index.jsx', { watch, ...devOptions })
 

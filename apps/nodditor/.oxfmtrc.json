@@ -45,6 +45,7 @@
     "package-lock.json",
     "shrinkwrap.json",
     "lib",
-    "*.md"
+    "*.md",
+    "smoke/*.bundle.mjs"
   ]
 }

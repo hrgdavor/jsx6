@@ -1,0 +1,11 @@
+# `bun test` transforms JSX itself, and the automatic transform resolves
+# `<jsxImportSource>/jsx-dev-runtime` — so the scope `@jsx6` maps to the workspace package
+# `@jsx6/jsx-dev-runtime`, the same runtime the esbuild build uses for jsxImportSource "@jsx6"
+# (see src_build/buildScript.js). Without this, `bun test` fails on a missing `jsxDEV`/`Fragment`
+# import (it defaults to react).
+#
+# NOTE: Bun reads `bunfig.toml` from the process cwd, so this file applies when `bun test` runs
+# with the cwd set to this package (what the root gate does). `bun test apps/nodditor` from the
+# repository root does NOT pick it up — the smoke suites avoid that trap by being named
+# `smoke/*.smoke.jsx` instead of `*.test.jsx`.
+jsxImportSource = "@jsx6"

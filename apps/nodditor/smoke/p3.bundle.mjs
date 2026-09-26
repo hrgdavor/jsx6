@@ -2560,7 +2560,6 @@ var NodeEditor = class extends JsxW {
             insert(this.contentArea, menu2);
           }
           this.currentMenu = menu2;
-          menu2.afterAdd?.([]);
           this.placeMenuAtCursor(e);
         }
         return;
@@ -2915,11 +2914,6 @@ var NodeEditor = class extends JsxW {
   }
   /**
    *
-   * @typedef Menu
-   * @property {Function} afterAdd
-   *
-   * @typedef {HTMLElement & Menu} MenuHtml
-   *
    * @param {*} blocks
    */
   selectBlocks(blocks) {
@@ -2942,7 +2936,6 @@ var NodeEditor = class extends JsxW {
           insert(this.contentArea, menu);
         }
         moveMenu(blocks, menu, this._zoom);
-        menu.afterAdd?.(blocks);
       }
     } else {
       if (old)
@@ -3240,7 +3233,7 @@ var EditableTitle = (attr = {}) => {
 // src/blocks/Message.js
 function Message(attr) {
   addClass(attr, "ne-block");
-  let title = EditableTitle({ onchange: (e) => console.log("change"), oninput: (e) => console.log("input") });
+  let title = EditableTitle();
   title.setValue("Message");
   return /* @__PURE__ */ jsx("div", { ...attr, children: [
     /* @__PURE__ */ jsx("div", { class: "ne-title", "ne-drag": true, "ne-item": true, children: [
@@ -3290,7 +3283,7 @@ function Switch(attr) {
   ] });
 }
 
-// smoke/p3.test.jsx
+// smoke/p3.smoke.jsx
 var failures = 0;
 var ok = (cond, msg) => {
   if (cond)

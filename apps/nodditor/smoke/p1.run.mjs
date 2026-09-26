@@ -1,8 +1,13 @@
-// Runner for the P1 smoke test: bundle the .jsx sources + test with esbuild
+// Runner for the P1 smoke suite: bundle the .jsx sources + suite with esbuild
 // (same settings as the app build), boot happy-dom globals, then import the
 // bundle so the editor code evaluates against the DOM.
 //
 //   cd apps/nodditor && node smoke/p1.run.mjs
+//
+// The suite is named `p1.smoke.jsx` (not `*.test.jsx`) on purpose: it is a
+// script-style suite that needs the globals and the bundling done HERE, so
+// `bun test` (which discovers `*.test.*` from anywhere in the tree) must not
+// run it directly. The real unit tests live in ../test/.
 //
 // IntersectionObserver is stubbed: happy-dom 14 does not implement it, and the
 // tests exercise `removeConnector` directly (the real browser IO fires the same
@@ -29,7 +34,7 @@ globalThis.IntersectionObserver = class {
 await esbuild.build({
   absWorkingDir: process.cwd(),
   tsconfig: 'tsconfig-custom.json',
-  entryPoints: ['smoke/p1.test.jsx'],
+  entryPoints: ['smoke/p1.smoke.jsx'],
   outfile: 'smoke/p1.bundle.mjs',
   bundle: true,
   format: 'esm',

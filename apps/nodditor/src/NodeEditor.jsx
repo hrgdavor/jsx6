@@ -849,7 +849,6 @@ export class NodeEditor extends JsxW {
             insert(this.contentArea, menu)
           }
           this.currentMenu = menu
-          menu.afterAdd?.([])
           this.placeMenuAtCursor(e)
         }
         return
@@ -1215,11 +1214,6 @@ export class NodeEditor extends JsxW {
   }
   /**
    *
-   * @typedef Menu
-   * @property {Function} afterAdd
-   *
-   * @typedef {HTMLElement & Menu} MenuHtml
-   *
    * @param {*} blocks
    */
 
@@ -1233,7 +1227,7 @@ export class NodeEditor extends JsxW {
         blockIdMap[b.id] = 1
       })
       this.selectConnector(null)
-      /** @type {MenuHtml} */
+      /** @type {HTMLElement} */
       menu = this.menuGenerator?.(blocks)
       if (old && old != menu) setVisible(old, false)
       if (menu) {
@@ -1243,7 +1237,6 @@ export class NodeEditor extends JsxW {
           insert(this.contentArea, menu)
         }
         moveMenu(blocks, menu, this._zoom)
-        menu.afterAdd?.(blocks)
       }
     } else {
       if (old) setVisible(old, false)

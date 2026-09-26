@@ -1,39 +1,14 @@
 import { insert, provideErrTranslations } from '@jsx6/jsx6'
 import { $State } from '@jsx6/signal'
 
-import { ConnectLine } from './ConnectLine.js'
-import { EditableTitle } from './EditableTitle.js'
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
 
 provideErrTranslations()
 
-// positions reported by `ne-move`, keyed by block id / connector `idFull`
-const points = {}
-
 // click through empty parts of SVG
 // https://stackoverflow.com/questions/22483643/svg-still-receives-clicks-even-if-pointer-events-visible-painted/29319009#29319009
-
-/**
- * `ne-move` consumer. Two detail shapes reach it:
- *  - a block move (`NodeEditor.fireMove`): `{nid, left, top, pos, domNode}`
- *  - P3-2: connector moves arrive coalesced into ONE event per batch, whose
- *    detail is `{stamp, connectors}` — `connectors` holding the
- *    `{...ConnectorData}` snapshots the old per-connector events carried
- */
-const onMove = ({ detail }) => {
-  if (detail.nid) {
-    points[detail.nid] = detail
-    return
-  }
-  for (let con of detail.connectors || []) points[con.idFull] = con
-  // if (points[1] && points[2]) {
-  //   let { 1: p1, 2: p2 } = points
-  //   // path.setPos(p1[0], p1[1],p2[0],p2[1])
-  //   path.setPos(p1.left + p1.domNode.offsetWidth, p1.top + 10, p2.left, p2.top + 10)
-  // }
-}
 
 /**
  * Persist the whole graph (blocks + connections + positions) to
@@ -44,7 +19,7 @@ const saveGraph = () => {
   localStorage.setItem('ne.graph', JSON.stringify(editor.saveGraph()))
 }
 
-const moveDone = ({ detail }) => {
+const moveDone = () => {
   saveGraph()
 }
 
@@ -99,24 +74,18 @@ let menu = (
   </div>
 )
 
-menu.afterAdd = function (blocks) {
-  let blockData = blocks[0]
-}
-
 /**  @type {NodeEditor} */
 const editor = (
   <NodeEditor
     // @ts-ignore
-    class="fxs1 fx1"
+    class="fxs1 fx1 NodeEditor"
     menu={() => menu}
     typeMap={typeMap}
     zoomMax={4}
     onwheel={e => {
       e.preventDefault()
       editor.changeZoomMouse(e.deltaY > 0 ? -0.1 : 0.1, e)
-      // editor.changeZoomCenter(e.deltaY > 0 ? -0.1 : 0.1)
     }}
-    onne-move={onMove}
     onne-move-done={moveDone}
     onne-remove={saveGraph}
     style="width: 800px; height: 500px; outline: solid 1px black; contain:strict"

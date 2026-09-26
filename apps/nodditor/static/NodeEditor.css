@@ -26,19 +26,6 @@ jsx6-nodditor svg g.ne-to-sel-block path:first-child {
   stroke: #2e6ca7;
 }
 
-jsx6-nodditor .ne-focus-bt {
-  top: 0;
-  left: 0;
-  /* width: 100%; */
-  /* height: 100%; */
-  position: absolute;
-  background: #eee;
-}
-jsx6-nodditor .ne-focus-bt:focus {
-  background: #fee;
-  outline: solid 1px red;
-}
-
 .ne-menu {
   padding-bottom: 5px;
 }

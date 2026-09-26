@@ -54,6 +54,7 @@
     "@jsx6/signal-dom": "workspace:*",
     "@jsx6/w": "workspace:*",
     "live-server": "catalog:",
+    "@happy-dom/global-registrator": "catalog:",
     "typescript": "catalog:"
   },
   "dependencies": {

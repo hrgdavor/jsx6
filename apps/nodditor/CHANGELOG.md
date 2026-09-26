@@ -36,6 +36,12 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
   connector moved. Block-level `ne-move` (`{nid, left, top, pos, domNode}`)
   and `ne-move-done` are unchanged. `ConnectLine` and the demo were migrated.
 
+- Maintenance (task P4): the package now has unit tests (`test/`, run by `bun test` with happy-dom
+  and a `bunfig.toml`) and a README. Dead code was removed from the demo and the editor
+  (`onMove`/`points`, the unused `menu.afterAdd` hook, two unused `index.jsx` imports, two unused
+  CSS rules); no public API changed. Styling: `.h50` now sets `height` (it set `width`), and
+  `.ne-block [ne-connect]` declares `display` once (`flex`, the value that won before).
+
 ## 1.0.40
 Thu, 25 Apr 2024 11:46:22 GMT
 

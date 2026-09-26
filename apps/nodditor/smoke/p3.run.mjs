@@ -1,8 +1,11 @@
-// Runner for the P3 smoke test: bundles the .jsx sources + test with esbuild
+// Runner for the P3 smoke suite: bundles the .jsx sources + suite with esbuild
 // (same settings as the app build), boots the happy-dom globals, then imports
 // the bundle so the editor code evaluates against the DOM.
 //
 //   cd apps/nodditor && node smoke/p3.run.mjs
+//
+// Named `p3.smoke.jsx` (not `*.test.jsx`) so `bun test` never runs it directly
+// — see the note in p1.run.mjs; the unit tests live in ../test/.
 //
 // IntersectionObserver is stubbed like in p1/p2 (happy-dom 14 lacks it).
 // ResizeObserver is stubbed too: happy-dom has no layout, so its observer never
@@ -39,7 +42,7 @@ globalThis.ResizeObserver = class {
 await esbuild.build({
   absWorkingDir: process.cwd(),
   tsconfig: 'tsconfig-custom.json',
-  entryPoints: ['smoke/p3.test.jsx'],
+  entryPoints: ['smoke/p3.smoke.jsx'],
   outfile: 'smoke/p3.bundle.mjs',
   bundle: true,
   format: 'esm',
