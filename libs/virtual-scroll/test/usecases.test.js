@@ -68,7 +68,7 @@ describe('Virtual scroll', () => {
 
   function getVisibleElementsTextContent() {
     return Array.from(vs.idDomMap.values())
-      .sort((a, b) => a.id - b.id)
+      .sort((a, b) => Number(a.dataset.key) - Number(b.dataset.key))
       .map(child => child.textContent)
   }
 
@@ -82,5 +82,6 @@ describe('Virtual scroll', () => {
   const updateItemContent = (element, item) => {
     element.updateCount++
     element.textContent = `id:${item.id}`
+    element.dataset.key = item.id
   }
 })

@@ -47,7 +47,7 @@ const vs = new VirtualScroll({
   itemsContainer,
   itemHeight: ITEM_HEIGHT,
   items,
-  keyField: x => x.id,
+  getKey: x => x.id,
   buffer: 0,
   createItem,
   updateItemContent,

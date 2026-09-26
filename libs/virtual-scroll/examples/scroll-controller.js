@@ -5,28 +5,25 @@ export class ScrollController {
     this.onScroll = onScroll
 
     this.ticking = false
+    this.resizeTimeout = null
 
-    this.container.addEventListener(
-      'scroll',
-      () => {
-        if (!this.ticking) {
-          window.requestAnimationFrame(() => {
-            this.virtualScroll.render(this.container.scrollTop)
-            this.onScroll(this.container.scrollTop)
-            this.ticking = false
-          })
-          this.ticking = true
-        }
-      },
-      { passive: true },
-    )
-
-    const debouncedResize = debounce(() => {
-      this.virtualScroll.updateViewport(this.container.clientHeight, this.container.scrollTop)
-    }, 150)
+    this.scrollHandler = () => {
+      if (!this.ticking) {
+        window.requestAnimationFrame(() => {
+          this.virtualScroll.render(this.container.scrollTop)
+          this.onScroll(this.container.scrollTop)
+          this.ticking = false
+        })
+        this.ticking = true
+      }
+    }
+    this.container.addEventListener('scroll', this.scrollHandler, { passive: true })
 
     this.resizeObserver = new ResizeObserver(() => {
-      debouncedResize()
+      clearTimeout(this.resizeTimeout)
+      this.resizeTimeout = setTimeout(() => {
+        this.virtualScroll.updateViewport(this.container.clientHeight, this.container.scrollTop)
+      }, 150)
     })
     this.resizeObserver.observe(this.container)
   }
@@ -34,12 +31,10 @@ export class ScrollController {
   start() {
     this.virtualScroll.updateViewport(this.container.clientHeight, this.container.scrollTop)
   }
-}
 
-function debounce(func, wait) {
-  let timeout
-  return (...args) => {
-    clearTimeout(timeout)
-    timeout = setTimeout(() => func.apply(this, args), wait)
+  destroy() {
+    this.container.removeEventListener('scroll', this.scrollHandler)
+    clearTimeout(this.resizeTimeout)
+    this.resizeObserver.disconnect()
   }
 }

@@ -141,4 +141,89 @@ describe('Virtual scroll', () => {
     expect(vs.idDomMap).toBeEmpty()
     expect(vs.unusedPool.length).toBe(2)
   })
+
+  test('render() before updateViewport() does nothing', () => {
+    vs.render(0)
+    expect(vs.idDomMap).toBeEmpty()
+    expect(vs.unusedPool).toBeEmpty()
+  })
+
+  test('offsetTop shifts the visible range', () => {
+    const vs2 = new VirtualScroll({
+      createItem,
+      updateItemContent,
+      itemHeight: 80,
+      offsetTop: 80,
+      items,
+      itemsContainer: DUMMY_ITEMS_CONTAINER,
+    })
+    // Viewport [160, 640): rows 1..6 (row 1 spans [160, 240))
+    vs2.updateViewport(480, 160)
+    const mounted = [...vs2.idDomMap.values()].map(el => el.__vsIndex)
+    expect(mounted).toEqual([1, 2, 3, 4, 5, 6])
+  })
+
+  test('offsetTop: nothing is visible while the viewport is above the list', () => {
+    const vs2 = new VirtualScroll({
+      createItem,
+      updateItemContent,
+      itemHeight: 80,
+      offsetTop: 80,
+      items,
+      itemsContainer: DUMMY_ITEMS_CONTAINER,
+    })
+    // Viewport [0, 80) is entirely above the list (which starts at y=80)
+    vs2.updateViewport(80, 0)
+    expect(vs2.idDomMap).toBeEmpty()
+  })
+
+  test('fractional scrollTop with buffer 0 leaves no gap at the bottom', () => {
+    const vs2 = new VirtualScroll({
+      createItem,
+      updateItemContent,
+      itemHeight: 80,
+      items,
+      itemsContainer: DUMMY_ITEMS_CONTAINER,
+    })
+    // Viewport [79, 579): rows 0..7 (row 7 spans [560, 640), a 19px sliver is visible)
+    vs2.updateViewport(500, 79)
+    const mounted = [...vs2.idDomMap.values()].map(el => el.__vsIndex)
+    expect(mounted).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
+  })
+
+  test('duplicate keys in the visible range throw', () => {
+    const dup = new VirtualScroll({
+      createItem,
+      updateItemContent,
+      itemHeight: ITEM_HEIGHT,
+      items: [{ id: 'a' }, { id: 'a' }, { id: 'b' }],
+      itemsContainer: DUMMY_ITEMS_CONTAINER,
+    })
+    expect(() => dup.updateViewport(100, 0)).toThrow()
+  })
+
+  test('destroy() removes all managed elements and clears state', () => {
+    const removed = []
+    const vs2 = new VirtualScroll({
+      createItem: () => ({
+        style: {},
+        remove() {
+          removed.push(this)
+        },
+      }),
+      updateItemContent: () => {},
+      itemHeight: ITEM_HEIGHT,
+      items,
+      itemsContainer: DUMMY_ITEMS_CONTAINER,
+    })
+    vs2.updateViewport(ITEM_HEIGHT * 2, 0) // mount 2
+    vs2.updateViewport(ITEM_HEIGHT, 0) // one goes to the pool
+    expect(vs2.idDomMap.size).toBe(1)
+    expect(vs2.unusedPool.length).toBe(1)
+
+    vs2.destroy()
+    expect(vs2.idDomMap).toBeEmpty()
+    expect(vs2.unusedPool).toBeEmpty()
+    expect(removed.length).toBe(2)
+  })
 })

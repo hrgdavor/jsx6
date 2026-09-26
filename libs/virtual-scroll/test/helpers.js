@@ -3,7 +3,7 @@ export const DUMMY_ITEMS_CONTAINER = { appendChild: () => {} }
 expect.extend({
   // better to test translation
   toBeAtPosition(element, expectedPosition) {
-    const actualPosition = element.vsidx
+    const actualPosition = element.__vsIndex
 
     return {
       pass: actualPosition == expectedPosition,

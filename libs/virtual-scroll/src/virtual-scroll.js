@@ -1,18 +1,32 @@
 /**
  * @typedef {Object} VirtualScrollConfig
  * @property {HTMLElement} itemsContainer - The DOM element that holds the list items.
- * @property {number} itemHeight - The fixed height of each row in pixels.
+ * @property {number} itemHeight - The fixed height of each row in pixels. Rows MUST have this
+ *   fixed height; variable-height rows are not supported.
  * @property {Array<any>} items - The full array of data items to render.
  * @property {number} [buffer=0] - Number of items to render above/below the viewport.
- * @property {number} [offsetTop=0] - Vertical offset for the start of the list.
+ * @property {number} [offsetTop=0] - Vertical offset of the list start in pixels (e.g. a header
+ *   above the items). Row i is placed at `i * itemHeight + offsetTop`.
  * @property {() => HTMLElement} createItem - Factory function to create a new list item DOM element.
- * @property {(HTMLElement, any) => void} updateItemContent - Function to bind data to a recycled DOM element.
- * @property {(any) => string|number} [getKey] - Function to get a unique identifier for an item. Defaults to item.id.
+ * @property {(HTMLElement, any) => void} updateItemContent - Function to bind data to a recycled
+ *   DOM element. Called when a row (re)mounts; a row that stays mounted under the same key is
+ *   repositioned but NOT re-bound.
+ * @property {(any) => string|number} [getKey] - Function to get a unique identifier for an item.
+ *   Keys must be unique across `items`; a duplicate key in the visible range throws. Defaults
+ *   to item.id.
  */
 
 /**
  * VirtualScroll class encapsulates the logic for high-performance scrolling
- * of large lists by recycling a pool of DOM elements using identity-aware reconciliation.
+ * of large, fixed-height lists by recycling a pool of DOM elements using
+ * identity-aware reconciliation.
+ *
+ * Contract:
+ * - Call `updateViewport(containerHeight, scrollTop)` before scrolling: it stores the viewport
+ *   height and performs the first render. `render(scrollTop)` then recomputes the visible
+ *   range for the stored viewport height.
+ * - Item keys must be unique.
+ * - Rows that leave the viewport are hidden (`display: none`) but kept in the DOM for reuse.
  */
 export class VirtualScroll {
   /**
@@ -32,33 +46,49 @@ export class VirtualScroll {
 
     // domPool: Map<key, HTMLElement> — currently rendered elements
     this.idDomMap = new Map()
-    // unusedPool: Array<HTMLElement> — recycled elements ready for reuse
+    // unusedPool: Array<HTMLElement> — recycled elements ready for reuse (kept in the DOM, hidden)
     this.unusedPool = []
 
-    this.poolSize = 0
+    // Viewport height; set by updateViewport() before render() (-1 = not yet set)
+    this.containerHeight = -1
   }
 
   /**
-   * Initialize pool and render visible range.
+   * Store the viewport height and render the visible range.
+   * @param {number} containerHeight
+   * @param {number} scrollTop
    */
   updateViewport(containerHeight, scrollTop) {
-    this.poolSize = Math.ceil(containerHeight / this.itemHeight) + this.buffer * 2
+    this.containerHeight = containerHeight
     this.render(scrollTop)
   }
 
   /**
    * Single unified update: evict off-screen, mount on-screen.
+   * Requires `updateViewport()` to have been called first.
+   * @param {number} scrollTop
    */
   render(scrollTop) {
-    const start = Math.max(0, Math.floor(scrollTop / this.itemHeight) - this.buffer)
-    const end = Math.min(this.items.length, start + this.poolSize)
+    if (this.containerHeight < 0) return
+
+    const start = Math.max(0, Math.floor((scrollTop - this.offsetTop) / this.itemHeight) - this.buffer)
+    const end = Math.min(
+      this.items.length,
+      Math.ceil((scrollTop + this.containerHeight - this.offsetTop) / this.itemHeight) + this.buffer,
+    )
 
     // Process visible range
     const oldDomMap = this.idDomMap
     this.idDomMap = new Map()
+    const seenKeys = new Set()
     for (let i = start; i < end; i++) {
       const item = this.items[i]
       const key = this.getKey(item)
+      if (seenKeys.has(key)) {
+        throw new Error(`VirtualScroll: duplicate key "${String(key)}" — item keys must be unique`)
+      }
+      seenKeys.add(key)
+
       const el = oldDomMap.get(key)
       if (!el) continue
 
@@ -66,6 +96,7 @@ export class VirtualScroll {
       this.idDomMap.set(key, el)
     }
     for (const value of oldDomMap.values()) {
+      value.style.display = 'none'
       this.unusedPool.push(value)
     }
 
@@ -77,10 +108,8 @@ export class VirtualScroll {
         // Already mounted — just update position
         this.translateElement(this.idDomMap.get(key), i)
       } else {
-        // Mount new element
-        // Create item is an edge case. It may happen during very fast scrolling
+        // Mount new element (from the pool, or freshly created when the pool is empty)
         const el = this.unusedPool.pop() || this.createItem()
-        el.__key = key
 
         this.itemsContainer.appendChild(el)
         this.updateItemContent(el, item)
@@ -89,15 +118,21 @@ export class VirtualScroll {
         this.idDomMap.set(key, el)
       }
     }
-
-    // Evict off-screen elements
-    for (const el of this.unusedPool) {
-      el.style.display = 'none'
-    }
   }
 
   translateElement(itemEl, index) {
-    itemEl.vsidx = index
+    itemEl.__vsIndex = index
     itemEl.style.transform = `translate3d(0, ${index * this.itemHeight + this.offsetTop}px, 0)`
+  }
+
+  /**
+   * Remove all managed elements from the DOM and clear the pools.
+   */
+  destroy() {
+    for (const el of this.idDomMap.values()) el.remove()
+    for (const el of this.unusedPool) el.remove()
+    this.idDomMap.clear()
+    this.unusedPool.length = 0
+    this.containerHeight = -1
   }
 }
