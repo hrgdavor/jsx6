@@ -99,6 +99,20 @@ export class NodeEditor extends JsxW {
   }
 
   /**
+   * Correctly-spelled alias of the misspelled `lineinteraciton` property.
+   * The old name is kept for backward compatibility; a breaking rename to
+   * this spelling is planned for v2 (see CHANGELOG).
+   * @returns {LineInteraction}
+   */
+  get lineinteraction() {
+    return this.lineinteraciton
+  }
+  /** @param {LineInteraction} v */
+  set lineinteraction(v) {
+    this.lineinteraciton = v
+  }
+
+  /**
    *
    * @param {any} block
    * @param {string} id
@@ -106,6 +120,7 @@ export class NodeEditor extends JsxW {
    * @returns {BlockData}
    */
   add(block, id, { pos = [0, 0], type = '' } = {}) {
+    if (this.blockMap.has(id)) throw new Error(`NodeEditor: block id "${id}" is already in use`)
     setAttribute(block, 'nid', id)
     let rootNode = /** @type {HTMLBlock}*/ (toDomNode(block))
     block.setNodeEditor?.(this)
@@ -189,19 +204,48 @@ export class NodeEditor extends JsxW {
   removeLine(line) {
     let idx = this.lines.indexOf(line)
     if (idx != -1) {
+      if (this.selectedLine == line) this.selectedLine = null
       this.lines.splice(idx, 1)
       remove(line.el)
       finalize(line)
     }
   }
 
+  /**
+   * Remove a connector whose element has been detached from the DOM: drop it
+   * from the block data, fire `ne-remove`, remove the lines connected to it
+   * (same filter pattern removeBlock used) and finalize its listeners.
+   * Idempotent — a second call for the same connector is a no-op, which keeps
+   * it safe to run both from the IntersectionObserver callback and from
+   * `removeBlock`.
+   * @param {ConnectorData} con
+   */
+  removeConnector(con) {
+    let blockData = con?.root
+    if (!blockData || blockData.connectorMap.get(con.id) !== con) return
+    blockData.connectorMap.delete(con.id)
+    blockData.resizeSet.delete(con.el)
+    // capture the connected lines BEFORE firing `ne-remove`: the listener
+    // clears the line endpoints (p.con -> null), so a filter afterwards would
+    // match nothing
+    let lines = this.lines.filter(line => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull)
+    this.fireCustom(con.el, 'ne-remove', { ...con })
+    lines.forEach(l => this.removeLine(l))
+    con.el.removeObserve?.()
+    // releases the click finalizer registered in addConnector and, via the
+    // recursion into con.el, the pointer finalizers of LineInteraction
+    finalize(con)
+  }
+
   removeBlock(block) {
     let idx = this.blocks.indexOf(block)
     if (idx != -1) {
       this.blocks.splice(idx, 1)
-      // todo remove lines connected to it
-      let lines = this.lines.filter(line => line.p1.con?.root.id == block.id || line.p2.con?.root.id == block.id)
-      lines.forEach(l => this.removeLine(l))
+      // free the id, otherwise `add` would keep rejecting it as duplicate
+      // (and a `clear()` + `loadGraph` round trip could never re-add it)
+      this.blockMap.delete(block.id)
+      this.nodeMap.delete(block.el)
+      block.connectorMap.forEach(con => this.removeConnector(con))
       remove(block.el)
       finalize(block)
     }
@@ -219,7 +263,7 @@ export class NodeEditor extends JsxW {
 
   resetView(padx = 30, pady = 30) {
     const [minx, miny] = this.getMinXY()
-    this.moveAll(-minx + padx, -miny + padx)
+    this.moveAll(-minx + padx, -miny + pady)
     this.fireMoveDone()
   }
 
@@ -261,6 +305,7 @@ export class NodeEditor extends JsxW {
         if (e.target == this) {
           this.realWidth = size[0]
           this.realHeight = size[1]
+          this.updateSize()
           return
         }
 
@@ -365,15 +410,19 @@ export class NodeEditor extends JsxW {
         this.deselect()
         return
       }
+      let wasMoving = $s.isMoving()
       $s.isDown = false
-      if ($s.isMoving()) el.releasePointerCapture(e.pointerId)
+      if (wasMoving) el.releasePointerCapture(e.pointerId)
       $s.isMoving = false
       this.fireMoveDone(blockData)
 
-      if ($s.isMoving()) {
+      if (wasMoving) {
         e.preventDefault()
-      } else {
-        if (blockData) this.selectBlocks([blockData])
+      } else if (domNode == null) {
+        // pointer was not on a block/line and no movement occurred: deselect
+        this.deselect()
+      } else if (blockData) {
+        this.selectBlocks([blockData])
       }
       blockData = domNode = nid = undefined
       //this.focus()
@@ -416,10 +465,14 @@ export class NodeEditor extends JsxW {
       }
     })
     const keypress = e => {
+      // while the user is editing an in-place title (contenteditable),
+      // Delete/Backspace must type, not delete the selection
+      let active = document.activeElement
+      if (active && active.isContentEditable) return
       if ((e.key === 'Delete' || e.key === 'Backspace') && this.$focusOrSelecting()) {
         if (this.selectedLine) {
           this.removeLine(this.selectedLine)
-        } else if (this.selectBlocks.length) {
+        } else if (this.selectedBlocks?.length) {
           this.deleteSelectedBlocks()
         }
         e.preventDefault()
@@ -439,10 +492,10 @@ export class NodeEditor extends JsxW {
     if (this._zoom == zoom) return
     this._zoom = zoom
     this.contentArea.style.transform = `scale(${zoom})`
-    this.udpateSize()
+    this.updateSize()
   }
 
-  udpateSize() {
+  updateSize() {
     this.contentArea.style.width = this.realWidth / this._zoom + 'px'
     this.contentArea.style.height = this.realHeight / this._zoom + 'px'
   }
@@ -492,15 +545,38 @@ export class NodeEditor extends JsxW {
     })
   }
   /**
-   *
+   * @param {string} idFull1
+   * @param {string} idFull2
+   * @returns {boolean} true when a line already connects the two connectors (in either direction)
+   */
+  lineExists(idFull1, idFull2) {
+    for (let i = 0; i < this.lines.length; i++) {
+      let tmp = this.lines[i]
+      let a = tmp.p1.con?.idFull
+      let b = tmp.p2.con?.idFull
+      if ((a == idFull1 && b == idFull2) || (a == idFull2 && b == idFull1)) return true
+    }
+    return false
+  }
+
+  /**
    * @param {string|Array<string>} c1
    * @param {string|Array<string>} c2
    * @returns {ConnectLine}
+   * @throws {Error} when either connector is unknown, they are the same connector,
+   *   or a line already connects the pair (in either direction)
    */
   addConnectorFromTo(c1, c2) {
+    let con1 = this.getConnector(c1)
+    let con2 = this.getConnector(c2)
+    if (!con1 || !con2)
+      throw new Error(`NodeEditor: unknown connector: "${con1?.idFull ?? c1}" / "${con2?.idFull ?? c2}"`)
+    if (con1 == con2) throw new Error(`NodeEditor: cannot connect a connector to itself: "${con1.idFull}"`)
+    if (this.lineExists(con1.idFull, con2.idFull))
+      throw new Error(`NodeEditor: "${con1.idFull}" is already connected to "${con2.idFull}"`)
     let path = new ConnectLine()
-    path.setPoint1(this.getConnector(c1), false)
-    path.setPoint2(this.getConnector(c2))
+    path.setPoint1(con1, false)
+    path.setPoint2(con2)
     return this.addConnector(path)
   }
   /**
@@ -513,6 +589,49 @@ export class NodeEditor extends JsxW {
     insert(this.svgLayer, con.el)
     this.lines.push(con)
     return con
+  }
+
+  /**
+   * @typedef GraphState
+   * @property {Array<{id: string, type: string, pos: Array<number>}>} blocks
+   * @property {Array<[string, string]>} lines
+   */
+
+  /**
+   * Serialize the whole graph to a plain JSON-compatible object: `blocks` as
+   * `{id, type, pos}` and `lines` as pairs of connector ids
+   * (`ConnectorData.idFull`, `"blockId/ncid"`). The result is suitable for
+   * `JSON.stringify` (the demo stores it in `localStorage`).
+   * @returns {GraphState}
+   */
+  saveGraph() {
+    return {
+      blocks: this.blocks.map(b => ({ id: b.id, type: b.type, pos: b.pos })),
+      lines: this.lines.map(l => [l.p1.con?.idFull, l.p2.con?.idFull]),
+    }
+  }
+
+  /**
+   * Rebuild the graph from a saved state (as produced by `saveGraph`),
+   * clearing the editor first. `typeMap` maps a block `type` to a factory
+   * that returns a FRESH block element (e.g. `{ Switch: () => <Switch/> }`)
+   * — the editor does not know block components itself, so every block type
+   * in `state.blocks` must have an entry in `typeMap`.
+   * @param {GraphState} state
+   * @param {Object<string, Function>} [typeMap]
+   * @throws {Error} when a block type has no factory in `typeMap`
+   */
+  loadGraph(state, typeMap = {}) {
+    this.clear()
+    for (let b of state?.blocks ?? []) {
+      let make = typeMap[b.type]
+      if (typeof make !== 'function')
+        throw new Error(`NodeEditor: no factory registered for block type "${b.type}" (id "${b.id}")`)
+      this.add(make(), b.id, { pos: b.pos, type: b.type })
+    }
+    for (let [c1, c2] of state?.lines ?? []) {
+      this.addConnectorFromTo(c1, c2)
+    }
   }
   /**
    *
@@ -580,6 +699,37 @@ export class NodeEditor extends JsxW {
     this.selectBlocks([])
   }
 
+  /** @type {boolean} */
+  destroyed = false
+
+  /**
+   * Tear down the editor: disconnect the canvas ResizeObserver, finalize all
+   * lines and blocks (their listeners) and drop the selection. Idempotent —
+   * safe to call again; also called automatically when the element leaves
+   * the DOM (see `disconnectedCallback`).
+   */
+  destroy() {
+    if (this.destroyed) return
+    this.destroyed = true
+    // iterate backwards: removeLine/removeBlock splice the very arrays we
+    // are walking, so a forward forEach would skip every second entry
+    for (let i = this.lines.length - 1; i >= 0; i--) this.removeLine(this.lines[i])
+    for (let i = this.blocks.length - 1; i >= 0; i--) this.removeBlock(this.blocks[i])
+    this.selectedLine = null
+    this.selectedBlocks = []
+    this.currentMenu = null
+    this.observer?.disconnect()
+  }
+
+  /**
+   * The custom element was removed from the DOM — release everything it
+   * holds (the canvas ResizeObserver is never disconnected otherwise).
+   */
+  disconnectedCallback() {
+    super.disconnectedCallback?.()
+    this.destroy()
+  }
+
   /**
    *
    * @param {Element} el
@@ -606,6 +756,6 @@ export class NodeEditor extends JsxW {
     if (!blockData) return
 
     let { pos, id, el } = blockData
-    this.fireCustom(this, evtName, { top: pos[1], left: pos[1], nid: id, domNode: el, pos })
+    this.fireCustom(this, evtName, { top: pos[1], left: pos[0], nid: id, domNode: el, pos })
   }
 }

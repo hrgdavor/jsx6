@@ -37,6 +37,17 @@ export class LineInteraction {
     let firstCon
     /** @type {ConnectorData} */
     let otherCon
+    /** @type {'p1' | 'p2'} */
+    let freeEnd
+
+    const setFreePos = (x, y) => {
+      if (freeEnd == 'p1') line.setPos1(x, y)
+      else line.setPos2(x, y)
+    }
+    const setFreePoint = c => {
+      if (freeEnd == 'p1') line.setPoint1(c)
+      else line.setPoint2(c)
+    }
 
     const pointerdown = e => {
       // adding only from output for now
@@ -47,6 +58,15 @@ export class LineInteraction {
       if (selected) {
         if (selected.p2.con == con) {
           line = selected
+          firstCon = con
+          freeEnd = 'p2'
+          isDown = true
+          return
+        }
+        if (selected.p1.con == con) {
+          line = selected
+          firstCon = con
+          freeEnd = 'p1'
           isDown = true
           return
         }
@@ -54,6 +74,7 @@ export class LineInteraction {
 
       if (con.dir == 'in') return
       if (this.editor.lineHasConnector(con)) return
+      freeEnd = 'p2'
       isDown = true
     }
 
@@ -68,14 +89,15 @@ export class LineInteraction {
       let y = e.clientY
 
       if (isDown && !isMoving) {
-        line = this.editor.addConnector(new ConnectLine())
+        // reuse the line grabbed from a selected endpoint, or create a new one
+        if (!line) line = this.editor.addConnector(new ConnectLine())
         this.editor.selectConnector(line)
         line.setSelected(true)
-        line.setPoint1(con)
+        if (!line.p1.con) line.setPoint1(con)
         firstCon = con
         markTarget(con, 1)
 
-        line.setPos2(x, y)
+        setFreePos((x - 1 - lx) / this.editor.zoom, (y - ly) / this.editor.zoom)
 
         // pointer capture inside pointerdown caused clicking to not work
         // it is better to capture pointer only on pointer down + first movement
@@ -90,13 +112,13 @@ export class LineInteraction {
       if (connectorData && connectorData != firstCon) {
         markTarget(connectorData, 1)
         otherCon = connectorData
-        line.setPoint2(otherCon)
+        setFreePoint(otherCon)
       } else {
         if (otherCon) markTarget(otherCon, connectorData == otherCon)
         if (connectorData == firstCon || !connectorData) {
           otherCon = null
         }
-        line.setPos2((x - 1 - lx) / this.editor.zoom, (y - ly) / this.editor.zoom)
+        setFreePos((x - 1 - lx) / this.editor.zoom, (y - ly) / this.editor.zoom)
       }
     }
 

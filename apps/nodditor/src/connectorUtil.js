@@ -1,5 +1,7 @@
 import { getAttr, setAttribute } from '@jsx6/jsx6'
 
+import { observeShowHide } from '@jsx6/dom-observer'
+
 import { calcPos } from './calcPos.js'
 import { pairSum } from './pairUtils.js'
 
@@ -41,6 +43,18 @@ export function findConnector(blockData) {
           editor: this,
           size: [el.offsetWidth, el.offsetHeight],
         }
+        // watch the connector element: when it is removed from the DOM the
+        // IntersectionObserver delivers one final entry with
+        // intersectionRatio 0 and the editor cleans the connector up
+        // (NodeEditor.removeConnector). The root is the block element, so
+        // dragging the block outside the viewport cannot trigger a false cleanup.
+        el.removeObserve = observeShowHide(
+          el,
+          entry => {
+            if (!entry.intersectionRatio) blockData.editor.removeConnector(connectData)
+          },
+          { root: rootNode },
+        )
         blockData.editor.newConnector(connectData)
         connectorMap.set(ncId, connectData)
         updatePos(connectData)

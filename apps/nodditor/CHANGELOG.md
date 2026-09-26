@@ -2,6 +2,13 @@
 
 This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be manually modified.
 
+## Unreleased
+
+- The misspelled `NodeEditor.lineinteraciton` property will be renamed to
+  `lineinteraction` in v2 (breaking change). The old name is kept for now and
+  the correctly spelled `lineinteraction` is available as an alias, so
+  existing code keeps working until the v2 rename.
+
 ## 1.0.40
 Thu, 25 Apr 2024 11:46:22 GMT
 

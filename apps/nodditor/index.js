@@ -6,7 +6,7 @@ export * from './src/makeLineConnector.js'
 export * from './src/pairUtils.js'
 export * from './src/selectElementText.js'
 export * from './src/getBlocksMinXY.js'
-export * from './src/getBlocksBounds.js'
+export { getBlocksBounds } from './src/getBlocksBounds.js'
 
 export { LineInteraction } from './src/LineInteraction.js'
 export { ConnectLine } from './src/ConnectLine.js'

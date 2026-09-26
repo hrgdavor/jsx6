@@ -8,6 +8,13 @@ export const EditableTitle = (attr = {}) => {
   const getValue = () => el.textContent
   const setValue = v => (el.textContent = v)
   let old
+  const commit = () => {
+    el.removeAttribute('contenteditable')
+    let value = el.textContent
+    if (value != old) {
+      fireCustom(el, 'change', { value })
+    }
+  }
   let el = (
     <div
       {...attr}
@@ -16,13 +23,21 @@ export const EditableTitle = (attr = {}) => {
         old = el.textContent
         el.setAttribute('contenteditable', 'true')
         selectElementText(el)
+        el.focus()
+      }}
+      onkeydown={e => {
+        if (!el.isContentEditable) return
+        if (e.key === 'Enter') {
+          commit()
+          e.preventDefault()
+        } else if (e.key === 'Escape') {
+          el.textContent = old
+          el.removeAttribute('contenteditable')
+          e.preventDefault()
+        }
       }}
       onblur={e => {
-        el.removeAttribute('contenteditable')
-        let value = el.textContent
-        if (value != old) {
-          fireCustom(el, 'change', { value })
-        }
+        if (el.isContentEditable) commit()
       }}
     ></div>
   )

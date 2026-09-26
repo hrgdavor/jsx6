@@ -4,6 +4,7 @@
  * @returns {Array<Number>} [minx, miny]
  */
 export function getBlocksMinXY(blocks) {
+  if (!blocks?.length) return [0, 0]
   let minx
   let miny = (minx = Number.MAX_SAFE_INTEGER)
   blocks.forEach(blockData => {

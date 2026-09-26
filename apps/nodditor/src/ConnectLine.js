@@ -52,9 +52,8 @@ export class ConnectLine {
    */
   setPoint(p, con, skipUpdate) {
     let old = p.con
-    if (old) p.listen?.forEach(runFuncNoArg)
-
     p.con = con
+    if (old) p.listen?.forEach(runFuncNoArg)
     if (!con) return
 
     this.setPosAligned(p, con, skipUpdate)
@@ -62,7 +61,7 @@ export class ConnectLine {
       this.setPosAligned(p, con)
     })
     p.listen[1] = listenCustom(con.el, 'ne-remove', _detail => {
-      this.setPoint1(null)
+      this.setPoint(p, null)
     })
     if (!skipUpdate) this.updatePath()
   }

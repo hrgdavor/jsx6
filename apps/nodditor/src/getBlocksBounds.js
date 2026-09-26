@@ -14,7 +14,7 @@
  * @param {Array<import("./NodeEditor.jsx").BlockData} blocks
  * @returns {BlockData}
  */
-export function getBlocksMinXY(blocks) {
+export function getBlocksBounds(blocks) {
   if (!blocks?.length) return { x: 0, y: 0, maxx: 0, maxy: 0, w: 0, h: 0 }
 
   let minx
@@ -30,5 +30,5 @@ export function getBlocksMinXY(blocks) {
     maxy = Math.max(maxy, y + h)
   })
 
-  return { x: minx, y: miny, maxx, maxy, w: minx - maxx, h: miny - maxy }
+  return { x: minx, y: miny, maxx, maxy, w: maxx - minx, h: maxy - miny }
 }
