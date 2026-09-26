@@ -26,6 +26,10 @@
 }
 .EditableTitle {
   min-height: 16px;
+  /* titles live inside [ne-drag] (user-select: none) — re-enable text
+     selection so in-place editing works */
+  user-select: text;
+  cursor: text;
 }
 .ne-content {
   border-bottom-left-radius: 3px;

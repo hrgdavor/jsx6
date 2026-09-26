@@ -1,4 +1,4 @@
-import { forEachProp, insert, provideErrTranslations } from '@jsx6/jsx6'
+import { insert, provideErrTranslations } from '@jsx6/jsx6'
 import { $State } from '@jsx6/signal'
 
 import { ConnectLine } from './ConnectLine.js'
@@ -36,16 +36,53 @@ const moveDone = ({ detail }) => {
   saveGraph()
 }
 
-function deleteBlocks() {
-  editor.deleteSelectedBlocks()
+/**
+ * Block component factories for `editor.loadGraph` and undo/redo (which
+ * reuses it). They are FACTORIES (returning a fresh DOM node per call),
+ * because `loadGraph` calls each one once per block.
+ * @type {Object<string, Function>}
+ */
+let typeMap = {
+  Switch: () => <Switch />,
+  Message: () => <Message />,
+}
+
+function deleteSelection() {
+  editor.deleteSelection()
+}
+
+/**
+ * "E" edit button: start in-place editing of the first selected block's
+ * EditableTitle (the same flow a real pointerup on the title triggers).
+ */
+function editTitle() {
+  let blockData = editor.selectedBlocks?.[0]
+  let title = blockData?.el.querySelector('.EditableTitle')
+  if (title) title.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }))
+}
+
+function toggleSnap() {
+  editor.snap = editor.snap ? 0 : 20
 }
 
 /** @type {any} */
 let $s = $State({ hasEdit: true })
 let menu = (
   <div class="fx ne-menu" style="padding: 4px; border: solid 1px gray">
-    <div class="ne-bt ne-delete" onclick={deleteBlocks}>
+    <div class="ne-bt ne-delete" title="Delete selection" onclick={deleteSelection}>
       X
+    </div>
+    <div class="ne-bt" title="Edit title" onclick={editTitle}>
+      E
+    </div>
+    <div class="ne-bt" title="Undo (Ctrl+Z)" onclick={() => editor.undo()}>
+      ↶
+    </div>
+    <div class="ne-bt" title="Redo (Ctrl+Shift+Z)" onclick={() => editor.redo()}>
+      ↷
+    </div>
+    <div class="ne-bt" title="Toggle grid snapping (20px)" onclick={toggleSnap}>
+      ▦
     </div>
   </div>
 )
@@ -60,6 +97,8 @@ const editor = (
     // @ts-ignore
     class="fxs1 fx1"
     menu={() => menu}
+    typeMap={typeMap}
+    zoomMax={4}
     onwheel={e => {
       e.preventDefault()
       editor.changeZoomMouse(e.deltaY > 0 ? -0.1 : 0.1, e)
@@ -73,17 +112,6 @@ const editor = (
 )
 
 insert(document.body, <div>{editor}</div>)
-
-/**
- * Block component factories for `editor.loadGraph`. They are FACTORIES
- * (returning a fresh DOM node per call), because `loadGraph` calls each one
- * once per block.
- * @type {Object<string, Function>}
- */
-let typeMap = {
-  Switch: () => <Switch />,
-  Message: () => <Message />,
-}
 
 // the default demo graph, used on first run and as the migration target for
 // the old position-only `ne.positions` storage
@@ -103,7 +131,7 @@ let defaultGraph = {
 setTimeout(() => {
   let graph = localStorage.getItem('ne.graph')
   if (graph) {
-    editor.loadGraph(JSON.parse(graph), typeMap)
+    editor.loadGraph(JSON.parse(graph))
   } else {
     let positions = localStorage.getItem('ne.positions')
     if (positions) {
@@ -123,7 +151,7 @@ setTimeout(() => {
         ],
       }
     }
-    editor.loadGraph(defaultGraph, typeMap)
+    editor.loadGraph(defaultGraph)
   }
   saveGraph()
 }, 1)

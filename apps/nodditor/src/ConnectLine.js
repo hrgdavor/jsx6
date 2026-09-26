@@ -13,6 +13,11 @@ export class ConnectLine {
   constructor({ strength = 60 } = {}) {
     this.strength = strength
     this.el = hSvg('g', {}, (this.line1 = makeLine(strength)), (this.line2 = makeLine(strength)))
+    // accessibility: lines are focusable images named by their endpoints
+    // (the existing `svg g:focus` outline rule gives them a focus ring)
+    this.el.setAttribute('role', 'img')
+    this.el.setAttribute('tabindex', '0')
+    this.updateAria()
 
     /** @type {LinePoint} */
     this.p1 = { pos: [0, 0], listen: [], align: 'right', con: null }
@@ -54,6 +59,7 @@ export class ConnectLine {
     let old = p.con
     p.con = con
     if (old) p.listen?.forEach(runFuncNoArg)
+    this.updateAria()
     if (!con) return
 
     this.setPosAligned(p, con, skipUpdate)
@@ -123,6 +129,14 @@ export class ConnectLine {
     )
     this.line1.setAttribute('d', line)
     this.line2.setAttribute('d', line)
+  }
+
+  /** Accessible name from the current endpoints (`aria-label`). */
+  updateAria() {
+    let a = this.p1?.con?.idFull
+    let b = this.p2?.con?.idFull
+    let label = a || b ? `connection ${a ?? '?'} -> ${b ?? '?'}` : 'connection'
+    this.el.setAttribute('aria-label', label)
   }
 
   /**

@@ -135,6 +135,9 @@ export class LineInteraction {
       isDown = false
       isMoving = false
       line = null
+      // connect/re-point finished: record it for undo (a failed drag removed
+      // the temporary line again, so `historyRecord` sees no change)
+      this.editor.historyRecord('connect')
       this.editor.focus()
     }
 
