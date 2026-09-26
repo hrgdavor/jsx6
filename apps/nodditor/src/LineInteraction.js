@@ -49,6 +49,55 @@ export class LineInteraction {
       else line.setPoint2(c)
     }
 
+    /** latest pointer position, consumed by `hoverStep` (P3-5) */
+    let lastX = 0
+    let lastY = 0
+    let hoverRaf = 0
+    /**
+     * P3-5: resolve the hover target. `document.elementFromPoint` hit-tests the
+     * whole page (and forces layout), and pointer events arrive faster than the
+     * display refreshes, so this runs at most once per animation frame with the
+     * latest coordinates.
+     */
+    const hoverStep = () => {
+      if (!isDown || !isMoving) return
+      /** @type {DOMRect} */
+      //@ts-ignore
+      let rect = this.editor.getBoundingClientRect()
+      let x = lastX
+      let y = lastY
+      let target2 = /** @type {HTMLConnector} */ (document.elementFromPoint(x, y))
+      let connectorData = target2?.ncData
+      // do not allow connect to output as second part
+      if (connectorData?.dir == 'out') connectorData = null
+
+      if (connectorData && connectorData != firstCon) {
+        markTarget(connectorData, 1)
+        otherCon = connectorData
+        setFreePoint(otherCon)
+      } else {
+        if (otherCon) markTarget(otherCon, connectorData == otherCon)
+        if (connectorData == firstCon || !connectorData) {
+          otherCon = null
+        }
+        setFreePos((x - 1 - rect.x) / this.editor.zoom, (y - rect.y) / this.editor.zoom)
+      }
+    }
+    const scheduleHover = () => {
+      if (hoverRaf) return
+      hoverRaf = requestAnimationFrame(() => {
+        hoverRaf = 0
+        hoverStep()
+      })
+    }
+    /** apply the pending pointer position NOW (used before `pointerup` decides) */
+    const flushHover = () => {
+      if (!hoverRaf) return
+      cancelAnimationFrame(hoverRaf)
+      hoverRaf = 0
+      hoverStep()
+    }
+
     const pointerdown = e => {
       // adding only from output for now
       lx = e.clientX
@@ -80,15 +129,10 @@ export class LineInteraction {
 
     const pointermove = e => {
       if (!isDown) return
-      /** @type {DOMRect} */
-      //@ts-ignore
-      let rect = this.editor.getBoundingClientRect()
-      let lx = rect.x
-      let ly = rect.y
-      let x = e.clientX
-      let y = e.clientY
+      let x = (lastX = e.clientX)
+      let y = (lastY = e.clientY)
 
-      if (isDown && !isMoving) {
+      if (!isMoving) {
         // reuse the line grabbed from a selected endpoint, or create a new one
         if (!line) line = this.editor.addConnector(new ConnectLine())
         this.editor.selectConnector(line)
@@ -96,35 +140,28 @@ export class LineInteraction {
         if (!line.p1.con) line.setPoint1(con)
         firstCon = con
         markTarget(con, 1)
-
-        setFreePos((x - 1 - lx) / this.editor.zoom, (y - ly) / this.editor.zoom)
+        /** @type {DOMRect} */
+        //@ts-ignore
+        let rect = this.editor.getBoundingClientRect()
+        setFreePos((x - 1 - rect.x) / this.editor.zoom, (y - rect.y) / this.editor.zoom)
 
         // pointer capture inside pointerdown caused clicking to not work
         // it is better to capture pointer only on pointer down + first movement
         con.el.setPointerCapture(e.pointerId)
         isMoving = true
       }
-      let target2 = /** @type {HTMLConnector} */ (document.elementFromPoint(x, y))
-      let connectorData = target2.ncData
-      // do not allow connect to output as second part
-      if (connectorData?.dir == 'out') connectorData = null
-
-      if (connectorData && connectorData != firstCon) {
-        markTarget(connectorData, 1)
-        otherCon = connectorData
-        setFreePoint(otherCon)
-      } else {
-        if (otherCon) markTarget(otherCon, connectorData == otherCon)
-        if (connectorData == firstCon || !connectorData) {
-          otherCon = null
-        }
-        setFreePos((x - 1 - lx) / this.editor.zoom, (y - ly) / this.editor.zoom)
-      }
+      // P3-5: the hover hit test walks the page and forces layout, so the
+      // pointer events of one frame are coalesced into a single
+      // `document.elementFromPoint` call (with the latest position)
+      scheduleHover()
     }
 
     const pointerup = e => {
       if (!isDown) return
-      if (isDown && isMoving) con.el.releasePointerCapture(e.pointerId)
+      // the last pointer events of the drag may still be coalesced: resolve
+      // their target before deciding whether a line was connected
+      flushHover()
+      if (isMoving) con.el.releasePointerCapture(e.pointerId)
       markTarget(firstCon)
       markTarget(otherCon)
       if (otherCon) {

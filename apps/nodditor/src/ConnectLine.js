@@ -63,9 +63,19 @@ export class ConnectLine {
     if (!con) return
 
     this.setPosAligned(p, con, skipUpdate)
-    p.listen[0] = listenCustom(con.el, 'ne-move', _detail => {
-      this.setPosAligned(p, con)
-    })
+    // P3-2: moved connectors arrive as ONE batched `ne-move` on the editor
+    // (`detail = {stamp, connectors}`) instead of one event per connector.
+    // `flushMoves` stamps `movedStamp` on the live ConnectorData, so the
+    // "did MY endpoint move in this batch?" test is O(1). Without an editor
+    // (a standalone line) fall back to the legacy element-level event.
+    let source = con.root?.editor || con.editor
+    p.listen[0] = source
+      ? listenCustom(source, 'ne-move', detail => {
+          if (detail.stamp === con.movedStamp) this.setPosAligned(p, con)
+        })
+      : listenCustom(con.el, 'ne-move', () => {
+          this.setPosAligned(p, con)
+        })
     p.listen[1] = listenCustom(con.el, 'ne-remove', _detail => {
       this.setPoint(p, null)
     })

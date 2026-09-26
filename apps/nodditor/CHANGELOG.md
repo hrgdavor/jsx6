@@ -20,6 +20,21 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
 - Zoom: the hard 100% cap is replaced by configurable `zoomMin`/`zoomMax`
   (defaults 0.3–4) and a zoom indicator/controls UI is built into the editor.
   The `zoom` setter clamps now; optional grid snapping via `snap`.
+- Performance (task P3): connector discovery is memoized per block (a canvas
+  `MutationObserver` marks the blocks whose DOM changed structurally, so
+  `findConnector` no longer walks every block on every resize notification);
+  per-connector `ne-move` events are coalesced into ONE event per batch;
+  selection membership is O(1); the selection menu box is measured once and
+  reused, and `fireMoveDone` positions it in the same frame (no `setTimeout`);
+  the connect-drag hit test (`document.elementFromPoint`) runs once per frame.
+- Behavior change (P3-2): a connector move is no longer fired as a `ne-move`
+  event on the connector element (and duplicated on the editor). One
+  `ne-move` event is fired per batch on the editor element with
+  `detail = { stamp, connectors }`, where each entry of `connectors` has
+  exactly the old per-connector detail shape (`{...ConnectorData}`), and
+  `con.movedStamp === detail.stamp` tells a listener in O(1) whether its own
+  connector moved. Block-level `ne-move` (`{nid, left, top, pos, domNode}`)
+  and `ne-move-done` are unchanged. `ConnectLine` and the demo were migrated.
 
 ## 1.0.40
 Thu, 25 Apr 2024 11:46:22 GMT

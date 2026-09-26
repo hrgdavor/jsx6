@@ -6,17 +6,37 @@ import { calcPos } from './calcPos.js'
 import { pairSum } from './pairUtils.js'
 
 /**
+ * Discover the connectors of a block (elements carrying an `ncid` attribute)
+ * and keep `blockData.connectorMap` up to date.
+ *
+ * P3-1 (memoized discovery): the subtree walk — plus `getComputedStyle` and the
+ * offset-chain measurement for every NEW connector — is only worth paying when
+ * the block DOM changed structurally, so the scan is skipped and the existing
+ * `connectorMap`/`resizeSet` are reused unless `blockData.structDirty` is set.
+ * NodeEditor marks a block dirty from ONE canvas-wide `MutationObserver`
+ * (`ensureStructObserver`, the real "structurally changed" signal; P1-3 shipped
+ * removal tracking only), and `add`
+ * starts a block out dirty so its connectors are discovered once. Pass `force`
+ * to always walk.
  *
  * @param {import('./NodeEditor.jsx').BlockData} blockData
- * @returns
+ * @param {boolean} [force] scan even when nothing changed structurally
+ * @returns {{resizeSet: Set<Element>, cached: boolean}} `resizeSet` is the
+ *          (re)used set of elements that must be watched for resize;
+ *          `cached` tells that no walk happened
  */
-export function findConnector(blockData) {
+export function findConnector(blockData, force) {
   let { connectorMap, el: rootNode } = blockData
+  if (!force && !blockData.structDirty && blockData.resizeSet) {
+    // structurally unchanged since the last scan: reuse what we found
+    return { resizeSet: blockData.resizeSet, cached: true }
+  }
   let resizeSet = new Set()
   resizeSet.add(rootNode)
 
   visit(rootNode)
-  return { resizeSet }
+  blockData.structDirty = false
+  return { resizeSet, cached: false }
 
   /**
    * @param {HTMLElement|any} el

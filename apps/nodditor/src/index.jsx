@@ -9,13 +9,25 @@ import { Switch } from './blocks/Switch.js'
 
 provideErrTranslations()
 
+// positions reported by `ne-move`, keyed by block id / connector `idFull`
 const points = {}
 
 // click through empty parts of SVG
 // https://stackoverflow.com/questions/22483643/svg-still-receives-clicks-even-if-pointer-events-visible-painted/29319009#29319009
 
+/**
+ * `ne-move` consumer. Two detail shapes reach it:
+ *  - a block move (`NodeEditor.fireMove`): `{nid, left, top, pos, domNode}`
+ *  - P3-2: connector moves arrive coalesced into ONE event per batch, whose
+ *    detail is `{stamp, connectors}` — `connectors` holding the
+ *    `{...ConnectorData}` snapshots the old per-connector events carried
+ */
 const onMove = ({ detail }) => {
-  points[detail.nid] = detail
+  if (detail.nid) {
+    points[detail.nid] = detail
+    return
+  }
+  for (let con of detail.connectors || []) points[con.idFull] = con
   // if (points[1] && points[2]) {
   //   let { 1: p1, 2: p2 } = points
   //   // path.setPos(p1[0], p1[1],p2[0],p2[1])

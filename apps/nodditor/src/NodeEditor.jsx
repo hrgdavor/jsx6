@@ -37,6 +37,8 @@ import { updateObserver } from './updateObserver.js'
   @property {Set<Element>} resizeSet
   @property {Map<string, ConnectorData>} connectorMap
   @property {NodeEditor} editor
+  @property {boolean} structDirty block DOM changed structurally: connector
+   discovery has to walk the subtree again (P3-1, see `findConnector`)
 
   @typedef  HTMLBlock_
   @property {BlockData} neBlock
@@ -56,6 +58,8 @@ import { updateObserver } from './updateObserver.js'
   @property {number} offsetY
   @property {Array<number>} size
   @property {NodeEditor} editor
+  @property {number} movedStamp id of the last batched `ne-move` this connector
+   was part of (P3-2, lets listeners test membership in O(1))
   
   @typedef HTMLConnector_
   @property {ConnectorData} ncData
@@ -68,6 +72,14 @@ import { updateObserver } from './updateObserver.js'
   @property {string} align
   
  */
+
+/**
+ * Run `fn` at the end of the current task (microtask). Used by the P3-1/P3-2
+ * coalescing queues; `queueMicrotask` is everywhere modern, the promise path is
+ * only a safety net for environments without it.
+ * @param {Function} fn
+ */
+const microtask = fn => (typeof queueMicrotask === 'function' ? queueMicrotask(fn) : Promise.resolve().then(fn))
 
 /**
  *
@@ -146,6 +158,11 @@ export class NodeEditor extends JsxW {
     rootNode.setAttribute('role', 'group')
     rootNode.setAttribute('tabindex', '0')
     this.setBlockLabel(blockData, false)
+    // P3-1: connector discovery is memoized on "did the block DOM change
+    // structurally". A block starts out dirty (its first scan must run); the
+    // canvas `MutationObserver` (see `ensureStructObserver`) marks it dirty
+    // again whenever connector elements are added or removed inside it.
+    blockData.structDirty = true
     this.blocks.push(blockData)
     this.blockMap.set(id, blockData)
     this.nodeMap.set(blockData.el, blockData)
@@ -155,9 +172,126 @@ export class NodeEditor extends JsxW {
     return blockData
   }
 
+  /**
+   * P3-1: ONE `MutationObserver` for the whole canvas. It resolves each batch of
+   * childList records to the block whose DOM actually changed and marks that
+   * block dirty, which is what lets `findConnector` skip the subtree walk for
+   * every other block (connector discovery is memoized per block).
+   * Only `childList` is watched: attribute/style writes (a move, a resize, the
+   * `ne-nodrag` marker `findConnector` itself sets) must not look like a
+   * structural change.
+   */
+  ensureStructObserver() {
+    if (this._structMO || typeof MutationObserver !== 'function') return
+    this._structMO = new MutationObserver(records => {
+      records.forEach(r => {
+        for (let p = r.target; p; p = p.parentElement) {
+          let blockData = this.nodeMap.get(p)
+          if (blockData) {
+            blockData.structDirty = true
+            this.scheduleConnectorRecheck(blockData)
+            break
+          }
+        }
+      })
+    })
+    this._structMO.observe(this.contentArea, { childList: true, subtree: true })
+  }
+
+  /**
+   * Make the connector set of a block match its DOM again. Cheap by design
+   * (P3-1): `findConnector` re-walks the subtree only when the block changed
+   * structurally, so this is a no-op for plain resize/move notifications.
+   * @param {BlockData} blockData
+   */
   recheckConnectors(blockData) {
-    let { resizeSet } = findConnector(blockData)
+    let { resizeSet, cached } = findConnector(blockData)
+    if (cached) return
     updateObserver(resizeSet, blockData.resizeSet, this.observer)
+    // keep the set we actually installed: it used to stay the empty initial
+    // one, so elements that left the block were never unobserved and every
+    // scan re-observed the whole subtree
+    blockData.resizeSet = resizeSet
+  }
+
+  /**
+   * Re-discover a block's connectors and refresh their positions, reporting the
+   * moved ones through the batched `ne-move` queue (P3-2).
+   * @param {BlockData} blockData
+   * @param {number} [changeTs] `ResizeObserver` batch stamp to compare
+   *   `ConnectorData.changed` against (its connector box changed in this batch)
+   */
+  refreshBlockConnectors(blockData, changeTs) {
+    this.recheckConnectors(blockData)
+    blockData.connectorMap.forEach(con => {
+      let tmp = con.pos
+      recalcPos(con)
+      // changed position or size
+      if (pairChanged(tmp, con.pos) || (changeTs && con.changed == changeTs)) this.queueMove(con)
+    })
+  }
+
+  /**
+   * P3-1: the DOM of a block changed structurally (its `MutationObserver`
+   * fired). Coalesce the burst of mutation records into ONE connector rescan
+   * per task, so adding a list of connectors does not walk the subtree once per
+   * inserted node.
+   * @param {BlockData} blockData
+   */
+  scheduleConnectorRecheck(blockData) {
+    let queue = this._recheckQueue || (this._recheckQueue = new Set())
+    queue.add(blockData)
+    if (this._recheckScheduled) return
+    this._recheckScheduled = true
+    microtask(() => {
+      this._recheckScheduled = false
+      let set = this._recheckQueue
+      this._recheckQueue = null
+      if (!set || this.destroyed) return
+      let changeTs = Date.now()
+      set.forEach(b => this.refreshBlockConnectors(b, changeTs))
+    })
+  }
+
+  /**
+   * P3-2: a connector moved. Moved connectors are not reported one event at a
+   * time; they are queued and flushed as a single `ne-move` (see `flushMoves`).
+   * @param {ConnectorData} con
+   */
+  queueMove(con) {
+    let queue = this._moveQueue || (this._moveQueue = new Set())
+    queue.add(con)
+    if (this._moveScheduled) return
+    this._moveScheduled = true
+    // a microtask keeps the flush inside the current frame — lines must not
+    // lag a frame behind the blocks — while still coalescing every move of the
+    // task (a group drag, a canvas pan, a resize batch) into one event
+    microtask(() => this.flushMoves())
+  }
+
+  /**
+   * Fire the batched `ne-move` for every connector queued since the last flush.
+   * One event on the editor element, `detail = { stamp, connectors }`:
+   * `connectors` holds the same `{...ConnectorData}` snapshots the old
+   * per-connector events carried (same shape, one entry instead of N) and
+   * `stamp` is mirrored onto `con.movedStamp` so a listener can check whether
+   * one of its connectors moved in O(1). Block-level `ne-move`/`ne-move-done`
+   * (see `fireMove`) are unchanged.
+   */
+  flushMoves() {
+    this._moveScheduled = false
+    let queue = this._moveQueue
+    if (!queue || !queue.size) return
+    this._moveQueue = null
+    if (this.destroyed) return
+    let stamp = (this._moveStamp || 0) + 1
+    this._moveStamp = stamp
+    let connectors = []
+    queue.forEach(con => {
+      con.movedStamp = stamp
+      connectors.push({ ...con })
+    })
+    this.fireCustom(this, 'ne-move', { stamp, connectors })
   }
 
   /**
@@ -231,6 +365,9 @@ export class NodeEditor extends JsxW {
     if (!blockData || blockData.connectorMap.get(con.id) !== con) return
     blockData.connectorMap.delete(con.id)
     blockData.resizeSet.delete(con.el)
+    // P3-1: `resizeSet` is the live set the ResizeObserver was fed from, so
+    // dropping the element here also releases it (it used to stay observed)
+    this.observer?.unobserve?.(con.el)
     // capture the connected lines BEFORE firing `ne-remove`: the listener
     // clears the line endpoints (p.con -> null), so a filter afterwards would
     // match nothing
@@ -251,6 +388,7 @@ export class NodeEditor extends JsxW {
       // (and a `clear()` + `loadGraph` round trip could never re-add it)
       this.blockMap.delete(block.id)
       this.nodeMap.delete(block.el)
+      block.structDirty = false
       block.connectorMap.forEach(con => this.removeConnector(con))
       remove(block.el)
       finalize(block)
@@ -290,7 +428,8 @@ export class NodeEditor extends JsxW {
     blockData.pos = pos
     blockData.connectorMap.forEach(con => {
       updatePos(con)
-      this.fireCustom(con.el, 'ne-move', { ...con })
+      // P3-2: queued instead of one `ne-move` per connector per frame
+      this.queueMove(con)
     })
     blockData.el.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`
   }
@@ -321,11 +460,24 @@ export class NodeEditor extends JsxW {
     this._histTs = 0
     this._batchDepth = 0
     this._loadingGraph = false
+    // P3-1/P3-2 state: connectors to report as one batched `ne-move` (see
+    // queueMove/flushMoves) and blocks awaiting a connector rescan (see
+    // scheduleConnectorRecheck)
+    this._moveQueue = null
+    this._moveScheduled = false
+    this._moveStamp = 0
+    this._recheckQueue = null
+    this._recheckScheduled = false
+    // P3-1: single structural-change detector behind the memoized discovery
+    // (`ensureStructObserver` runs below, once `contentArea` exists)
+    this._structMO = null
     // @ts-ignore
     this.lineinteraciton = new LineInteraction(this)
     const handler = arr => {
       /** @type {Set<BlockData>} */
       let blocksChanged = new Set()
+      /** @type {Set<ConnectorData>} connectors whose OWN box changed */
+      let consChanged = new Set()
       let changeTs = Date.now()
       arr.forEach(e => {
         let { target, contentRect, borderBoxSize } = e
@@ -345,7 +497,10 @@ export class NodeEditor extends JsxW {
             // fire change
             ncData.size = size
             ncData.changed = changeTs
-            blocksChanged.add(ncData.root)
+            // only this connector moved/grew: its siblings get their own
+            // notification when their own box changes, so the block does not
+            // have to be recalculated as a whole (P3-1)
+            consChanged.add(ncData)
           }
         } else if (target.neBlock) {
           /** @type {BlockData} */
@@ -365,16 +520,15 @@ export class NodeEditor extends JsxW {
           if (neBlock) blocksChanged.add(neBlock)
         }
       })
-      blocksChanged.forEach(block => {
-        this.recheckConnectors(block)
-        block.connectorMap.forEach(con => {
-          let tmp = con.pos
-          recalcPos(con)
-          // changed position or size
-          if (pairChanged(tmp, con.pos) || con.changed == changeTs) {
-            this.fireCustom(con.el, 'ne-move', { ...con })
-          }
-        })
+      // P3-1: `refreshBlockConnectors` walks the subtree only for blocks whose
+      // DOM changed structurally (their `MutationObserver` set `structDirty`);
+      // a plain resize now just recalculates positions.
+      blocksChanged.forEach(block => this.refreshBlockConnectors(block, changeTs))
+      consChanged.forEach(con => {
+        if (blocksChanged.has(con.root)) return // covered by its block
+        recalcPos(con)
+        // its own box changed: report it (line endpoints depend on `con.size`)
+        this.queueMove(con)
       })
     }
     this.observer = new ResizeObserver(handler)
@@ -388,6 +542,10 @@ export class NodeEditor extends JsxW {
       </div>
     )
     this._zoom = 1
+    // P3-1: structural changes of the blocks (added/removed connectors) are
+    // tracked by one canvas-wide MutationObserver, which is what the memoized
+    // connector discovery keys off
+    this.ensureStructObserver()
     // zoom indicator + controls, in the (unscaled) editor corner — see changeZoom*/zoomTo
     this.zoomUI = (
       <div class="ne-zoom-ui">
@@ -436,6 +594,51 @@ export class NodeEditor extends JsxW {
       st.width = Math.abs(marqueeCur[0] - marqueeStart[0]) + 'px'
       st.height = Math.abs(marqueeCur[1] - marqueeStart[1]) + 'px'
     }
+    // P3-2: pointer events arrive faster than the display refreshes. The drag
+    // and the canvas pan keep only the LATEST pending delta and apply it once
+    // per animation frame, so a whole group (or the whole canvas) moves — and
+    // reports its connectors — once per frame.
+    /** pending block-drag offset, applied by `applyDrag` on the next frame */
+    let dragRaf = 0
+    let dragDelta = null
+    /** accumulated canvas-pan offset not yet handed to `moveAll` */
+    let panRaf = 0
+    let panDelta = null
+    /** marquee rectangle update pending for the next frame */
+    let marqueeRaf = 0
+    const applyDrag = () => {
+      if (dragRaf) {
+        cancelAnimationFrame(dragRaf)
+        dragRaf = 0
+      }
+      if (!dragDelta) return
+      let d = dragDelta
+      dragDelta = null
+      if (!blockData || !dragList) return
+      for (let i = 0; i < dragList.length; i++) {
+        this._setPos(dragList[i], [dragStart[i][0] + d[0], dragStart[i][1] + d[1]])
+      }
+      let menu = this.currentMenu
+      if (menu) moveMenu(dragList, menu, this._zoom)
+      this.fireMove(blockData)
+    }
+    const applyPan = () => {
+      if (panRaf) {
+        cancelAnimationFrame(panRaf)
+        panRaf = 0
+      }
+      if (!panDelta) return
+      let d = panDelta
+      panDelta = null
+      if (d[0] || d[1]) this.moveAll(d[0], d[1])
+    }
+    /** draw the pending marquee rectangle now (before it is read/removed) */
+    const flushMarquee = () => {
+      if (!marqueeRaf) return
+      cancelAnimationFrame(marqueeRaf)
+      marqueeRaf = 0
+      if (marqueeEl) updateMarquee()
+    }
 
     el.addEventListener('dragstart', e => {
       if (blockData) e.preventDefault()
@@ -473,6 +676,21 @@ export class NodeEditor extends JsxW {
       if (downButton) e.preventDefault() // middle button: suppress the browser autoscroll
       lx = e.clientX
       ly = e.clientY
+      // P3-2: a new gesture starts without leftovers from an unapplied frame
+      if (dragRaf) {
+        cancelAnimationFrame(dragRaf)
+        dragRaf = 0
+      }
+      if (panRaf) {
+        cancelAnimationFrame(panRaf)
+        panRaf = 0
+      }
+      if (marqueeRaf) {
+        cancelAnimationFrame(marqueeRaf)
+        marqueeRaf = 0
+      }
+      dragDelta = null
+      panDelta = null
       $s.isDown = true
     })
 
@@ -489,6 +707,11 @@ export class NodeEditor extends JsxW {
       $s.isDown = false
       if (wasMoving) el.releasePointerCapture(e.pointerId)
       $s.isMoving = false
+      // P3-2: land the last frame's pending movement BEFORE ending the move, so
+      // `fireMoveDone` (and the undo snapshot it records) sees the final positions
+      applyDrag()
+      applyPan()
+      flushMarquee()
       this.fireMoveDone(blockData, marqueeEl ? 'select' : 'move')
 
       if (wasMoving && marqueeEl) {
@@ -525,7 +748,6 @@ export class NodeEditor extends JsxW {
       //this.focus()
     })
 
-    let _timer
     el.addEventListener('pointermove', e => {
       if (ignore) return
       if (!$s.isDown()) return
@@ -569,25 +791,34 @@ export class NodeEditor extends JsxW {
           nx = Math.round(nx / this.snap) * this.snap
           ny = Math.round(ny / this.snap) * this.snap
         }
-        let dx = nx - x0
-        let dy = ny - y0
-        if (_timer) cancelAnimationFrame(_timer)
-        _timer = requestAnimationFrame(() => {
-          if (!blockData || !dragList) return
-          for (let i = 0; i < dragList.length; i++) {
-            this._setPos(dragList[i], [dragStart[i][0] + dx, dragStart[i][1] + dy])
-          }
-          let menu = this.currentMenu
-          if (menu) moveMenu(dragList, menu, this._zoom)
-          this.fireMove(blockData)
-        })
+        // P3-2: keep the latest offset and apply it once on the next frame
+        dragDelta = [nx - x0, ny - y0]
+        if (!dragRaf)
+          dragRaf = requestAnimationFrame(() => {
+            dragRaf = 0
+            applyDrag()
+          })
       } else if (marqueeEl) {
+        // P3-2: the marquee is a layout read + style write: do it once per frame
         marqueeCur = this.contentPoint(e.clientX, e.clientY)
-        updateMarquee()
+        if (!marqueeRaf)
+          marqueeRaf = requestAnimationFrame(() => {
+            marqueeRaf = 0
+            updateMarquee()
+          })
       } else {
-        this.moveAll((-lx + e.clientX) / this._zoom, (-ly + e.clientY) / this._zoom)
+        let dx = (-lx + e.clientX) / this._zoom
+        let dy = (-ly + e.clientY) / this._zoom
         lx = e.clientX
         ly = e.clientY
+        if (!panDelta) panDelta = [0, 0]
+        panDelta[0] += dx
+        panDelta[1] += dy
+        if (!panRaf)
+          panRaf = requestAnimationFrame(() => {
+            panRaf = 0
+            applyPan()
+          })
       }
     })
 
@@ -1018,10 +1249,13 @@ export class NodeEditor extends JsxW {
       if (old) setVisible(old, false)
     }
     this.currentMenu = menu
+    // P3-3: O(1) membership test (was `blocks.includes(p)` per block, i.e.
+    // O(selection × blocks) on every selection change)
+    let selSet = new Set(blocks)
     this.blocks.forEach(p => {
       /** @type {Element|any} */
       let block = p.block
-      let sel = blocks.includes(p)
+      let sel = selSet.has(p)
       if (block.setSelected) {
         block.setSelected(sel)
       } else {
@@ -1195,8 +1429,25 @@ export class NodeEditor extends JsxW {
     for (let i = this.blocks.length - 1; i >= 0; i--) this.removeBlock(this.blocks[i])
     this.selectedLine = null
     this.selectedBlocks = []
+    // P3-4: the menu box cache lives on the menu element with its own
+    // MutationObserver — release it before dropping the reference
+    let menu = this.currentMenu
+    if (menu) {
+      menu._neMenuObs?.disconnect()
+      menu._neMenuObs = null
+      menu._neMenuSize = null
+    }
     this.currentMenu = null
     this.observer?.disconnect()
+    // P3-1: stop tracking structural changes
+    this._structMO?.disconnect()
+    this._structMO = null
+    // P3-1/P3-2: drop the pending coalesced work (the queued callbacks check
+    // `destroyed`, but the objects they hold must go too)
+    this._moveQueue = null
+    this._moveScheduled = false
+    this._recheckQueue = null
+    this._recheckScheduled = false
     this.undoStack.length = 0
     this.redoStack.length = 0
     this._histLast = null
@@ -1235,14 +1486,20 @@ export class NodeEditor extends JsxW {
     let menu = this.currentMenu
     if (menu) {
       menu.style.display = ''
-      setTimeout(() => {
-        if (this.selectedBlocks?.length) moveMenu(this.selectedBlocks, menu, this._zoom)
-      })
+      // P3-4: re-show and reposition in the SAME frame. The `setTimeout` used to
+      // postpone this because `moveMenu` had to measure the menu (a forced
+      // layout); `moveMenu` now reuses the cached menu box, so no wait is needed
+      // (and the menu no longer visibly jumps a frame after the drag ends).
+      if (this.selectedBlocks?.length) moveMenu(this.selectedBlocks, menu, this._zoom)
     }
   }
 
   fireMove(blockData, evtName = 'ne-move') {
     if (!blockData) return
+    // P3-2: report the queued connector moves FIRST, so a consumer never
+    // receives a block-level `ne-move`/`ne-move-done` before the connector
+    // positions (and therefore the lines) it refers to
+    this.flushMoves()
 
     let { pos, id, el } = blockData
     this.fireCustom(this, evtName, { top: pos[1], left: pos[0], nid: id, domNode: el, pos })
