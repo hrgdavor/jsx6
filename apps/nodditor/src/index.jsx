@@ -88,11 +88,11 @@ const editor = (
     }}
     onne-move-done={moveDone}
     onne-remove={saveGraph}
-    style="width: 800px; height: 500px; outline: solid 1px black; contain:strict"
+    style="outline: solid 1px black; contain:strict"
   />
 )
 
-insert(document.body, <div>{editor}</div>)
+insert(document.body, <div class="fxs1 fx1">{editor}</div>)
 
 // the default demo graph, used on first run and as the migration target for
 // the old position-only `ne.positions` storage
