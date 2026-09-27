@@ -3,7 +3,7 @@ import { backend } from './runtime.js'
 import { selectElementText } from './selectElementText.js'
 
 export const EditableTitle = (attr = {}) => {
-  // @ts-ignore
+  // merges with a host-supplied class instead of overwriting it — see the note in blocks/Switch.js
   backend.current.addClass(attr, 'EditableTitle')
   const getValue = () => el.textContent
   const setValue = v => (el.textContent = v)

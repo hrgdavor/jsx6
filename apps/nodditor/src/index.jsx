@@ -1,10 +1,14 @@
-import { backend } from './runtime.js'
-
+/**
+ * The JSX demo page.
+ *
+ * Note what is NOT here: no jsx6 import and no backend primitive. The page uses the editor's public
+ * API and plain DOM only, so it is a consumer of nodditor rather than a second way into jsx6 — and
+ * the demo surface can be excluded from the "only one module imports jsx6" rule without losing
+ * anything (see test/runtime.test.js).
+ */
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
-
-backend.current.provideErrTranslations()
 
 // click through empty parts of SVG
 // https://stackoverflow.com/questions/22483643/svg-still-receives-clicks-even-if-pointer-events-visible-painted/29319009#29319009
@@ -51,8 +55,6 @@ function toggleSnap() {
   editor.snap = editor.snap ? 0 : 20
 }
 
-/** @type {any} */
-let $s = backend.current.$State({ hasEdit: true })
 let menu = (
   <div class="fx ne-menu" style="padding: 4px; border: solid 1px gray">
     <div class="ne-bt ne-delete" title="Delete selection" onclick={deleteSelection}>

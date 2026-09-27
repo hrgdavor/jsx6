@@ -1,0 +1,143 @@
+/*
+ * The vanilla demo's own stylesheet.
+ *
+ * Deliberately small: it is the *host* chrome (toolbar, stage). Everything about blocks, connectors,
+ * lines, the menu, the marquee and the zoom UI comes from the package's real stylesheets
+ * (ne-blocks.css + NodeEditor.css), which are copied next to this file by src_build/vanillaBuild.js.
+ * If a rule is needed here for the graph to be usable, that is a finding about the editor's styling
+ * contract, not about the demo.
+ */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  font: 14px/1.4 system-ui, sans-serif;
+  color: #333;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #fff;
+  border-bottom: solid 1px #ddd;
+}
+
+.bar .sep {
+  color: #ccc;
+}
+
+.bar .grow {
+  flex: 1;
+}
+
+.bar button {
+  font: inherit;
+  padding: 4px 9px;
+  border: solid 1px #ccc;
+  border-radius: 5px;
+  background: #f7f7f7;
+  cursor: pointer;
+}
+
+.bar button:hover {
+  background: #eee;
+}
+
+.bar output {
+  color: #777;
+  font-variant-numeric: tabular-nums;
+}
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* `.fx1` = stretch to the available space; the editor needs a definite box to pan/zoom in */
+.fx1 {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+jsx6-nodditor {
+  outline: solid 1px #000;
+  contain: strict;
+}
+
+/* a block in this demo: the editor only requires `position:absolute` sizing to be overridable */
+.vb {
+  min-width: 130px;
+  background: #fff;
+  border: solid 1px #bbb;
+  border-radius: 6px;
+  box-shadow: 2px 2px 4px #ddd;
+}
+
+.vb > .vb-title {
+  padding: 6px 10px;
+  background: #eef1f5;
+  border-radius: 5px 5px 0 0;
+  cursor: grab;
+  user-select: none;
+}
+
+.vb > .vb-body {
+  padding: 4px 0;
+}
+
+.vb-row {
+  position: relative;
+  padding: 3px 14px;
+  border-top: solid 1px #f2f2f2;
+}
+
+/* connectors: the editor finds them by [ncid] and reads [ne-connect] for the side */
+.vb-port {
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.vb-port[ne-connect='in'] {
+  left: -13px;
+  --offset-x: -4px;
+  --offset-y: 0;
+}
+
+.vb-port[ne-connect='out'] {
+  right: -15px;
+  --offset-x: 4px;
+  --offset-y: 0;
+}
+
+.vb-port::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: solid 1px gray;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.vb-port[ne-connect='in']::before {
+  border-radius: 3px;
+}
+
+.vb-port.target::before {
+  border-color: #f06666;
+  background: #fee;
+}

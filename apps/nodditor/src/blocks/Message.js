@@ -3,6 +3,7 @@ import { backend } from '../runtime.js'
 import { EditableTitle } from '../EditableTitle.js'
 
 export function Message(attr) {
+  // merges with a host-supplied class instead of overwriting it — see the note in blocks/Switch.js
   backend.current.addClass(attr, 'ne-block')
   let title = EditableTitle()
   title.setValue('Message')

@@ -31,10 +31,12 @@ const ok = (cond, msg) => {
 
 const SRC = 'src'
 const DEFAULT_BACKEND = join(SRC, 'runtime-default.js')
+/** The one file allowed to import jsx6; `walk` paths are relative to the app root. */
+const isDefaultBackend = file => file === DEFAULT_BACKEND || file === 'src/runtime-default.js'
 
 const walk = dir =>
   readdirSync(dir, { withFileTypes: true }).flatMap(e =>
-    e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)],
+    e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name).replaceAll('\\', '/')],
   )
 
 /** Static import/export/require/dynamic-import of a `@jsx6/*` package in `source`. */
@@ -54,12 +56,64 @@ const jsx6Imports = source => {
 const sourceFiles = walk(SRC).filter(f => /\.jsx?$/.test(f))
 const offenders = []
 for (const file of sourceFiles) {
-  if (file === DEFAULT_BACKEND) continue
+  if (isDefaultBackend(file)) continue
   const found = jsx6Imports(readFileSync(file, 'utf8'))
   if (found.size) offenders.push(`${file} -> ${[...found].join(', ')}`)
 }
-ok(offenders.length === 0, `SEAM-1 only runtime-default.js imports @jsx6/* (${sourceFiles.length} files)`)
+ok(
+  offenders.length === 0,
+  `SEAM-1 runtime-default.js is the only module importing @jsx6/* (${sourceFiles.length} files checked)`,
+)
 if (offenders.length) console.error('     ' + offenders.join('\n     '))
+
+/**
+ * SEAM-1b: no module may call a backend primitive it no longer imports.
+ *
+ * This is the regression the seam refactor actually produced once: rewriting the imports left bare
+ * `runFuncNoArg(...)` calls behind, which only fail at runtime (`ReferenceError`) and only on the
+ * code path that uses them — `removeLine`/`clear`/`loadGraph` in that case. A static grep is a much
+ * cheaper check than hoping the right test drives the right path.
+ *
+ * Method/property declarations of the same name are excluded: `fireCustom(el, name)` as a class
+ * method and `setSelected(sel)` on `ConnectLine` are the editor's own API, not the backend's.
+ */
+const contractNames = [
+  'addClass',
+  'classIf',
+  'findParent',
+  'getAttr',
+  'hSvg',
+  'insert',
+  'isNode',
+  'listen',
+  'listenCustom',
+  'observeNow',
+  'observeShowHide',
+  'remove',
+  'runFuncNoArg',
+  'setAttribute',
+  'setSelected',
+  'setVisible',
+  'toDomNode',
+]
+const unwired = []
+for (const file of sourceFiles) {
+  if (isDefaultBackend(file)) continue
+  const lines = readFileSync(file, 'utf8').split('\n')
+  lines.forEach((line, i) => {
+    if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
+    for (const name of contractNames) {
+      const call = new RegExp(`(^|[^.\\w$?])${name}\\s*\\(`)
+      const decl = new RegExp(`^\\s*(async\\s+|static\\s+)?${name}\\s*\\([^)]*\\)\\s*\\{`)
+      if (decl.test(line)) return
+      if (call.test(line) && !line.includes(`backend.current.${name}`)) {
+        unwired.push(`${file}:${i + 1} ${line.trim()}`)
+      }
+    }
+  })
+}
+ok(unwired.length === 0, `SEAM-1b every backend call goes through backend.current (${unwired.length} stray)`)
+if (unwired.length) console.error('     ' + unwired.join('\n     '))
 
 // ---------- SEAM-2: the default backend is the app's four dependencies ----------
 const defaultImports = [...jsx6Imports(readFileSync(DEFAULT_BACKEND, 'utf8'))].sort()
@@ -73,7 +127,6 @@ const defaults = backend.current
 const contract = Object.keys(defaults).sort()
 const expected = [
   '$Or',
-  '$State',
   'JsxW',
   'addClass',
   'classIf',
@@ -88,7 +141,6 @@ const expected = [
   'listenCustom',
   'observeNow',
   'observeShowHide',
-  'provideErrTranslations',
   'remove',
   'runFuncNoArg',
   'setAttribute',
@@ -134,13 +186,22 @@ const makeState = initial => {
 }
 
 const replacement = {
+  // real jsx6 addClass: an ELEMENT gets `classList.add`, a props OBJECT gets its `class` string
+  // extended — the merge is the point (a plain `class=` in JSX would clobber a host class)
   addClass: record('addClass', (node, add) => {
-    const n = node?.nodeType !== undefined ? node : (node?.el ?? node)
-    if (!n) return
-    if (n.classList) {
-      if (String(add).includes(' ')) add.split(' ').forEach(c => n.classList.add(c))
-      else n.classList.add(add)
-    } else n.class = n.class ? `${n.class} ${add}` : add
+    const target = (node?.nodeType !== undefined ? node : (node?.el ?? node)) ?? {}
+    const cl = target.classList
+    if (cl) {
+      if (String(add).includes(' '))
+        String(add)
+          .split(' ')
+          .forEach(c => cl.add(c))
+      else cl.add(add)
+    } else if (typeof target === 'object' && target !== null) {
+      const cur = target.class || ''
+      target.class = cur ? `${cur} ${add}` : add
+    }
+    return target
   }),
   // real jsx6 classIf: add/remove `cname` according to a boolean or a signal read
   classIf: record('classIf', (node, cname, on) => {
@@ -194,7 +255,6 @@ const replacement = {
     n.addEventListener(name, wrapped, options)
     return () => n.removeEventListener(name, wrapped, options)
   }),
-  provideErrTranslations: record('provideErrTranslations', () => {}),
   remove: record('remove', el => {
     const n = asNode(el)
     n?.parentNode?.removeChild(n)
@@ -226,7 +286,6 @@ const replacement = {
     out.subscribe = () => () => {}
     return out
   }),
-  $State: record('$State', makeState),
   observeNow: record('observeNow', (signal, fn) => {
     fn(typeof signal === 'function' ? signal() : signal)
     return () => {}
@@ -271,7 +330,20 @@ ok(hasRuntimeOverride() === true, 'SEAM-4 override is active')
 ok(backend.current !== defaults, 'SEAM-4 backend.current is no longer the default object')
 ok(backend.current.addClass !== defaults.addClass, 'SEAM-4 the replaced primitive is in effect')
 ok(backend.current.insert === replacement.insert, 'SEAM-4 the replacement is used for other primitives')
-ok(Object.keys(backend.current).length === contract.length, 'SEAM-4 the merge keeps the contract complete')
+// The replacement's `addClass` does the props-object merge the real one does — asserted directly,
+// because that merge is the contract behaviour the block components depend on.
+{
+  const props = { class: 'host-class' }
+  backend.current.addClass(props, 'ne-block')
+  ok(props.class === 'host-class ne-block', `SEAM-4 addClass merges onto a props object (${props.class})`)
+}
+// Every contract key must still resolve after the merge, and the replacement must not smuggle an
+// extra key into `backend.current` — the contract stays exactly the documented list.
+const mergedKeys = Object.keys(backend.current)
+const missing = contract.filter(k => !mergedKeys.includes(k))
+const extra = mergedKeys.filter(k => !contract.includes(k)).sort()
+ok(missing.length === 0, `SEAM-4 the merge keeps every contract key (${missing.join(',') || 'none missing'})`)
+ok(extra.length === 0, `SEAM-4 no replacement-only key leaks into the contract (${extra.join(',') || 'none'})`)
 
 // ---------- SEAM-5..8: a real editor on the replacement (imported AFTER setRuntime) ----------
 const { NodeEditor } = await import('../src/NodeEditor.jsx')
@@ -290,8 +362,27 @@ editor.add(<Switch />, '1', { pos: [30, 40], type: 'Switch' })
 const b1 = editor.getBlockData('1')
 const cons = [...b1.connectorMap.keys()].sort()
 ok(cons.join(',') === 'i1,o1,o2,o3', `SEAM-6 connector discovery found ${cons.join(',')}`)
-for (const name of ['toDomNode', 'setAttribute', 'insert', 'getAttr', 'observeShowHide', 'addClass']) {
+for (const name of ['toDomNode', 'setAttribute', 'insert', 'getAttr', 'observeShowHide']) {
   ok(calls.includes(name), `SEAM-6 the editor called replacement.${name}`)
+}
+// The block component merged `ne-block` into its props object before JSX turned it into an element
+// (block components reach the backend directly, like any host component would).
+ok(calls.includes('addClass'), 'SEAM-6 the block component merged ne-block through replacement.addClass')
+ok(
+  b1.el.classList.contains('ne-block'),
+  `SEAM-6 addClass reached the element's class list (class="${b1.el.className}")`,
+)
+
+// a host-supplied class must SURVIVE the editor's own class — this is what addClass buys over
+// writing `class="ne-block"` in the JSX (which would win or lose by spread order)
+{
+  const hostClass = 'vb'
+  const hostBlock = editor.add(<Switch class={hostClass} />, 'host1', { pos: [0, 0], type: 'Switch' })
+  const classes = hostBlock.el.className
+  ok(
+    classes.includes('ne-block') && classes.includes(hostClass),
+    `SEAM-6 a host class is merged, not overwritten (class="${classes}")`,
+  )
 }
 
 editor.add(<Switch />, '2', { pos: [30, 260], type: 'Switch' })
@@ -327,6 +418,5 @@ ok(editor.blocks.length === 0 && editor.lines.length === 0, 'SEAM-8 destroy() em
 setRuntime(null)
 ok(hasRuntimeOverride() === false, 'SEAM-4 setRuntime(null) cleared the override')
 ok(backend.current.addClass === defaults.addClass, 'SEAM-4 the default backend is back')
-
 console.log(failures ? `\n${failures} FAILURE(S)` : '\nALL SMOKE ASSERTIONS PASSED')
 process.exitCode = failures ? 1 : 0

@@ -10,10 +10,14 @@
  *
  *   - `setRuntime()` swaps the implementation without patching `node_modules` or aliasing packages,
  *     and a partial object is merged over the default, so changing one primitive is a one-liner;
- *   - the contract is the ~24 names below, not "all of `@jsx6/jsx6`" — the list is explicit, so
+ *   - the contract is the 21 names below, not "all of `@jsx6/jsx6`" — the list is explicit, so
  *     adding a dependency is a reviewable change to this file rather than a stray import;
  *   - a standalone build has exactly one module to replace: alias `src/runtime-default.js` (or ship
  *     a bundle that does not include it) and nothing else in `src/` has to change.
+ *
+ * Note that a few of the names are NOT thin wrappers — `addClass` merges onto a props object's
+ * `class` string, and `insert`/`toDomNode` normalise components (`.el`) and arrays. See
+ * [plan/odditor-jsx6-dependency-inventory.md](../../plan/odditor-jsx6-dependency-inventory.md) §1.0.
  *
  * Two constraints are *not* abstraction gaps, they are properties of the platform:
  *
@@ -32,7 +36,7 @@
  * The backend surface nodditor is written against.
  *
  * @typedef {object} NodeEditorRuntime
- * @property {Function} addClass add one or more class names to an element or props object
+ * @property {Function} addClass merge class names onto an element OR a props object (`class` string)
  * @property {Function} classIf add/remove `cname` according to a boolean (or a signal read)
  * @property {Function} findParent walk `parentElement` until the predicate matches
  * @property {Function} fireCustom dispatch a `CustomEvent` with `detail`
@@ -42,7 +46,6 @@
  * @property {Function} isNode duck-type check for a DOM node
  * @property {Function} listen `addEventListener` that returns its own unsubscribe function
  * @property {Function} listenCustom listener whose callback receives `event.detail`
- * @property {Function} provideErrTranslations install the default error-message translations
  * @property {Function} remove detach a node
  * @property {Function} runFuncNoArg call a value if it is callable, otherwise return it
  * @property {Function} setAttribute write (or remove, for `false`/`null`) an attribute
@@ -50,7 +53,6 @@
  * @property {Function} setVisible show/hide an element
  * @property {Function} toDomNode normalise element | component | string to a DOM node
  * @property {Function} $Or derived signal: truthy when any argument is truthy
- * @property {Function} $State callable observable state proxy (`$s`, `$v`)
  * @property {Function} observeNow run a signal subscriber immediately, then on change
  * @property {Function} JsxW component base class the editor extends
  * @property {Function} define register a custom element

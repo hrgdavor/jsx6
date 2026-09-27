@@ -7,6 +7,9 @@ export function Switch(attr) {
     if (target.hasAttribute('ne-item')) return
     target.innerHTML += '<br/>-----------'
   }
+  // `addClass` appends to the props object's `class`, so it MERGES with a host-supplied class
+  // instead of replacing it (a plain `class="ne-block"` in the JSX below would win or lose
+  // depending on spread order). That merge behaviour is why it is part of the editor's contract.
   backend.current.addClass(attr, 'ne-block')
   // P2: the title uses the shared in-place editor, like `Message` does, so
   // the context-menu "E" button works for every block type

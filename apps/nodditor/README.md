@@ -121,7 +121,7 @@ Lifecycle:
 
 A **block** is a JSX6 component passed to `add(block, id, …)`; the element you hand in becomes the
 block root — the editor does not wrap it. The block component adds the `ne-block` class
-(`addClass(attr, 'ne-block')`, only needed for styling: `.ne-block` is `position: absolute`) and the
+(`class="ne-block"`, only needed for styling: `.ne-block` is `position: absolute`) and the
 editor adds:
 
 | Attribute | Meaning |
@@ -229,21 +229,67 @@ import { backend, setRuntime } from '@jsx6/nodditor/src/runtime.js'
 const defaults = backend.current
 setRuntime({
   fireCustom: (el, name, detail) => el.dispatchEvent(new CustomEvent(name, { detail, bubbles: true })),
-  addClass: (node, name) => node.classList.add(name),
+  classIf: (node, name, on) => node.classList.toggle(name, !!on),
 })
 // … import the editor only now …
 ```
 
-Two things to know:
+Three things to know:
 
 - **Install the replacement before importing the editor.** `NodeEditor` extends `backend.current.JsxW`
   when its module is evaluated, so a later swap would leave the editor on the old base class.
+- **Some primitives are not one-liners.** `addClass` receives a props **object** from the block
+  components and must extend its `class` string (`{ class: 'host' }` → `'host ne-block'`), not just
+  call `classList.add`; a replacement that only handles elements silently drops the editor's own
+  `ne-block` class. `insert`/`toDomNode` likewise normalise components (`.el`) and arrays.
+  The smoke suite asserts the merge explicitly (`SEAM-6 a host class is merged, not overwritten`).
 - **The JSX runtime is bound at build time**, not through this seam: JSX compiles to
   `@jsx6/jsx-runtime` (see [src_build/buildScript.js](src_build/buildScript.js)). A standalone build
   points `jsxImportSource` at its own runtime, which needs no source change.
 
-The full contract is the `NodeEditorRuntime` typedef in [src/runtime.js](src/runtime.js) — 23 names,
-of which the editor itself drives at most 19.
+The full contract is the `NodeEditorRuntime` typedef in [src/runtime.js](src/runtime.js) — 21 names.
+[smoke/essential.smoke.js](smoke/essential.smoke.js) measures which of them a real, framework-free
+session actually calls; the rest are reached only through pointer/keyboard paths or are structural.
+See [Which parts of the backend are essential](#which-parts-of-the-backend-are-essential), and
+[plan/odditor-jsx6-dependency-inventory.md](../../plan/odditor-jsx6-dependency-inventory.md) for the
+per-primitive inventory and the thinning plan.
+
+## Vanilla demo
+
+[static/vanilla/](static/vanilla/README.md) is a host built with **no JSX, no component framework and
+no signals** — plain DOM blocks, a JSON graph in `localStorage`, and the editor's public API. It is
+the reference for the host contract, and the smallest thing that is actually usable.
+
+```bash
+cd apps/nodditor
+bun run build:vanilla          # bundles into build_vanilla/ (+ the stylesheets it needs)
+bun run start:vanilla          # dev build of just the vanilla demo
+```
+
+## Which parts of the backend are essential
+
+`smoke/essential.smoke.js` runs the vanilla demo under happy-dom with a recording backend and prints
+every primitive the editor reaches for. In a session that covers load/save, add, connect, move,
+select, delete, undo/redo, zoom and teardown, **18 of the 21 contract names are called**:
+
+| called | not called by that session | why the rest exist |
+| --- | --- | --- |
+| `addClass` `runFuncNoArg` `getAttr` `isNode` `listen` `fireCustom` `classIf` `listenCustom` `setAttribute` `hSvg` `insert` `observeShowHide` `remove` `setSelected` `toDomNode` `setVisible` `$Or` `observeNow` | `JsxW` `define` `findParent` | `JsxW`/`define` are structural (`extends` + the class static block); `findParent` is used by pointer/click handlers |
+
+Conclusions from that measurement:
+
+- **The contract carries only what the editor and its block components call.** The demo page
+  (`src/index.jsx`) uses the editor's public API and plain DOM, so `src/runtime-default.js` is the
+  only module in the package that imports jsx6 — asserted for every file, with no exemptions, by
+  `test/runtime.test.js` and the `SEAM-1` check in the smoke suite.
+- **Not every primitive is a one-liner.** `addClass` is the counter-example: it takes a props
+  *object* and merges a `class` string (see [static/vanilla/README.md](static/vanilla/README.md) and
+  §1.0 of the inventory). The vanilla demo does not need it — its blocks are plain DOM with their own
+  class — but the JSX block components do, and a naive replacement breaks host-supplied classes.
+- **`$Or`/`observeNow` are used exactly once** — for the `.focused` class on the canvas. They are the
+  only reason the editor depends on `@jsx6/signal`, and replacing them with a local two-line helper
+  would drop that dependency entirely. Same for `observeShowHide` in `connectorUtil.js`, which is the
+  only reason for `@jsx6/dom-observer`.
 
 ## Styling
 

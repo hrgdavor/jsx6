@@ -22,7 +22,6 @@ import {
   isNode,
   listen,
   listenCustom,
-  provideErrTranslations,
   remove,
   runFuncNoArg,
   setAttribute,
@@ -30,7 +29,7 @@ import {
   setVisible,
   toDomNode,
 } from '@jsx6/jsx6'
-import { $Or, $State, observeNow } from '@jsx6/signal'
+import { $Or, observeNow } from '@jsx6/signal'
 import { JsxW, define } from '@jsx6/w'
 import { observeShowHide } from '@jsx6/dom-observer'
 
@@ -46,7 +45,6 @@ export const defaultRuntime = {
   isNode,
   listen,
   listenCustom,
-  provideErrTranslations,
   remove,
   runFuncNoArg,
   setAttribute,
@@ -54,7 +52,6 @@ export const defaultRuntime = {
   setVisible,
   toDomNode,
   $Or,
-  $State,
   observeNow,
   JsxW,
   define,

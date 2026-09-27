@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>nodditor — vanilla demo</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+    <!--
+      The whole host application. No JSX, no component framework, no build step beyond the bundle:
+      a toolbar, a <jsx6-nodditor> element, and one module that talks to it through the documented
+      API. See static/vanilla/README.md for what this demo is for.
+    -->
+    <header class="bar">
+      <strong>nodditor</strong>
+      <span class="sep">|</span>
+      <button type="button" data-act="switch">+ Switch</button>
+      <button type="button" data-act="message">+ Message</button>
+      <button type="button" data-act="link">+ Link</button>
+      <span class="sep">|</span>
+      <button type="button" data-act="delete">Delete selection</button>
+      <button type="button" data-act="undo">Undo</button>
+      <button type="button" data-act="redo">Redo</button>
+      <button type="button" data-act="fit">Fit</button>
+      <span class="sep">|</span>
+      <label><input type="checkbox" data-act="snap" /> snap 20</label>
+      <span class="grow"></span>
+      <output data-role="status">ready</output>
+    </header>
+
+    <main class="stage">
+      <!-- `class="NodeEditor"` is what the shipped CSS scopes selection styling to -->
+      <jsx6-nodditor class="fx1 NodeEditor" tabindex="0"></jsx6-nodditor>
+    </main>
+
+    <script type="module" src="index.js"></script>
+  </body>
+</html>

@@ -19,8 +19,10 @@
   ],
   "scripts": {
     "start": "node src_build/build.js --dev",
-    "tsc": "tsc",
-    "build": "node src_build/build.js"
+    "start:vanilla": "node src_build/vanillaBuild.js --dev",
+    "build": "node src_build/build.js && node src_build/vanillaBuild.js",
+    "build:vanilla": "node src_build/vanillaBuild.js",
+    "tsc": "tsc"
   },
   "repository": {
     "type": "git",
