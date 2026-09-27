@@ -1,4 +1,4 @@
-import { classIf, hSvg, insert, listenCustom, runFuncNoArg } from '@jsx6/jsx6'
+import { backend } from './runtime.js'
 
 import { addFinalizer } from './listenUntil.js'
 import { makeLineConnector } from './makeLineConnector.js'
@@ -12,7 +12,12 @@ import { makeLine } from './svgUtil.js'
 export class ConnectLine {
   constructor({ strength = 60 } = {}) {
     this.strength = strength
-    this.el = hSvg('g', {}, (this.line1 = makeLine(strength)), (this.line2 = makeLine(strength)))
+    this.el = backend.current.hSvg(
+      'g',
+      {},
+      (this.line1 = makeLine(strength)),
+      (this.line2 = makeLine(strength)),
+    )
     // accessibility: lines are focusable images named by their endpoints
     // (the existing `svg g:focus` outline rule gives them a focus ring)
     this.el.setAttribute('role', 'img')
@@ -46,8 +51,8 @@ export class ConnectLine {
   }
 
   finalize() {
-    this.p1.listen?.forEach(runFuncNoArg)
-    this.p2.listen?.forEach(runFuncNoArg)
+    this.p1.listen?.forEach(backend.current.runFuncNoArg)
+    this.p2.listen?.forEach(backend.current.runFuncNoArg)
   }
 
   /**
@@ -58,7 +63,7 @@ export class ConnectLine {
   setPoint(p, con, skipUpdate) {
     let old = p.con
     p.con = con
-    if (old) p.listen?.forEach(runFuncNoArg)
+    if (old) p.listen?.forEach(backend.current.runFuncNoArg)
     this.updateAria()
     if (!con) return
 
@@ -70,13 +75,13 @@ export class ConnectLine {
     // (a standalone line) fall back to the legacy element-level event.
     let source = con.root?.editor || con.editor
     p.listen[0] = source
-      ? listenCustom(source, 'ne-move', detail => {
+      ? backend.current.listenCustom(source, 'ne-move', detail => {
           if (detail.stamp === con.movedStamp) this.setPosAligned(p, con)
         })
-      : listenCustom(con.el, 'ne-move', () => {
+      : backend.current.listenCustom(con.el, 'ne-move', () => {
           this.setPosAligned(p, con)
         })
-    p.listen[1] = listenCustom(con.el, 'ne-remove', _detail => {
+    p.listen[1] = backend.current.listenCustom(con.el, 'ne-remove', _detail => {
       this.setPoint(p, null)
     })
     if (!skipUpdate) this.updatePath()
@@ -154,6 +159,6 @@ export class ConnectLine {
    */
   setSelected(sel) {
     this.selected = sel
-    classIf(this.el, 'selected', sel)
+    backend.current.classIf(this.el, 'selected', sel)
   }
 }

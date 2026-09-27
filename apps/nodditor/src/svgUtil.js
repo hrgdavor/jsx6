@@ -1,4 +1,4 @@
-import { hSvg } from '@jsx6/jsx6'
+import { backend } from './runtime.js'
 
 /**
  *
@@ -6,7 +6,7 @@ import { hSvg } from '@jsx6/jsx6'
  * @returns
  */
 export const makeLine = strength =>
-  hSvg('path', {
+  backend.current.hSvg('path', {
     strength,
     style: `vector-effect:non-scaling-stroke;pointer-events:auto;cursor:pointer`,
     fill: 'none',

@@ -1,4 +1,4 @@
-import { addClass } from '@jsx6/jsx6'
+import { backend } from '../runtime.js'
 
 import { EditableTitle } from '../EditableTitle.js'
 
@@ -7,7 +7,7 @@ export function Switch(attr) {
     if (target.hasAttribute('ne-item')) return
     target.innerHTML += '<br/>-----------'
   }
-  addClass(attr, 'ne-block')
+  backend.current.addClass(attr, 'ne-block')
   // P2: the title uses the shared in-place editor, like `Message` does, so
   // the context-menu "E" button works for every block type
   let title = EditableTitle({ onchange: e => console.log('change') })

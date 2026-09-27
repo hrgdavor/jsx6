@@ -1,9 +1,9 @@
-import { addClass, setAttribute } from '@jsx6/jsx6'
+import { backend } from '../runtime.js'
 
 import { EditableTitle } from '../EditableTitle.js'
 
 export function Message(attr) {
-  addClass(attr, 'ne-block')
+  backend.current.addClass(attr, 'ne-block')
   let title = EditableTitle()
   title.setValue('Message')
   return (

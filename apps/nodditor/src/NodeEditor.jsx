@@ -1,20 +1,4 @@
-import {
-  classIf,
-  findParent,
-  fireCustom,
-  getAttr,
-  hSvg,
-  insert,
-  isNode,
-  listen,
-  remove,
-  setAttribute,
-  setSelected,
-  setVisible,
-  toDomNode,
-} from '@jsx6/jsx6'
-import { $Or, observeNow } from '@jsx6/signal'
-import { JsxW, define } from '@jsx6/w'
+import { backend } from './runtime.js'
 
 import { ConnectLine } from './ConnectLine.js'
 import { LineInteraction } from './LineInteraction.js'
@@ -79,14 +63,15 @@ import { updateObserver } from './updateObserver.js'
  * only a safety net for environments without it.
  * @param {Function} fn
  */
-const microtask = fn => (typeof queueMicrotask === 'function' ? queueMicrotask(fn) : Promise.resolve().then(fn))
+const microtask = fn =>
+  typeof queueMicrotask === 'function' ? queueMicrotask(fn) : Promise.resolve().then(fn)
 
 /**
  *
  */
-export class NodeEditor extends JsxW {
+export class NodeEditor extends backend.current.JsxW {
   static {
-    define('jsx6-nodditor', this)
+    backend.current.define('jsx6-nodditor', this)
   }
 
   /** @type {Array<BlockData>} */
@@ -133,12 +118,12 @@ export class NodeEditor extends JsxW {
    */
   add(block, id, { pos = [0, 0], type = '' } = {}) {
     if (this.blockMap.has(id)) throw new Error(`NodeEditor: block id "${id}" is already in use`)
-    setAttribute(block, 'nid', id)
-    let rootNode = /** @type {HTMLBlock}*/ (toDomNode(block))
+    backend.current.setAttribute(block, 'nid', id)
+    let rootNode = /** @type {HTMLBlock}*/ (backend.current.toDomNode(block))
     block.setNodeEditor?.(this)
     // @ts-ignore
     rootNode.nodeEditor = this
-    insert(this.contentArea, rootNode)
+    backend.current.insert(this.contentArea, rootNode)
     rootNode.style.top = '0'
     rootNode.style.left = '0'
     /** @type {BlockData} */
@@ -301,7 +286,7 @@ export class NodeEditor extends JsxW {
    */
   getBlockData(id) {
     if (typeof id === 'string') return this.blockMap.get(id)
-    if (isNode(id)) return this.nodeMap.get(id)
+    if (backend.current.isNode(id)) return this.nodeMap.get(id)
     return id // assume it is block data
   }
 
@@ -345,7 +330,7 @@ export class NodeEditor extends JsxW {
     if (idx != -1) {
       if (this.selectedLine == line) this.selectedLine = null
       this.lines.splice(idx, 1)
-      remove(line.el)
+      backend.current.remove(line.el)
       finalize(line)
       this.historyRecord('remove')
     }
@@ -371,7 +356,9 @@ export class NodeEditor extends JsxW {
     // capture the connected lines BEFORE firing `ne-remove`: the listener
     // clears the line endpoints (p.con -> null), so a filter afterwards would
     // match nothing
-    let lines = this.lines.filter(line => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull)
+    let lines = this.lines.filter(
+      line => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull,
+    )
     this.fireCustom(con.el, 'ne-remove', { ...con })
     lines.forEach(l => this.removeLine(l))
     con.el.removeObserve?.()
@@ -390,7 +377,7 @@ export class NodeEditor extends JsxW {
       this.nodeMap.delete(block.el)
       block.structDirty = false
       block.connectorMap.forEach(con => this.removeConnector(con))
-      remove(block.el)
+      backend.current.remove(block.el)
       finalize(block)
       this.historyRecord('remove')
     }
@@ -533,7 +520,7 @@ export class NodeEditor extends JsxW {
     }
     this.observer = new ResizeObserver(handler)
     this.observer.observe(this)
-    this.svgLayer = hSvg('svg', {
+    this.svgLayer = backend.current.hSvg('svg', {
       style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;',
     })
     this.contentArea = (
@@ -561,16 +548,16 @@ export class NodeEditor extends JsxW {
     this.zoomLabel = this.zoomUI.children[1]
     // aria-live region announcing selection changes (screen-reader status)
     this.statusEl = <div class="ne-sr-status" role="status" aria-live="polite"></div>
-    insert(this, this.zoomUI)
-    insert(this, this.statusEl)
+    backend.current.insert(this, this.zoomUI)
+    backend.current.insert(this, this.statusEl)
     this.updateZoomUI()
     let el = this.contentArea
     // @ts-ignore
     const { $s } = this
     // create a signal tht tells if editor has focus to work with blocks or lines
     // used to decide if delete will try to delete blocks or lines and for other needs
-    this.$focusOrSelecting = $Or($s.isDown, $s.hasFocus)
-    observeNow(this.$focusOrSelecting, f => classIf(el, 'focused', f))
+    this.$focusOrSelecting = backend.current.$Or($s.isDown, $s.hasFocus)
+    backend.current.observeNow(this.$focusOrSelecting, f => backend.current.classIf(el, 'focused', f))
     let lx = 0
     let ly = 0
     let domNode
@@ -653,7 +640,7 @@ export class NodeEditor extends JsxW {
       let hasDrag
       let hasBlock
       let insideMenu
-      domNode = findParent(e.target, p => {
+      domNode = backend.current.findParent(e.target, p => {
         if (!p.hasAttribute) return false
         if (p.hasAttribute('ne-drag')) hasDrag = true
         if (p.hasAttribute('ne-nodrag')) hasBlock = true
@@ -668,7 +655,7 @@ export class NodeEditor extends JsxW {
 
       downButton = e.button || 0
       if (domNode) {
-        nid = getAttr(domNode, 'nid')
+        nid = backend.current.getAttr(domNode, 'nid')
         blockData = this.getBlockData(nid)
       } else {
         blockData = undefined
@@ -740,7 +727,7 @@ export class NodeEditor extends JsxW {
         }
       }
       if (marqueeEl) {
-        remove(marqueeEl)
+        backend.current.remove(marqueeEl)
         marqueeEl = null
       }
       blockData = domNode = nid = undefined
@@ -775,7 +762,7 @@ export class NodeEditor extends JsxW {
             marqueeStart = this.contentPoint(lx, ly) // lx/ly = pointerdown client pos
             marqueeCur = [...marqueeStart]
             marqueeEl = <div class="ne-marquee"></div>
-            insert(this.contentArea, marqueeEl)
+            backend.current.insert(this.contentArea, marqueeEl)
             updateMarquee()
           }
         }
@@ -826,27 +813,28 @@ export class NodeEditor extends JsxW {
       // right-click: open the selection menu at the cursor instead of only
       // when the block/line is selected with the pointer
       e.preventDefault()
-      if (this.currentMenu && findParent(e.target, p => p == this.currentMenu)) return
-      let node = findParent(e.target, p => p.hasAttribute && p.hasAttribute('nid'))
+      if (this.currentMenu && backend.current.findParent(e.target, p => p == this.currentMenu)) return
+      let node = backend.current.findParent(e.target, p => p.hasAttribute && p.hasAttribute('nid'))
       if (node) {
-        let bd = this.getBlockData(getAttr(node, 'nid'))
+        let bd = this.getBlockData(backend.current.getAttr(node, 'nid'))
         if (!bd) return
         if (!(this.selectedBlocks || []).includes(bd)) this.selectBlocks([bd])
         this.placeMenuAtCursor(e)
         return
       }
-      let g = findParent(e.target, p => p.tagName == 'g')
+      let g = backend.current.findParent(e.target, p => p.tagName == 'g')
       let line = g && this.lines.find(l => l.el == g)
       if (line) {
         this.selectConnector(line)
         let menu = this.menuGenerator?.([])
         if (menu) {
-          if (this.currentMenu && this.currentMenu != menu) setVisible(this.currentMenu, false)
-          setVisible(menu, true)
+          if (this.currentMenu && this.currentMenu != menu)
+            backend.current.setVisible(this.currentMenu, false)
+          backend.current.setVisible(menu, true)
           menu.style.display = ''
           if (!menu.parentNode) {
             menu.style.position = 'absolute'
-            insert(this.contentArea, menu)
+            backend.current.insert(this.contentArea, menu)
           }
           this.currentMenu = menu
           this.placeMenuAtCursor(e)
@@ -904,7 +892,7 @@ export class NodeEditor extends JsxW {
           e.preventDefault()
           return
         }
-        let g = findParent(e.target, p => p.tagName == 'g')
+        let g = backend.current.findParent(e.target, p => p.tagName == 'g')
         let line = g && this.lines.find(l => l.el == g)
         if (line) {
           this.selectConnector(line)
@@ -928,13 +916,13 @@ export class NodeEditor extends JsxW {
         }
       }
     }
-    listen(this, 'keydown', keypress)
+    backend.current.listen(this, 'keydown', keypress)
     this.onfocus = e => ($s.hasFocus = true)
     this.onblur = e => ($s.hasFocus = false)
     // blocks and lines are tabbable — keep `hasFocus` true while the focus
     // is on a descendant of the editor
-    listen(this, 'focusin', () => ($s.hasFocus = true))
-    listen(this, 'focusout', e => {
+    backend.current.listen(this, 'focusin', () => ($s.hasFocus = true))
+    backend.current.listen(this, 'focusout', e => {
       if (!this.contains(e.relatedTarget)) $s.hasFocus = false
     })
     return this.contentArea
@@ -1014,8 +1002,8 @@ export class NodeEditor extends JsxW {
   updateZoomUI() {
     if (this.zoomLabel) this.zoomLabel.textContent = Math.round(this._zoom * 100) + '%'
     if (this.zoomUI) {
-      classIf(this.zoomUI, 'at-min', this._zoom <= this.zoomMin)
-      classIf(this.zoomUI, 'at-max', this._zoom >= this.zoomMax)
+      backend.current.classIf(this.zoomUI, 'at-min', this._zoom <= this.zoomMin)
+      backend.current.classIf(this.zoomUI, 'at-max', this._zoom >= this.zoomMax)
     }
   }
 
@@ -1084,7 +1072,7 @@ export class NodeEditor extends JsxW {
     listenUntil(con, con.el, 'click', e => {
       this.selectConnector(con)
     })
-    insert(this.svgLayer, con.el)
+    backend.current.insert(this.svgLayer, con.el)
     this.lines.push(con)
     return con
   }
@@ -1156,7 +1144,8 @@ export class NodeEditor extends JsxW {
     let ser = JSON.stringify(state)
     if (this._histLast) {
       if (ser == this._histLast.ser) return
-      let merge = kind == this._histKind && (kind == 'zoom' || kind == 'nudge') && Date.now() - this._histTs < 750
+      let merge =
+        kind == this._histKind && (kind == 'zoom' || kind == 'nudge') && Date.now() - this._histTs < 750
       if (!merge) {
         this.undoStack.push(this._histLast)
         if (this.undoStack.length > 100) this.undoStack.shift()
@@ -1229,17 +1218,17 @@ export class NodeEditor extends JsxW {
       this.selectConnector(null)
       /** @type {HTMLElement} */
       menu = this.menuGenerator?.(blocks)
-      if (old && old != menu) setVisible(old, false)
+      if (old && old != menu) backend.current.setVisible(old, false)
       if (menu) {
-        setVisible(menu, true)
+        backend.current.setVisible(menu, true)
         if (menu != old) {
           menu.style.position = 'absolute'
-          insert(this.contentArea, menu)
+          backend.current.insert(this.contentArea, menu)
         }
         moveMenu(blocks, menu, this._zoom)
       }
     } else {
-      if (old) setVisible(old, false)
+      if (old) backend.current.setVisible(old, false)
     }
     this.currentMenu = menu
     // P3-3: O(1) membership test (was `blocks.includes(p)` per block, i.e.
@@ -1252,13 +1241,13 @@ export class NodeEditor extends JsxW {
       if (block.setSelected) {
         block.setSelected(sel)
       } else {
-        setSelected(block, sel)
+        backend.current.setSelected(block, sel)
       }
       this.setBlockLabel(p, sel)
     })
     this.lines.forEach(l => {
-      classIf(l.el, 'ne-from-sel-block', blockIdMap[l.p1.con?.root.id])
-      classIf(l.el, 'ne-to-sel-block', blockIdMap[l.p2.con?.root.id])
+      backend.current.classIf(l.el, 'ne-from-sel-block', blockIdMap[l.p1.con?.root.id])
+      backend.current.classIf(l.el, 'ne-to-sel-block', blockIdMap[l.p2.con?.root.id])
     })
     this.setAriaStatus()
   }
@@ -1462,8 +1451,8 @@ export class NodeEditor extends JsxW {
    * @param {*} [detail]
    */
   fireCustom(el, name, detail = {}) {
-    fireCustom(el, name, detail)
-    if (el != this) fireCustom(this, name, detail)
+    backend.current.fireCustom(el, name, detail)
+    if (el != this) backend.current.fireCustom(this, name, detail)
   }
 
   /**

@@ -1,13 +1,13 @@
-import { isFunc, isNode, listen, listenCustom, runFuncNoArg } from '@jsx6/jsx6'
+import { backend } from './runtime.js'
 
 const map = new WeakMap()
 
 export function listenUntil(ref, el, name, cb, options) {
-  return addFinalizer(ref, listen(el, name, cb, options))
+  return addFinalizer(ref, backend.current.listen(el, name, cb, options))
 }
 
 export function listenCustomUntil(ref, el, name, cb, options) {
-  return addFinalizer(ref, listenCustom(el, name, cb, options))
+  return addFinalizer(ref, backend.current.listenCustom(el, name, cb, options))
 }
 
 export function addFinalizer(ref, fn) {
@@ -18,7 +18,7 @@ export function addFinalizer(ref, fn) {
 }
 
 export function finalize(ref) {
-  map.get(ref)?.forEach(runFuncNoArg)
+  map.get(ref)?.forEach(backend.current.runFuncNoArg)
   map.delete(ref)
-  if (isNode(ref?.el)) finalize(ref.el)
+  if (backend.current.isNode(ref?.el)) finalize(ref.el)
 }

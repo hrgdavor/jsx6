@@ -1,6 +1,4 @@
-import { getAttr, setAttribute } from '@jsx6/jsx6'
-
-import { observeShowHide } from '@jsx6/dom-observer'
+import { backend } from './runtime.js'
 
 import { calcPos } from './calcPos.js'
 import { pairSum } from './pairUtils.js'
@@ -42,7 +40,7 @@ export function findConnector(blockData, force) {
    * @param {HTMLElement|any} el
    */
   function visit(el) {
-    let ncId = getAttr(el, 'ncid')
+    let ncId = backend.current.getAttr(el, 'ncid')
     if (ncId) {
       let connectData = connectorMap.get(ncId)
       if (!connectData) {
@@ -51,7 +49,7 @@ export function findConnector(blockData, force) {
         let relPos = calcPos(el, blockData.el)
         connectData = {
           id: ncId,
-          dir: getAttr(el, 'ne-connect'),
+          dir: backend.current.getAttr(el, 'ne-connect'),
           changed: 1,
           pos: [0, 0],
           idFull: blockData.id + '/' + ncId,
@@ -68,7 +66,7 @@ export function findConnector(blockData, force) {
         // intersectionRatio 0 and the editor cleans the connector up
         // (NodeEditor.removeConnector). The root is the block element, so
         // dragging the block outside the viewport cannot trigger a false cleanup.
-        el.removeObserve = observeShowHide(
+        el.removeObserve = backend.current.observeShowHide(
           el,
           entry => {
             if (!entry.intersectionRatio) blockData.editor.removeConnector(connectData)
@@ -82,7 +80,7 @@ export function findConnector(blockData, force) {
         el.ncData = connectData
         // it is important to diable drag action for connectors
         // to allow proper interaction, so line can be made instead of moving the block
-        setAttribute(el, 'ne-nodrag', true)
+        backend.current.setAttribute(el, 'ne-nodrag', true)
       }
     }
     let ch = el.firstElementChild

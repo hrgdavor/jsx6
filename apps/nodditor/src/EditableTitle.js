@@ -1,10 +1,10 @@
-import { addClass, fireCustom } from '@jsx6/jsx6'
+import { backend } from './runtime.js'
 
 import { selectElementText } from './selectElementText.js'
 
 export const EditableTitle = (attr = {}) => {
   // @ts-ignore
-  addClass(attr, 'EditableTitle')
+  backend.current.addClass(attr, 'EditableTitle')
   const getValue = () => el.textContent
   const setValue = v => (el.textContent = v)
   let old
@@ -12,7 +12,7 @@ export const EditableTitle = (attr = {}) => {
     el.removeAttribute('contenteditable')
     let value = el.textContent
     if (value != old) {
-      fireCustom(el, 'change', { value })
+      backend.current.fireCustom(el, 'change', { value })
     }
   }
   let el = (

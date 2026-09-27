@@ -1,11 +1,10 @@
-import { insert, provideErrTranslations } from '@jsx6/jsx6'
-import { $State } from '@jsx6/signal'
+import { backend } from './runtime.js'
 
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
 
-provideErrTranslations()
+backend.current.provideErrTranslations()
 
 // click through empty parts of SVG
 // https://stackoverflow.com/questions/22483643/svg-still-receives-clicks-even-if-pointer-events-visible-painted/29319009#29319009
@@ -53,7 +52,7 @@ function toggleSnap() {
 }
 
 /** @type {any} */
-let $s = $State({ hasEdit: true })
+let $s = backend.current.$State({ hasEdit: true })
 let menu = (
   <div class="fx ne-menu" style="padding: 4px; border: solid 1px gray">
     <div class="ne-bt ne-delete" title="Delete selection" onclick={deleteSelection}>
@@ -92,7 +91,7 @@ const editor = (
   />
 )
 
-insert(document.body, <div class="fxs1 fx1">{editor}</div>)
+backend.current.insert(document.body, <div class="fxs1 fx1">{editor}</div>)
 
 // the default demo graph, used on first run and as the migration target for
 // the old position-only `ne.positions` storage

@@ -213,6 +213,38 @@ their endpoints without extra work.
   }}
   ```
 
+## Replacing the backend
+
+The editor is written against a small backend contract instead of the `@jsx6` packages directly.
+[src/runtime-default.js](src/runtime-default.js) is the **only** module in the package that imports
+`@jsx6/*`; everything else reads through `backend.current` and is enforced by
+[test/runtime.test.js](test/runtime.test.js).
+
+`setRuntime()` installs a replacement. A partial object is merged over the default, so swapping one
+primitive is a one-liner; pass `null` to go back to the default backend.
+
+```js
+import { backend, setRuntime } from '@jsx6/nodditor/src/runtime.js'
+
+const defaults = backend.current
+setRuntime({
+  fireCustom: (el, name, detail) => el.dispatchEvent(new CustomEvent(name, { detail, bubbles: true })),
+  addClass: (node, name) => node.classList.add(name),
+})
+// … import the editor only now …
+```
+
+Two things to know:
+
+- **Install the replacement before importing the editor.** `NodeEditor` extends `backend.current.JsxW`
+  when its module is evaluated, so a later swap would leave the editor on the old base class.
+- **The JSX runtime is bound at build time**, not through this seam: JSX compiles to
+  `@jsx6/jsx-runtime` (see [src_build/buildScript.js](src_build/buildScript.js)). A standalone build
+  points `jsxImportSource` at its own runtime, which needs no source change.
+
+The full contract is the `NodeEditorRuntime` typedef in [src/runtime.js](src/runtime.js) — 23 names,
+of which the editor itself drives at most 19.
+
 ## Styling
 
 The package ships no CSS: the demo's styles are static assets, not part of the API.
@@ -241,6 +273,10 @@ the package — that is what [scripts/verify.js](../../scripts/verify.js) does. 
   `getBlocksMinXY`, `calcPos`, `makeLineConnector`, `pairUtils`.
 - [test/editor.test.jsx](test/editor.test.jsx) — the data model through the real editor: `add`,
   `getConnector`, `addConnectorFromTo` (duplicate rejection), `selectBlocks`, and Delete/Backspace.
+- [test/runtime.test.js](test/runtime.test.js) — the backend seam (see
+  [Replacing the backend](#replacing-the-backend)): `src/runtime-default.js` is the only module
+  allowed to import a `@jsx6/*` package, the contract has a fixed surface, and `setRuntime()`
+  replaces it.
 - [bunfig.toml](bunfig.toml) sets `jsxImportSource = "@jsx6"` so `bun test` can transform JSX at all
   (the default runtime is react).
 - `smoke/*.smoke.jsx` are script-style suites, deliberately **not** named `*.test.jsx` so that
@@ -250,11 +286,14 @@ the package — that is what [scripts/verify.js](../../scripts/verify.js) does. 
 ```bash
 cd apps/nodditor
 node smoke/p1.run.mjs        # P1: robustness; also p2.run.mjs, p3.run.mjs
+node smoke/seam.run.mjs      # the backend seam: a real editor on a replaced backend
 ```
 
 Each runner bundles the real sources with esbuild (the same settings as the app build) into
 `smoke/pN.bundle.mjs`, so the suites exercise the built code path rather than a test-only entry
 point. Those generated bundles are excluded from Oxfmt in [.oxfmtrc.json](.oxfmtrc.json).
+`smoke/seam.smoke.jsx` covers what `test/runtime.test.js` cannot: it boots a real editor whose
+backend is a replacement and asserts the editor's calls actually arrive there.
 
 ## Formatting and the local gate
 

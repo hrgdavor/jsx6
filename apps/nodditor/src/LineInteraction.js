@@ -1,4 +1,4 @@
-import { classIf } from '@jsx6/jsx6'
+import { backend } from './runtime.js'
 
 import { ConnectLine } from './ConnectLine.js'
 import { NodeEditor } from './NodeEditor.jsx'
@@ -25,7 +25,7 @@ export class LineInteraction {
    */
   newConnector(con) {
     const markTarget = (con, mark) => {
-      if (con) classIf(con.el, 'target', mark)
+      if (con) backend.current.classIf(con.el, 'target', mark)
     }
     let isDown = false
     let isMoving = false
