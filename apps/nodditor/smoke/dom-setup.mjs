@@ -14,6 +14,11 @@ import { readFileSync } from 'node:fs'
 export const EDITOR_CSS = readFileSync(new URL('../static/nodditor.css', import.meta.url), 'utf8')
 /** The demo look (menu chrome, editor box) — loaded alongside, as the demo page does. */
 export const DEMO_CSS = readFileSync(new URL('../static/ne-demo.css', import.meta.url), 'utf8')
+/**
+ * The HOST block/connector stylesheet, verbatim. NOT installed by `setupDom()` (see the note there),
+ * but exported so a suite can reason about class ownership against it.
+ */
+export const HOST_CSS = readFileSync(new URL('../static/ne-blocks.css', import.meta.url), 'utf8')
 
 /**
  * Register the DOM globals and install the editor stylesheet.
@@ -43,6 +48,11 @@ export async function setupDom() {
 
   const tag = document.createElement('style')
   tag.setAttribute('data-ne-editor-css', '')
+  // The LIBRARY sheet only. The host block sheet (`ne-blocks.css`) is deliberately NOT loaded here:
+  // it positions block internals (`[ne-connect] { position: absolute }`) and the p1/p3 suites fake
+  // layout by hand, so loading it changes what those suites measure. The invariant that matters — the
+  // library must never style a class the host markup owns — is asserted statically by
+  // `SEAM-1e` and dynamically by `doc/feeding-data.run.mjs`.
   tag.textContent = EDITOR_CSS + '\n' + DEMO_CSS
   document.head.appendChild(tag)
 

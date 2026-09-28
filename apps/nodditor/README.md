@@ -239,6 +239,34 @@ editor.loadLines(diagram.lines)
 * `addConnectorFromTo(from, to)` remains the strict, one-line API (it throws on a bad endpoint); use
   it for interactive wiring.
 
+#### Wiring lines from your own data: use `loadLines`, not a `forEach(addConnectorFromTo)`
+
+The error hosts hit most often is a duplicate line in their own data:
+
+```
+Uncaught Error: NodeEditor: "1/onTimeout" is already connected to "2/i1"
+    at NodeEditor.addConnectorFromTo
+    at editorUtils.js:31   ← a forEach over page.conns
+```
+
+That guard is correct — fan-out (one output to several different inputs) is allowed, so it only fires
+when the pair really is already connected, either because the same entry appears twice (in either
+direction) or because the fill ran again over a graph that still had its lines.
+
+`loadLines` is the loader for this: it attaches what it can, **reports and skips what it cannot, and
+never throws**, returning `{ attached, skipped }`.
+
+```js
+setTimeout(() => {
+  const { attached, skipped } = editor.loadLines(page.conns) // not forEach(addConnectorFromTo)
+  if (skipped) console.warn(`nodditor: ${attached} attached, ${skipped} skipped`)
+}, 200)
+```
+
+If the whole graph comes from the server, prefer one authoritative call — `loadGraph` clears first, so
+running it twice is harmless: `editor.loadGraph({ blocks, lines })`. Full guide with the de-duplication
+snippet and a readiness check for async ports: [doc/feeding-data.md](doc/feeding-data.md).
+
 #### Corrupt data must not cost the document
 
 `loadLines` (and therefore `loadGraph`) is **tolerant**: a line whose endpoint does not exist, is a
