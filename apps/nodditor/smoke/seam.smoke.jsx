@@ -197,7 +197,7 @@ if (styleWrites.length) console.error('     ' + styleWrites.join('\n     '))
  */
 const libraryCss = readFileSync('static/nodditor.css', 'utf8')
 const requiredCss = [
-  ['.ne-content', ['--ne-zoom', '--ne-zoom-w', '--ne-zoom-h', 'scale(']],
+  ['.ne-canvas', ['--ne-zoom', '--ne-zoom-w', '--ne-zoom-h', 'scale(']],
   ['.ne-block', ['position: absolute', '--ne-x', '--ne-y', 'translate']],
   ['.ne-svg-layer', ['position: absolute', 'pointer-events: none']],
   ['.ne-marquee', ['--ne-marquee-x', '--ne-marquee-y', '--ne-marquee-w', '--ne-marquee-h', 'z-index']],
@@ -225,6 +225,45 @@ if (missingCss.length) console.error('     ' + missingCss.join('\n     '))
 ok(
   !/\.ne-block\s*\{[^}]*translate\(/.test(libraryCss),
   'SEAM-1d .ne-block positions with translateX()/translateY(), not translate(x, y)',
+)
+
+/**
+ * SEAM-1e: a class the editor puts on an element must not collide with HOST block markup.
+ *
+ * `.ne-content` is a block's own body (see the block components and ne-blocks.css). Naming the canvas
+ * layer `.ne-content` too did not just collide — with nodditor.css loading after ne-blocks.css it
+ * OVERRODE the block bodies with `position: absolute`, so blocks collapsed into white strips and the
+ * whole graph fell apart.
+ *
+ * `.ne-block` is the one deliberate overlap (it is the host's element identity): nodditor.css supplies
+ * its geometry, ne-blocks.css its look. Any OTHER class defined in both files is a bug.
+ */
+const classNames = css =>
+  new Set([...css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/\.(ne-[a-z0-9-]+)/gi)].map(m => m[1]))
+const libraryClasses = classNames(libraryCss)
+const hostClasses = classNames(readFileSync('static/ne-blocks.css', 'utf8'))
+const DELIBERATE_OVERLAP = ['ne-block']
+const sharedClasses = [...libraryClasses].filter(n => hostClasses.has(n) && !DELIBERATE_OVERLAP.includes(n))
+ok(
+  sharedClasses.length === 0,
+  `SEAM-1e no accidental class overlap between nodditor.css and the host stylesheet (${sharedClasses.join(', ') || 'none'})`,
+)
+if (sharedClasses.length) console.error('     shared: ' + sharedClasses.join(', '))
+
+// the classes the editor itself puts on elements must exist in the library stylesheet
+const editorSource = readFileSync('src/NodeEditor.jsx', 'utf8')
+const emitted = [...editorSource.matchAll(/class="([^"]+)"/g)].flatMap(m => m[1].split(/\s+/))
+const unstyled = [...new Set(emitted)].filter(name => name.startsWith('ne-') && !libraryClasses.has(name))
+ok(
+  unstyled.length === 0,
+  `SEAM-1e every ne-* class the editor emits has a rule in nodditor.css (${unstyled.join(', ') || 'all styled'})`,
+)
+
+// the canvas layer specifically must not use a name the host block markup owns
+const canvasClass = editorSource.match(/<div class="(ne-[a-z-]+)">\{this\.svgLayer\}/)?.[1]
+ok(
+  !!canvasClass && !hostClasses.has(canvasClass),
+  `SEAM-1e the canvas layer class (${canvasClass}) is not one the host markup uses`,
 )
 
 // ---------- SEAM-2: the default backend is the app's four dependencies ----------

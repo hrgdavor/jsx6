@@ -640,7 +640,9 @@ export class NodeEditor extends JsxW {
     // "Styling" section of the README for the custom properties that drive the dynamic parts
     // (`--ne-zoom`, `--ne-x`, `--ne-y`, `--ne-menu-x`, `--ne-menu-y`).
     this.svgLayer = hSvg('svg', { class: 'ne-svg-layer' })
-    this.contentArea = <div class="ne-content">{this.svgLayer}</div>
+    // `.ne-canvas`, not `.ne-content`: a block's own body is `.ne-content` (see the block markup), and
+    // naming this layer the same made the canvas rule land on the block bodies.
+    this.contentArea = <div class="ne-canvas">{this.svgLayer}</div>
     this._zoom = 1
     // P3-1: structural changes of the blocks (added/removed connectors) are
     // tracked by one canvas-wide MutationObserver, which is what the memoized

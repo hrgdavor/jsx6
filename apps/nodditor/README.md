@@ -421,7 +421,7 @@ CSS, and nothing depends on a declaration the editor injected at runtime:
 
 | element | variables | consumed by |
 | --- | --- | --- |
-| canvas (`.ne-content`) | `--ne-zoom` (unitless), `--ne-zoom-w`, `--ne-zoom-h` | `transform: scale(…)`, size |
+| canvas (`.ne-canvas`) | `--ne-zoom` (unitless), `--ne-zoom-w`, `--ne-zoom-h` | `transform: scale(…)`, size |
 | block (`.ne-block`) | `--ne-x`, `--ne-y` | `transform: translateX() translateY()` |
 | selection menu (`.ne-menu`) | `--ne-menu-x`, `--ne-menu-y` | `left`, `top` |
 | marquee (`.ne-marquee`) | `--ne-marquee-x/-y/-w/-h` | `left`, `top`, `width`, `height` |

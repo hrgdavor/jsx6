@@ -114,9 +114,9 @@ any of them in your own stylesheet, which is loaded after this one.
 
 | property | default | notes |
 | --- | --- | --- |
-| position | `absolute`, `right: 6px`, `bottom: 6px` | inline; relative to the editor element |
-| `z-index` | `1` | inline; `--ne-zoom-z` overrides it |
-| `pointer-events` | `auto` | inline |
+| position | `absolute`, `right: 6px`, `bottom: 6px` | from `nodditor.css`; relative to the editor element |
+| `z-index` | `1` | from `nodditor.css`; `--ne-zoom-z` overrides it |
+| `pointer-events` | `auto` | from `nodditor.css` |
 | `background` | `#fff` | |
 | `border` / `border-radius` | `solid 1px #ddd` / `6px` | |
 | `box-shadow` | `1px 1px 3px #ccc` | |

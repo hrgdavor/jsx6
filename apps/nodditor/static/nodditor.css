@@ -12,7 +12,7 @@
    `jsx6-nodditor { --ne-zoom-z: 5 }` to lift the zoom controls above a host overlay.
 
    Layout contract (written by the editor through the style property API, never as inline styles):
-     .ne-content     --ne-zoom (unitless scale), --ne-zoom-w, --ne-zoom-h (unscaled size)
+     .ne-canvas      --ne-zoom (unitless scale), --ne-zoom-w, --ne-zoom-h (unscaled size)
      .ne-block       --ne-x, --ne-y (content-space position)
      .ne-menu        --ne-menu-x, --ne-menu-y (content-space position)
      .ne-marquee     --ne-marquee-x, -y, -w, -h
@@ -29,10 +29,13 @@ jsx6-nodditor:focus {
 }
 
 /* the canvas: pannable/zoomable layer, under the controls.
+   NOTE the class is `.ne-canvas`, NOT `.ne-content`: a block's own body uses `.ne-content` (see the
+   host block markup and ne-blocks.css), and reusing that name here made this rule land on the block
+   bodies — they escaped their box and the whole graph collapsed.
    The two axes are separate `translateX()`/`translateY()` functions rather than one
    `translate(x, y)` on purpose: a comma-separated value is what naive CSS parsers (and happy-dom's
    computed-style serialiser) truncate at the first comma, which loses the Y axis. */
-.ne-content {
+.ne-canvas {
   position: absolute;
   top: 0;
   left: 0;

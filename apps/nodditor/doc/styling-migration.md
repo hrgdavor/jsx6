@@ -83,22 +83,51 @@ jsx6-nodditor {
 | `--ne-marquee-x/-y/-w/-h` | the editor (while dragging) | marquee rectangle |
 | `--ne-content-z`, `--ne-zoom-z`, `--ne-marquee-z` | **you** (optional) | stacking |
 
+## Class names: who owns what
+
+| class | owner | meaning |
+| --- | --- | --- |
+| `.ne-canvas` | **library** | the pannable/zoomable layer (do not reuse) |
+| `.ne-svg-layer` | **library** | the line layer inside the canvas |
+| `.ne-block` | **shared** | your block element; the library supplies its geometry, your stylesheet its look |
+| `.ne-content` | **you** (conventional) | a block's body — used by the standard block markup |
+| `.ne-title`, `.ne-item`, `[ne-drag]`, `[ne-connect]` | **you** | block internals |
+| `.ne-menu`, `.ne-zoom-ui`, `.ne-marquee` | **library** | editor-owned UI |
+
+The library must never style a class your block markup owns: its stylesheet loads *after* yours, so
+such a rule would override your blocks. That is exactly how the `.ne-content` mix-up collapsed the
+block bodies (they became `position: absolute` and escaped their box).
+
 ## What changed, precisely
 
 1. **No inline styles.** The editor no longer writes `el.style.left/top/width/height/transform/display`.
    It writes custom properties via `style.setProperty('--ne-…')`, and the stylesheet consumes them.
-2. **Menu visibility uses the `hidden` attribute**, not `style.display`. If you generate the menu
+2. **The canvas layer is `.ne-canvas`** (it used to have its layout inline, under no class).
+   Do **not** name it `.ne-content` in your own CSS: `.ne-content` is a **block's body** in the
+   standard block markup, and the two must stay separate.
+3. **Menu visibility uses the `hidden` attribute**, not `style.display`. If you generate the menu
    element, do not force `display` on it; the editor toggles `hidden` and `nodditor.css` maps
    `[hidden]` to `display: none`.
-3. **The menu is positioned for you.** Do not set `left`/`top` on your own menu element — the editor
+4. **The menu is positioned for you.** Do not set `left`/`top` on your own menu element — the editor
    publishes `--ne-menu-x/-y`. If you need different placement, override `.ne-menu` in your CSS.
-4. **Lines have no accessibility markup** (no `role`, `tabindex` or `aria-label`) and are not
+5. **Lines have no accessibility markup** (no `role`, `tabindex` or `aria-label`) and are not
    focusable, which is what removes the gray focus box around a selected line. Blocks keep
    `role="group"`, `tabindex` and a stable `aria-label` (`"Switch 1"`) because the keyboard flow
    (Enter / arrows / Delete) depends on them.
-5. **No selection-status text.** The editor used to inject a visually-hidden `aria-live` element and
+6. **No selection-status text.** The editor used to inject a visually-hidden `aria-live` element and
    write "block 1 selected" / "selection cleared" into it; that element is gone. If you were reading
    or styling `.ne-sr-status`, drop it.
+
+## Class names: who owns what
+
+| class | owner | meaning |
+| --- | --- | --- |
+| `.ne-canvas` | **library** | the pannable/zoomable layer (do not reuse) |
+| `.ne-svg-layer` | **library** | the line layer inside the canvas |
+| `.ne-block` | **shared** | your block element; the library supplies its geometry, your stylesheet its look |
+| `.ne-content` | **you** (conventional) | a block's body — used by the standard block markup |
+| `.ne-title`, `.ne-item`, `[ne-drag]`, `[ne-connect]`, `[ne-nid]` | **you** | block internals |
+| `.ne-menu`, `.ne-zoom-ui`, `.ne-marquee` | **library** | editor-owned UI |
 
 ## Checking your integration
 

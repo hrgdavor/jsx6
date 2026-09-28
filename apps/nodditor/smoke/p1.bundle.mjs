@@ -2482,7 +2482,7 @@ var NodeEditor = class extends JsxW {
     this.observer = new ResizeObserver(handler);
     this.observer.observe(this);
     this.svgLayer = hSvg("svg", { class: "ne-svg-layer" });
-    this.contentArea = /* @__PURE__ */ jsx("div", { class: "ne-content", children: this.svgLayer });
+    this.contentArea = /* @__PURE__ */ jsx("div", { class: "ne-canvas", children: this.svgLayer });
     this._zoom = 1;
     this.ensureStructObserver();
     this.zoomUI = /* @__PURE__ */ jsx("div", { class: "ne-zoom-ui", children: [
