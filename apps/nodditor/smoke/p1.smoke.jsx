@@ -46,7 +46,11 @@ throws(() => editor.add(<Switch />, '1'), 'P1-1 duplicate id throws', /already i
 ok(editor.blocks.length === 3, 'P1-1 valid ids still added (3 blocks)')
 
 // ---------- P1-2: connector validation ----------
-throws(() => editor.addConnectorFromTo('1/o1', 'no/such'), 'P1-2 unknown connector throws', /unknown connector/)
+throws(
+  () => editor.addConnectorFromTo('1/o1', 'no/such'),
+  'P1-2 unknown connector throws',
+  /unknown connector/,
+)
 throws(() => editor.addConnectorFromTo('1/o1', '1/o1'), 'P1-2 self-connect throws', /itself/)
 editor.addConnectorFromTo('1/o1', '2/i1')
 ok(editor.lines.length === 1, 'P1-2 valid pair accepted (1 line)')

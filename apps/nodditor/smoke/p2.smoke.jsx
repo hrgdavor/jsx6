@@ -236,7 +236,10 @@ ok(sel3() === '' && !ed3.selectedLine, 'P2-6 right-click on empty canvas deselec
 
 // roles, labels, live region
 const bA = ed3.getBlockData('1')
-ok(bA.el.getAttribute('role') === 'group' && bA.el.getAttribute('tabindex') === '0', 'P2-7 blocks are tabbable groups')
+ok(
+  bA.el.getAttribute('role') === 'group' && bA.el.getAttribute('tabindex') === '0',
+  'P2-7 blocks are tabbable groups',
+)
 ed3.selectBlocks([bA, ed3.getBlockData('2')])
 ok(/Switch 1/.test(bA.el.getAttribute('aria-label')), 'P2-7 block aria-label has type + id')
 ok(ed3.statusEl.textContent === '2 blocks selected', 'P2-7 aria-live reports the multi-selection')
@@ -246,7 +249,10 @@ ok(
   line.el.getAttribute('role') === 'img' && line.el.getAttribute('tabindex') === '0',
   'P2-7 lines are focusable images',
 )
-ok(/connection 1\/o1 -> 2\/i1/.test(line.el.getAttribute('aria-label')), 'P2-7 line aria-label from endpoints')
+ok(
+  /connection 1\/o1 -> 2\/i1/.test(line.el.getAttribute('aria-label')),
+  'P2-7 line aria-label from endpoints',
+)
 ed3.selectConnector(line)
 ok(/connection .* selected/.test(ed3.statusEl.textContent), 'P2-7 aria-live reports line selection')
 ed3.deselect()
@@ -261,7 +267,10 @@ key(el1, 'ArrowDown')
 ok(ed3.getPos('1')[1] === y0 + 10, 'P2-7 ArrowDown works after keyboard-only selection')
 const lines1 = ed3.lines.length
 key(el1, 'Delete')
-ok(ed3.getBlockData('1') == null && ed3.lines.length === lines1 - 1, 'P2-7 Delete removes the selected block + line')
+ok(
+  ed3.getBlockData('1') == null && ed3.lines.length === lines1 - 1,
+  'P2-7 Delete removes the selected block + line',
+)
 ok(
   ed3.undo() && ed3.getBlockData('1') != null && ed3.lines.length === lines1,
   'P2-7 undo restores the keyboard-deleted block',

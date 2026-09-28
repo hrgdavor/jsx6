@@ -1,16 +1,18 @@
 /**
- * Guard for the backend seam: `src/runtime-default.js` is the ONLY file in the package that imports
- * a `@jsx6/*` package — library and demo alike — and everything else reaches the backend through
- * `backend.current` (with `setRuntime()` to replace it).
+ * Guard for the backend seam.
  *
- * This is what keeps the seam from rotting: without it, the next `import { insert } from
- * '@jsx6/jsx6'` added to a random file silently re-couples nodditor to the real implementation, and
- * that only shows up much later as "replacing the runtime did not replace everything".
+ * `src/runtime-default.js` is the module that maps the backend contract onto the real packages, and
+ * `backend.current` is how most of the library reaches them. Two files are deliberately **outside**
+ * the seam because their pre-refactor behaviour has to be preserved byte for byte:
  *
- * The demo surface (`src/index.jsx`, `src/blocks/*`) is held to the same rule: it uses the editor's
- * public API and plain DOM, so it needs no jsx6 import at all. It is still listed explicitly so
- * that a future demo convenience import fails here rather than quietly re-opening a second door
- * into the framework.
+ *   - `src/NodeEditor.jsx` — the editor's own primitives (class/attr helpers, element creation,
+ *     `JsxW`, `$Or`/`observeNow`);
+ *   - `src/connectorUtil.js` — connector discovery, which reads `ncid`/`ne-connect` through jsx6's
+ *     `getAttr` and observes with `@jsx6/dom-observer`.
+ *
+ * Anything else must go through `backend.current`, and the demo surface (`src/index.jsx`,
+ * `src/blocks/*`) must not import jsx6 at all. Keeping the allow-list explicit is the point: adding
+ * another direct import has to be a visible decision here, not a silent one.
  */
 import { expect, test } from 'bun:test'
 import { readFileSync, readdirSync } from 'node:fs'
@@ -20,7 +22,12 @@ import { backend, hasRuntimeOverride, setRuntime } from '../src/runtime.js'
 
 const ROOT = join(dirname(import.meta.dir), 'src')
 const DEFAULT_BACKEND = join(ROOT, 'runtime-default.js')
-/** The JSX demo page and its block components: they must be jsx6-free too (see the header). */
+/** Files allowed to import `@jsx6/*` directly (besides runtime-default.js). */
+const DIRECT_IMPORTERS = [
+  'NodeEditor.jsx', // editor primitives: restored to direct imports
+  'connectorUtil.js', // discovery: getAttr + dom-observer, restored to direct imports
+]
+/** The JSX demo page and its block components: they must stay jsx6-free. */
 const DEMO_SURFACE = ['index.jsx', 'blocks/Switch.js', 'blocks/Message.js']
 
 /** Every `.js`/`.jsx` under `src/`, recursively. */
@@ -47,23 +54,29 @@ function jsx6Imports(source) {
   return found
 }
 
-test('runtime-default.js is the only module importing @jsx6/*', () => {
-  // No exemptions — not even the demo surface, which is exactly why DEMO_SURFACE is asserted
-  // separately below: a convenience import added there would otherwise be invisible here.
+test('only the allowed files import @jsx6/* directly', () => {
   const offenders = []
   for (const file of sourceFiles()) {
     const rel = relative(ROOT, file).replaceAll('\\', '/')
-    if (file === DEFAULT_BACKEND) continue
+    if (file === DEFAULT_BACKEND || DIRECT_IMPORTERS.includes(rel)) continue
     const found = jsx6Imports(readFileSync(file, 'utf8'))
     if (found.size) offenders.push(`${rel} -> ${[...found].join(', ')}`)
   }
   expect(offenders).toEqual([])
 })
 
+test('the direct importers are exactly the documented set', () => {
+  // Pinned so a new direct import is a visible change to this list, not an accident.
+  const direct = sourceFiles()
+    .map(file => [relative(ROOT, file).replaceAll('\\', '/'), jsx6Imports(readFileSync(file, 'utf8'))])
+    .filter(([rel, found]) => found.size && rel !== 'runtime-default.js')
+    .map(([rel]) => rel)
+    .sort()
+  expect(direct).toEqual([...DIRECT_IMPORTERS].sort())
+})
+
 test('the demo surface needs no jsx6 import of its own', () => {
-  // The JSX demo page and its blocks use the editor's public API and plain DOM, so nodditor has
-  // exactly ONE module that knows jsx6 exists. A demo file importing `@jsx6/*` for convenience would
-  // reintroduce a second way into the framework, which is what the seam exists to prevent.
+  // The JSX demo page and its blocks use the editor's public API and plain DOM.
   const used = {}
   for (const rel of DEMO_SURFACE) {
     used[rel] = [...jsx6Imports(readFileSync(join(ROOT, rel), 'utf8'))].sort()

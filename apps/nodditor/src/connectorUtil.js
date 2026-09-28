@@ -1,4 +1,6 @@
-import { backend } from './runtime.js'
+import { getAttr, setAttribute } from '@jsx6/jsx6'
+
+import { observeShowHide } from '@jsx6/dom-observer'
 
 import { calcPos } from './calcPos.js'
 import { pairSum } from './pairUtils.js'
@@ -40,7 +42,7 @@ export function findConnector(blockData, force) {
    * @param {HTMLElement|any} el
    */
   function visit(el) {
-    let ncId = backend.current.getAttr(el, 'ncid')
+    let ncId = getAttr(el, 'ncid')
     if (ncId) {
       let connectData = connectorMap.get(ncId)
       if (!connectData) {
@@ -49,7 +51,7 @@ export function findConnector(blockData, force) {
         let relPos = calcPos(el, blockData.el)
         connectData = {
           id: ncId,
-          dir: backend.current.getAttr(el, 'ne-connect'),
+          dir: getAttr(el, 'ne-connect'),
           changed: 1,
           pos: [0, 0],
           idFull: blockData.id + '/' + ncId,
@@ -61,15 +63,20 @@ export function findConnector(blockData, force) {
           editor: this,
           size: [el.offsetWidth, el.offsetHeight],
         }
-        // watch the connector element: when it is removed from the DOM the
-        // IntersectionObserver delivers one final entry with
-        // intersectionRatio 0 and the editor cleans the connector up
-        // (NodeEditor.removeConnector). The root is the block element, so
-        // dragging the block outside the viewport cannot trigger a false cleanup.
-        el.removeObserve = backend.current.observeShowHide(
+        // Watch the connector element: when it is REMOVED from the document the IntersectionObserver
+        // delivers one final entry with intersectionRatio 0 and the editor cleans the connector up
+        // (NodeEditor.removeConnector). The root is the block element, so dragging the block outside
+        // the viewport cannot trigger a false cleanup.
+        //
+        // `intersectionRatio === 0` alone is NOT "removed": a collapsed list row, `hidden`, a
+        // `display:none` section or a zero-height box inside the block reports 0 while still being in
+        // the document — and the connector it holds is still perfectly connectable (a line endpoint
+        // does not need to be visible). Treating those as removals deleted live connectors from the
+        // map with no way back, so the only cleanup now is a genuinely detached element.
+        el.removeObserve = observeShowHide(
           el,
           entry => {
-            if (!entry.intersectionRatio) blockData.editor.removeConnector(connectData)
+            if (!entry.intersectionRatio && !el.isConnected) blockData.editor.removeConnector(connectData)
           },
           { root: rootNode },
         )
@@ -80,7 +87,7 @@ export function findConnector(blockData, force) {
         el.ncData = connectData
         // it is important to diable drag action for connectors
         // to allow proper interaction, so line can be made instead of moving the block
-        backend.current.setAttribute(el, 'ne-nodrag', true)
+        setAttribute(el, 'ne-nodrag', true)
       }
     }
     let ch = el.firstElementChild

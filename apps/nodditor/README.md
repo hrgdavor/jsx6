@@ -252,6 +252,30 @@ NodeEditor: skipping line ["1/does-not-exist","2/in"] — NodeEditor: unknown co
 The message names the block, its type, and the connectors that *were* discovered — usually enough to
 see the data problem (a stale `ncid`, a block whose markup changed) without debugging the editor.
 
+#### "My connector does not show up"
+
+`editor.explainConnectors(blockId)` walks the block element for `[ncid]` exactly like discovery does
+and reports, per element, whether the editor collected it and why not:
+
+```js
+editor.explainConnectors('onTimeout-block')
+// [ { ncid: 'onTimeout', collected: true,  dir: 'out', tag: 'B' },
+//   { ncid: 'onTimeout', collected: false, dir: 'out', tag: 'B',
+//     note: 'duplicate ncid — another element holds it' } ]
+```
+
+The three causes it distinguishes:
+
+| report | cause | fix |
+| --- | --- | --- |
+| `duplicate ncid — another element holds it` | two elements in one block carry the same `ncid`. Only the **first** becomes the connector; the second is not collected and also does not get `ne-nodrag`, so it drags the block instead of starting a line | make each `ncid` unique inside the block |
+| `not collected by the last scan` | the element is in the block but discovery has not seen it — its DOM was added in a way the canvas `MutationObserver` cannot observe | `editor.recheckConnectors(block, true)`, or call `inspectConnectors()` after rendering |
+| the element is missing from the report entirely | it is **not inside the block element** the editor was given, or it lives inside a shadow root (the walk does not cross shadow boundaries) | add it to the block element, or avoid the shadow root |
+
+`ncid` values are arbitrary strings: camelCase (`onTimeout`), dots, hyphens, digits and leading
+slashes all work — `getAttr` is used verbatim, so discovery reads the attribute exactly like
+`getAttribute('ncid')`.
+
 ## Events
 
 All three are custom events fired on the editor element (and on the connector element for

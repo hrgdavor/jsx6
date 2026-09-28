@@ -1772,7 +1772,7 @@ function findConnector(blockData, force) {
   blockData.structDirty = false;
   return { resizeSet, cached: false };
   function visit(el) {
-    let ncId = backend.current.getAttr(el, "ncid");
+    let ncId = getAttr(el, "ncid");
     if (ncId) {
       let connectData = connectorMap.get(ncId);
       if (!connectData) {
@@ -1781,7 +1781,7 @@ function findConnector(blockData, force) {
         let relPos = calcPos(el, blockData.el);
         connectData = {
           id: ncId,
-          dir: backend.current.getAttr(el, "ne-connect"),
+          dir: getAttr(el, "ne-connect"),
           changed: 1,
           pos: [0, 0],
           idFull: blockData.id + "/" + ncId,
@@ -1793,10 +1793,10 @@ function findConnector(blockData, force) {
           editor: this,
           size: [el.offsetWidth, el.offsetHeight]
         };
-        el.removeObserve = backend.current.observeShowHide(
+        el.removeObserve = observeShowHide(
           el,
           (entry) => {
-            if (!entry.intersectionRatio)
+            if (!entry.intersectionRatio && !el.isConnected)
               blockData.editor.removeConnector(connectData);
           },
           { root: rootNode }
@@ -1806,7 +1806,7 @@ function findConnector(blockData, force) {
         updatePos(connectData);
         el.ncId = ncId;
         el.ncData = connectData;
-        backend.current.setAttribute(el, "ne-nodrag", true);
+        setAttribute(el, "ne-nodrag", true);
       }
     }
     let ch = el.firstElementChild;
@@ -1919,9 +1919,9 @@ var Fragment = (attr, children) => children;
 
 // apps/nodditor/src/NodeEditor.jsx
 var microtask = (fn) => typeof queueMicrotask === "function" ? queueMicrotask(fn) : Promise.resolve().then(fn);
-var NodeEditor = class extends backend.current.JsxW {
+var NodeEditor = class extends JsxW {
   static {
-    backend.current.define("jsx6-nodditor", this);
+    define("jsx6-nodditor", this);
   }
   /** @type {Array<BlockData>} */
   blocks = [];
@@ -1972,14 +1972,14 @@ var NodeEditor = class extends backend.current.JsxW {
   add(block, id, { pos = [0, 0], type = "" } = {}) {
     if (this.blockMap.has(id))
       throw new Error(`NodeEditor: block id "${id}" is already in use`);
-    backend.current.setAttribute(block, "nid", id);
+    setAttribute(block, "nid", id);
     let rootNode = (
       /** @type {HTMLBlock}*/
-      backend.current.toDomNode(block)
+      toDomNode(block)
     );
     block.setNodeEditor?.(this);
     rootNode.nodeEditor = this;
-    backend.current.insert(this.contentArea, rootNode);
+    insert(this.contentArea, rootNode);
     rootNode.style.top = "0";
     rootNode.style.left = "0";
     let blockData = rootNode.neBlock = {
@@ -2165,7 +2165,7 @@ var NodeEditor = class extends backend.current.JsxW {
   getBlockData(id) {
     if (typeof id === "string")
       return this.blockMap.get(id);
-    if (backend.current.isNode(id))
+    if (isNode(id))
       return this.nodeMap.get(id);
     return id;
   }
@@ -2208,7 +2208,7 @@ var NodeEditor = class extends backend.current.JsxW {
       if (this.selectedLine == line2)
         this.selectedLine = null;
       this.lines.splice(idx, 1);
-      backend.current.remove(line2.el);
+      remove(line2.el);
       finalize(line2);
       this.historyRecord("remove");
     }
@@ -2245,7 +2245,7 @@ var NodeEditor = class extends backend.current.JsxW {
       this.nodeMap.delete(block.el);
       block.structDirty = false;
       block.connectorMap.forEach((con) => this.removeConnector(con));
-      backend.current.remove(block.el);
+      remove(block.el);
       finalize(block);
       this.historyRecord("remove");
     }
@@ -2363,7 +2363,7 @@ var NodeEditor = class extends backend.current.JsxW {
     };
     this.observer = new ResizeObserver(handler);
     this.observer.observe(this);
-    this.svgLayer = backend.current.hSvg("svg", {
+    this.svgLayer = hSvg("svg", {
       style: "position:absolute;pointer-events: none; width: 100%; height: 100%;"
     });
     this.contentArea = /* @__PURE__ */ jsx("div", { style: "position:absolute;top:0;left:0;width:100%; height:100%; transform-origin: top left; z-index:0;", children: this.svgLayer });
@@ -2383,13 +2383,13 @@ var NodeEditor = class extends backend.current.JsxW {
     );
     this.zoomLabel = this.zoomUI.children[1];
     this.statusEl = /* @__PURE__ */ jsx("div", { class: "ne-sr-status", role: "status", "aria-live": "polite" });
-    backend.current.insert(this, this.zoomUI);
-    backend.current.insert(this, this.statusEl);
+    insert(this, this.zoomUI);
+    insert(this, this.statusEl);
     this.updateZoomUI();
     let el = this.contentArea;
     const { $s } = this;
-    this.$focusOrSelecting = backend.current.$Or($s.isDown, $s.hasFocus);
-    backend.current.observeNow(this.$focusOrSelecting, (f) => backend.current.classIf(el, "focused", f));
+    this.$focusOrSelecting = $Or($s.isDown, $s.hasFocus);
+    observeNow(this.$focusOrSelecting, (f) => classIf(el, "focused", f));
     let lx = 0;
     let ly = 0;
     let domNode;
@@ -2466,7 +2466,7 @@ var NodeEditor = class extends backend.current.JsxW {
       let hasDrag;
       let hasBlock;
       let insideMenu;
-      domNode = backend.current.findParent(e.target, (p) => {
+      domNode = findParent(e.target, (p) => {
         if (!p.hasAttribute)
           return false;
         if (p.hasAttribute("ne-drag"))
@@ -2484,7 +2484,7 @@ var NodeEditor = class extends backend.current.JsxW {
         return;
       downButton = e.button || 0;
       if (domNode) {
-        nid = backend.current.getAttr(domNode, "nid");
+        nid = getAttr(domNode, "nid");
         blockData = this.getBlockData(nid);
       } else {
         blockData = void 0;
@@ -2551,7 +2551,7 @@ var NodeEditor = class extends backend.current.JsxW {
         }
       }
       if (marqueeEl) {
-        backend.current.remove(marqueeEl);
+        remove(marqueeEl);
         marqueeEl = null;
       }
       blockData = domNode = nid = void 0;
@@ -2582,7 +2582,7 @@ var NodeEditor = class extends backend.current.JsxW {
             marqueeStart = this.contentPoint(lx, ly);
             marqueeCur = [...marqueeStart];
             marqueeEl = /* @__PURE__ */ jsx("div", { class: "ne-marquee" });
-            backend.current.insert(this.contentArea, marqueeEl);
+            insert(this.contentArea, marqueeEl);
             updateMarquee();
           }
         }
@@ -2628,11 +2628,11 @@ var NodeEditor = class extends backend.current.JsxW {
     });
     el.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      if (this.currentMenu && backend.current.findParent(e.target, (p) => p == this.currentMenu))
+      if (this.currentMenu && findParent(e.target, (p) => p == this.currentMenu))
         return;
-      let node = backend.current.findParent(e.target, (p) => p.hasAttribute && p.hasAttribute("nid"));
+      let node = findParent(e.target, (p) => p.hasAttribute && p.hasAttribute("nid"));
       if (node) {
-        let bd = this.getBlockData(backend.current.getAttr(node, "nid"));
+        let bd = this.getBlockData(getAttr(node, "nid"));
         if (!bd)
           return;
         if (!(this.selectedBlocks || []).includes(bd))
@@ -2640,19 +2640,19 @@ var NodeEditor = class extends backend.current.JsxW {
         this.placeMenuAtCursor(e);
         return;
       }
-      let g = backend.current.findParent(e.target, (p) => p.tagName == "g");
+      let g = findParent(e.target, (p) => p.tagName == "g");
       let line2 = g && this.lines.find((l) => l.el == g);
       if (line2) {
         this.selectConnector(line2);
         let menu2 = this.menuGenerator?.([]);
         if (menu2) {
           if (this.currentMenu && this.currentMenu != menu2)
-            backend.current.setVisible(this.currentMenu, false);
-          backend.current.setVisible(menu2, true);
+            setVisible(this.currentMenu, false);
+          setVisible(menu2, true);
           menu2.style.display = "";
           if (!menu2.parentNode) {
             menu2.style.position = "absolute";
-            backend.current.insert(this.contentArea, menu2);
+            insert(this.contentArea, menu2);
           }
           this.currentMenu = menu2;
           this.placeMenuAtCursor(e);
@@ -2709,7 +2709,7 @@ var NodeEditor = class extends backend.current.JsxW {
           e.preventDefault();
           return;
         }
-        let g = backend.current.findParent(e.target, (p) => p.tagName == "g");
+        let g = findParent(e.target, (p) => p.tagName == "g");
         let line2 = g && this.lines.find((l) => l.el == g);
         if (line2) {
           this.selectConnector(line2);
@@ -2732,11 +2732,11 @@ var NodeEditor = class extends backend.current.JsxW {
         }
       }
     };
-    backend.current.listen(this, "keydown", keypress);
+    listen(this, "keydown", keypress);
     this.onfocus = (e) => $s.hasFocus = true;
     this.onblur = (e) => $s.hasFocus = false;
-    backend.current.listen(this, "focusin", () => $s.hasFocus = true);
-    backend.current.listen(this, "focusout", (e) => {
+    listen(this, "focusin", () => $s.hasFocus = true);
+    listen(this, "focusout", (e) => {
       if (!this.contains(e.relatedTarget))
         $s.hasFocus = false;
     });
@@ -2812,8 +2812,8 @@ var NodeEditor = class extends backend.current.JsxW {
     if (this.zoomLabel)
       this.zoomLabel.textContent = Math.round(this._zoom * 100) + "%";
     if (this.zoomUI) {
-      backend.current.classIf(this.zoomUI, "at-min", this._zoom <= this.zoomMin);
-      backend.current.classIf(this.zoomUI, "at-max", this._zoom >= this.zoomMax);
+      classIf(this.zoomUI, "at-min", this._zoom <= this.zoomMin);
+      classIf(this.zoomUI, "at-max", this._zoom >= this.zoomMax);
     }
   }
   clear() {
@@ -2899,6 +2899,47 @@ var NodeEditor = class extends backend.current.JsxW {
     return this.getConnector(ref);
   }
   /**
+   * Explain why a block's connectors are (or are not) discovered.
+   *
+   * Walks the block element for `[ncid]` exactly like discovery does and reports, per element, the
+   * `ncid`, the direction, and whether the editor collected it — plus why not, when it did not.
+   * Intended for the common "my connector does not show up" case: the usual causes are an `ncid`
+   * inside a shadow root (never traversed), a connector element outside the block element, and a
+   * **duplicate `ncid`** (only the first element with an id becomes the connector; the second is
+   * ignored and also does not get the `ne-nodrag` marker, so it drags the block instead).
+   *
+   * @param {string|BlockData} block
+   * @returns {Array<{ ncid: string|null, collected: boolean, dir: string|null, tag: string, note?: string }>}
+   */
+  explainConnectors(block) {
+    let blockData = this.getBlockData(block);
+    if (!blockData)
+      return [];
+    let found = [];
+    let walk = (el) => {
+      let ncid = getAttr(el, "ncid");
+      if (ncid) {
+        let collected = blockData.connectorMap.get(ncid)?.el === el;
+        let note;
+        if (!collected && blockData.connectorMap.has(ncid))
+          note = "duplicate ncid \u2014 another element holds it";
+        else if (!collected)
+          note = "not collected by the last scan";
+        found.push({
+          ncid: typeof ncid === "string" ? ncid : String(ncid),
+          collected,
+          dir: getAttr(el, "ne-connect"),
+          tag: el.tagName,
+          ...note ? { note } : {}
+        });
+      }
+      for (let child = el.firstElementChild; child; child = child.nextElementSibling)
+        walk(child);
+    };
+    walk(blockData.el);
+    return found;
+  }
+  /**
    * Build the "connector not found" message.
    *
    * A bare `unknown connector: "1/o1"` does not say *why*, and the usual cause is host-side: the
@@ -2941,7 +2982,7 @@ var NodeEditor = class extends backend.current.JsxW {
     listenUntil(con, con.el, "click", (e) => {
       this.selectConnector(con);
     });
-    backend.current.insert(this.svgLayer, con.el);
+    insert(this.svgLayer, con.el);
     this.lines.push(con);
     return con;
   }
@@ -3159,18 +3200,18 @@ var NodeEditor = class extends backend.current.JsxW {
       this.selectConnector(null);
       menu = this.menuGenerator?.(blocks);
       if (old && old != menu)
-        backend.current.setVisible(old, false);
+        setVisible(old, false);
       if (menu) {
-        backend.current.setVisible(menu, true);
+        setVisible(menu, true);
         if (menu != old) {
           menu.style.position = "absolute";
-          backend.current.insert(this.contentArea, menu);
+          insert(this.contentArea, menu);
         }
         moveMenu(blocks, menu, this._zoom);
       }
     } else {
       if (old)
-        backend.current.setVisible(old, false);
+        setVisible(old, false);
     }
     this.currentMenu = menu;
     let selSet = new Set(blocks);
@@ -3180,13 +3221,13 @@ var NodeEditor = class extends backend.current.JsxW {
       if (block.setSelected) {
         block.setSelected(sel);
       } else {
-        backend.current.setSelected(block, sel);
+        setSelected(block, sel);
       }
       this.setBlockLabel(p, sel);
     });
     this.lines.forEach((l) => {
-      backend.current.classIf(l.el, "ne-from-sel-block", blockIdMap[l.p1.con?.root.id]);
-      backend.current.classIf(l.el, "ne-to-sel-block", blockIdMap[l.p2.con?.root.id]);
+      classIf(l.el, "ne-from-sel-block", blockIdMap[l.p1.con?.root.id]);
+      classIf(l.el, "ne-to-sel-block", blockIdMap[l.p2.con?.root.id]);
     });
     this.setAriaStatus();
   }
@@ -3400,9 +3441,9 @@ var NodeEditor = class extends backend.current.JsxW {
    * @param {*} [detail]
    */
   fireCustom(el, name, detail = {}) {
-    backend.current.fireCustom(el, name, detail);
+    fireCustom(el, name, detail);
     if (el != this)
-      backend.current.fireCustom(this, name, detail);
+      fireCustom(this, name, detail);
   }
   /**
    * Signal the end of a move/edit: fires `ne-move-done` (the demo persists on
@@ -3730,7 +3771,10 @@ ok(ed3.currentMenu === menu3 && menu3.style.left === "50px", "P2-6 menu opens at
 ctx(ed3.contentArea, 5, 5);
 ok(sel3() === "" && !ed3.selectedLine, "P2-6 right-click on empty canvas deselects");
 var bA = ed3.getBlockData("1");
-ok(bA.el.getAttribute("role") === "group" && bA.el.getAttribute("tabindex") === "0", "P2-7 blocks are tabbable groups");
+ok(
+  bA.el.getAttribute("role") === "group" && bA.el.getAttribute("tabindex") === "0",
+  "P2-7 blocks are tabbable groups"
+);
 ed3.selectBlocks([bA, ed3.getBlockData("2")]);
 ok(/Switch 1/.test(bA.el.getAttribute("aria-label")), "P2-7 block aria-label has type + id");
 ok(ed3.statusEl.textContent === "2 blocks selected", "P2-7 aria-live reports the multi-selection");
@@ -3740,7 +3784,10 @@ ok(
   line.el.getAttribute("role") === "img" && line.el.getAttribute("tabindex") === "0",
   "P2-7 lines are focusable images"
 );
-ok(/connection 1\/o1 -> 2\/i1/.test(line.el.getAttribute("aria-label")), "P2-7 line aria-label from endpoints");
+ok(
+  /connection 1\/o1 -> 2\/i1/.test(line.el.getAttribute("aria-label")),
+  "P2-7 line aria-label from endpoints"
+);
 ed3.selectConnector(line);
 ok(/connection .* selected/.test(ed3.statusEl.textContent), "P2-7 aria-live reports line selection");
 ed3.deselect();
@@ -3753,7 +3800,10 @@ key(el1, "ArrowDown");
 ok(ed3.getPos("1")[1] === y0 + 10, "P2-7 ArrowDown works after keyboard-only selection");
 var lines1 = ed3.lines.length;
 key(el1, "Delete");
-ok(ed3.getBlockData("1") == null && ed3.lines.length === lines1 - 1, "P2-7 Delete removes the selected block + line");
+ok(
+  ed3.getBlockData("1") == null && ed3.lines.length === lines1 - 1,
+  "P2-7 Delete removes the selected block + line"
+);
 ok(
   ed3.undo() && ed3.getBlockData("1") != null && ed3.lines.length === lines1,
   "P2-7 undo restores the keyboard-deleted block"

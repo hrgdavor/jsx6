@@ -10,8 +10,10 @@
  * only used by the JSX demo page, the JSX blocks, or the tests. Anything this session does NOT call
  * is a candidate to move behind the seam (or to drop).
  *
- * The audit wraps `backend.current` in a recording Proxy, so the counts are measurements of the
- * EDITOR's behaviour, not of the imports.
+ * The audit wraps `backend.current` in a recording Proxy, so the counts measure calls that go
+ * THROUGH the seam. Two files deliberately call jsx6 directly (`NodeEditor.jsx` — editor primitives —
+ * and `connectorUtil.js` — discovery via `getAttr`/`dom-observer`), so those primitives are counted
+ * as "not routed" rather than "not used"; the report below separates the two.
  */
 import { startVanillaDemo } from '../static/vanilla/demo.js'
 import { NodeEditor } from '../src/NodeEditor.jsx'
@@ -199,8 +201,119 @@ ok(
   ok(host.getBlockData('late1') == null && host.lines.length === 3, 'AUDIT-1b cleanup restored the graph')
 }
 
-/* ---- 1d. the documented data-driven flow: factory renders from data → inspect → lines ---- */
+/* ---- 1g. a connector in a collapsed/hidden row must survive the cleanup observer ---- */
+// The cleanup observer used to treat `intersectionRatio === 0` as "the connector was removed", so a
+// `hidden` list row deleted a live connector from the map — while leaving the element and its
+// `ne-nodrag` behind, and with no way back. The reporter's Menu block hit exactly that: `onTimeout`
+// had `ne-nodrag` (so discovery HAD found it) yet was missing from the collection.
+// Driven through the real dom-observer handler: one entry per element, routed by target.
 {
+  const ioHandlers = []
+  const realIO = globalThis.IntersectionObserver
+  globalThis.IntersectionObserver = class {
+    constructor(cb) {
+      ioHandlers.push(cb)
+      cb.observer = this
+    }
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return []
+    }
+  }
+  try {
+    const menu = new NodeEditor({ menu: () => null })
+    menu.className = 'NodeEditor'
+    menu.style.cssText = 'width:800px;height:600px'
+    document.body.appendChild(menu)
+    const rowEl = document.createElement('div')
+    rowEl.className = 'ne-block'
+    rowEl.innerHTML = `
+      <div class="row" hidden="hidden">Retry +<b ncid="finalError" ne-connect="out"></b></div>
+      <div class="row">s -&gt; Timeout<b ncid="onTimeout" ne-connect="out"></b></div>
+      <div class="row">bla<b ncid="0" ne-connect="out"></b></div>`
+    const menuBlock = menu.add(rowEl, '1', { type: 'Menu' })
+    const handler = ioHandlers.find(h => typeof h === 'function')
+    ok(
+      !!handler && menuBlock.connectorMap.size === 3,
+      `AUDIT-1g the menu block discovered its three ports (${[...menuBlock.connectorMap.keys()].join(',')})`,
+    )
+    const lateEl = menuBlock.connectorMap.get('onTimeout')?.el
+    handler([{ target: lateEl, intersectionRatio: 0 }]) // browser: hidden/collapsed row
+    ok(
+      menuBlock.connectorMap.has('onTimeout'),
+      'AUDIT-1g a hidden row does not delete its connector from the map',
+    )
+    ok(
+      lateEl.getAttribute('ne-nodrag') === 'ne-nodrag',
+      'AUDIT-1g the port keeps its ne-nodrag marker (still a connector, not a drag handle)',
+    )
+    // the cleanup it exists for must still work
+    const goneEl = menuBlock.connectorMap.get('0').el
+    goneEl.remove()
+    handler([{ target: goneEl, intersectionRatio: 0 }])
+    ok(
+      !menuBlock.connectorMap.has('0') && menuBlock.connectorMap.size === 2,
+      `AUDIT-1g a genuinely detached connector is still cleaned up (${[...menuBlock.connectorMap.keys()].join(',')})`,
+    )
+    menu.destroy()
+  } finally {
+    globalThis.IntersectionObserver = realIO
+  }
+}
+
+/* ---- 1f. domain-style connector names, and the failure `explainConnectors` exists for ---- */
+{
+  const named = new NodeEditor({ menu: () => null })
+  named.className = 'NodeEditor'
+  named.style.cssText = 'width:800px;height:600px'
+  document.body.appendChild(named)
+  const el = document.createElement('div')
+  el.className = 'ne-block'
+  for (const [ncid, dir] of [
+    ['onTimeout', 'out'],
+    ['onError', 'in'],
+    ['onSuccess', 'out'],
+  ]) {
+    const p = document.createElement('b')
+    p.setAttribute('ncid', ncid)
+    p.setAttribute('ne-connect', dir)
+    el.appendChild(p)
+  }
+  const namedBlock = named.add(el, 'N', { type: 'T' })
+  ok(
+    ['onTimeout', 'onError', 'onSuccess'].every(n => namedBlock.connectorMap.has(n)),
+    `AUDIT-1f camelCase connector names are collected (${[...namedBlock.connectorMap.keys()].join(', ')})`,
+  )
+
+  // duplicate ncid: the first element wins, the second is silently NOT a connector — which is
+  // exactly what `explainConnectors` has to reveal (the second port also misses `ne-nodrag`)
+  const dupEl = document.createElement('div')
+  dupEl.className = 'ne-block'
+  const first = document.createElement('b')
+  first.setAttribute('ncid', 'onTimeout')
+  first.setAttribute('ne-connect', 'out')
+  const second = document.createElement('b')
+  second.setAttribute('ncid', 'onTimeout') // duplicate
+  second.setAttribute('ne-connect', 'out')
+  dupEl.append(first, second)
+  const dupBlock = named.add(dupEl, 'D', { type: 'T' })
+  ok(
+    dupBlock.connectorMap.size === 1,
+    `AUDIT-1f a duplicate ncid yields ONE connector (${dupBlock.connectorMap.size})`,
+  )
+  ok(second.getAttribute('ne-nodrag') === null, 'AUDIT-1f the duplicate port did not become a connector')
+  const report = named.explainConnectors('D')
+  ok(
+    report.length === 2 && report[0].collected === true && report[1].collected === false,
+    `AUDIT-1f explainConnectors() reports which element holds the connector (${JSON.stringify(report)})`,
+  )
+  ok(String(report[1].note).includes('duplicate'), `AUDIT-1f and names the cause (${report[1].note})`)
+  named.destroy()
+}
+
+/* ---- 1d. the documented data-driven flow: factory renders from data → inspect → lines ---- */ {
   const seen = []
   const dataHost = new NodeEditor({ menu: () => null })
   dataHost.className = 'NodeEditor'
@@ -298,12 +411,27 @@ try {
 
 /* ---- 3. move + event ---- */
 const moves = []
+const moveEvents = []
+host.addEventListener('ne-move', e => moveEvents.push(e))
 host.addEventListener('ne-move-done', e => moves.push(e.detail))
 host.setPos('1', [200, 120])
 host.fireMoveDone(host.getBlockData('1'))
 ok(first.pos[0] === 200 && first.pos[1] === 120, 'AUDIT-3 setPos moved the block')
 ok(moves.length === 1, 'AUDIT-3 ne-move-done fired for the host to persist on')
-ok(beforeOps.get('fireCustom') !== counts.get('fireCustom'), 'AUDIT-3 the move went through fireCustom')
+// The host has to receive the move with the block's detail. `fireCustom` is called directly by
+// NodeEditor now, so this asserts what a host consumes rather than counting seam traffic:
+// `setPos` + `fireMoveDone` reports the end of a move (`ne-move-done`, with `nid`) and the batched
+// connector positions (`ne-move`, `{stamp, connectors}`). The block-level `ne-move` is dispatch-time
+// only — it comes from the drag handler in `applyDrag`, which the P2/P3 suites drive.
+ok(
+  moves[0]?.nid === '1' && moves[0].pos[0] === 200,
+  `AUDIT-3 ne-move-done carries the block id and position (nid=${moves[0]?.nid})`,
+)
+const batchEvent = moveEvents.find(e => e.detail?.connectors)
+ok(
+  !!batchEvent && batchEvent.detail.connectors.length > 0,
+  `AUDIT-3 the batched connector ne-move reported ${batchEvent?.detail?.connectors?.length} connectors`,
+)
 
 /* ---- 4. connect ---- */
 host.selectBlocks([])
@@ -366,12 +494,39 @@ const used = contract.filter(name => (counts.get(name) || 0) > 0)
 const unused = contract.filter(name => !(counts.get(name) || 0))
 
 console.log('\n=== essential surface: what a real VANILLA session calls (of the backend contract) ===')
-console.log(`contract: ${contract.length} names — used in this session: ${used.length}, unused: ${unused.length}\n`)
+console.log(
+  `contract: ${contract.length} names — used in this session: ${used.length}, unused: ${unused.length}\n`,
+)
 for (const name of used.sort((a, b) => (counts.get(b) || 0) - (counts.get(a) || 0))) {
   console.log(`  ${name.padEnd(22)} ${String(counts.get(name)).padStart(5)}`)
 }
+// Primitives the restored files call directly, so the recorder never sees them. They are used by
+// every session; the report separates "called outside the seam" from "never called".
+const DIRECT = [
+  'classIf',
+  'findParent',
+  'fireCustom',
+  'getAttr',
+  'hSvg',
+  'insert',
+  'isNode',
+  'listen',
+  'remove',
+  'setAttribute',
+  'setSelected',
+  'setVisible',
+  'toDomNode',
+  '$Or',
+  'observeNow',
+  'JsxW',
+  'define',
+  'observeShowHide',
+]
+const routed = unused.filter(n => !DIRECT.includes(n))
+console.log('\nnot routed through the seam (called directly by NodeEditor/connectorUtil):')
+for (const name of unused.filter(n => DIRECT.includes(n)).sort()) console.log(`  ${name}`)
 console.log('\nnever called by this session (candidates to move out of the essential path):')
-for (const name of unused.sort()) console.log(`  ${name}`)
+for (const name of routed.sort()) console.log(`  ${name}`)
 
 console.log(failures ? `\n${failures} FAILURE(S)` : '\nALL AUDIT ASSERTIONS PASSED')
 process.exitCode = failures ? 1 : 0
