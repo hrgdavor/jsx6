@@ -7,7 +7,7 @@ readout that resets to 100%, and "+".
 Every sample on this page is injected from a real file by
 [`@hrg/inject-examples`](https://github.com/hrgdavor/inject-examples) (`bun run docs:inject`), so
 none of it can drift from the code that runs — the markup comes from `src/NodeEditor.jsx`, the
-default styling from `static/NodeEditor.css`, and the usage sample from
+default styling from `static/nodditor.css`, and the usage sample from
 [zoom-controls.example.js](./zoom-controls.example.js), which is executed by
 `node doc/zoom-controls.run.mjs`.
 
@@ -17,10 +17,7 @@ default styling from `static/NodeEditor.css`, and the usage sample from
 
 ```jsx
     this.zoomUI = (
-      <div
-        class="ne-zoom-ui"
-        style="position:absolute;right:6px;bottom:6px;z-index:var(--ne-zoom-z,1);pointer-events:auto"
-      >
+      <div class="ne-zoom-ui">
         <div class="ne-zoom-bt" title="Zoom out" onclick={() => this.zoomTo(this.zoom / 1.25)}>
           −
         </div>
@@ -64,20 +61,25 @@ on the host loading a stylesheet: a host that forgets the CSS still gets working
 ## Default styling
 
 The package ships **no CSS of its own** (see [../README.md](../README.md#styling)); these rules live
-in `static/NodeEditor.css` and the host links that file. Every value below is the default — override
+in `static/nodditor.css` and the host links that file. Every value below is the default — override
 any of them in your own stylesheet, which is loaded after this one.
 
-[../static/NodeEditor.css](../static/NodeEditor.css#region:zoom-css)
+[../static/nodditor.css](../static/nodditor.css#region:zoom-css)
 
 ```css
 /* zoom indicator + controls (bottom-right corner of the editor)
  *
- * `position`, `right`, `bottom`, `z-index` and `pointer-events` are set INLINE by the editor
- * (src/NodeEditor.jsx) because the controls sit under the canvas layer in DOM order and must stay
- * clickable even when a host does not load this stylesheet. Only the look lives here.
- * Override the stacking with `--ne-zoom-z` if a host renders something above them.
+ * Positioned here, not inline: the controls are inserted BEFORE the canvas in DOM order and the
+ * canvas is a full-size positioned layer, so without this `z-index` the canvas would paint over them
+ * and swallow the clicks. Override the stacking with `--ne-zoom-z` if a host renders something above
+ * them.
  */
 .ne-zoom-ui {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: var(--ne-zoom-z, 1);
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 3px;
@@ -201,7 +203,6 @@ External zoom entry points are the host's choice; the demo page binds the wheel
 ```
 <jsx6-nodditor class="NodeEditor">        ← position: relative (stylesheet)
   <div class="ne-zoom-ui">                ← inline absolute, z-index 1
-  <div class="ne-sr-status">              ← inline-hidden aria-live region
   <div style="position:absolute; … z-index:0">   ← contentArea: the pannable/zoomable canvas
     <svg>…</svg>                          ← line layer (pointer-events: none)
     …blocks…

@@ -18,10 +18,10 @@ export class ConnectLine {
       (this.line1 = makeLine(strength)),
       (this.line2 = makeLine(strength)),
     )
-    // accessibility: lines are focusable images named by their endpoints
-    // (the existing `svg g:focus` outline rule gives them a focus ring)
-    this.el.setAttribute('role', 'img')
-    this.el.setAttribute('tabindex', '0')
+    // Lines carry NO accessibility markup and are NOT focusable: `role="img"` + `tabindex="0"` made
+    // the browser draw a focus outline around the whole `g` (the gray box around a selected line),
+    // and the endpoint `aria-label` duplicated what the stroke colour already shows. Selection is
+    // communicated by the `.selected` class and the `ne-from-sel-block` / `ne-to-sel-block` classes.
     this.updateAria()
 
     /** @type {LinePoint} */
@@ -146,13 +146,14 @@ export class ConnectLine {
     this.line2.setAttribute('d', line)
   }
 
-  /** Accessible name from the current endpoints (`aria-label`). */
-  updateAria() {
-    let a = this.p1?.con?.idFull
-    let b = this.p2?.con?.idFull
-    let label = a || b ? `connection ${a ?? '?'} -> ${b ?? '?'}` : 'connection'
-    this.el.setAttribute('aria-label', label)
-  }
+  /**
+   * Kept as a no-op for backward compatibility (and because `setPoint` calls it).
+   *
+   * It used to write the endpoint pair into an `aria-label` on the line's `g`. Lines are no longer
+   * focusable and carry no accessibility markup, so there is nothing to update. Endpoints are still
+   * readable from the DOM through the line's `p1.con.idFull` / `p2.con.idFull`.
+   */
+  updateAria() {}
 
   /**
    * @param {boolean} sel

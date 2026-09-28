@@ -32,6 +32,9 @@ const menuSize = (menu, zoom) => {
 /**
  * Position the selection menu centered over the WHOLE selection group
  * (single block: same place as before — multi-select support for P2).
+ *
+ * The coordinates are published as CSS variables; `.ne-menu` in static/nodditor.css turns them into
+ * `left`/`top`. Nothing inline is written, so a host can restyle or re-anchor the menu.
  */
 export const moveMenu = (blocks, menu, zoom = 1) => {
   if (menu.moveMenu) return menu.moveMenu(blocks, menu)
@@ -39,6 +42,6 @@ export const moveMenu = (blocks, menu, zoom = 1) => {
   let [w, h] = menuSize(menu, zoom)
   let b = getBlocksBounds(blocks)
   let { style } = menu
-  style.left = b.x + b.w / 2 - w / 2 + 'px'
-  style.top = b.y - h + 'px'
+  style.setProperty('--ne-menu-x', b.x + b.w / 2 - w / 2 + 'px')
+  style.setProperty('--ne-menu-y', b.y - h + 'px')
 }

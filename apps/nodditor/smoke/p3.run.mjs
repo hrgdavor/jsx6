@@ -15,26 +15,12 @@
 import esbuild from 'esbuild'
 import { pathToFileURL } from 'url'
 
-const { GlobalRegistrator } = await import('@happy-dom/global-registrator')
-GlobalRegistrator.register({ url: 'http://localhost/' })
+import { setupDom } from './dom-setup.mjs'
 
-globalThis.IntersectionObserver = class {
-  constructor(callback) {
-    this.callback = callback
-  }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
-
-globalThis.ResizeObserver = class {
-  constructor(callback) {
-    this.cb = callback
-  }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+// DOM globals + the editor stylesheet. `setupDom` stubs IntersectionObserver (happy-dom 14 lacks it)
+// and ResizeObserver, whose stub keeps the callback on the instance (`observer.cb`) so the suite can
+// deliver resize entries to the editor's real handler.
+await setupDom()
 
 // run from the app root: node smoke/p3.run.mjs
 // NOTE: must mirror the app build's tsconfig (empty) — esbuild would otherwise

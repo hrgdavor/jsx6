@@ -169,9 +169,11 @@ test('selectBlocks: sets the selection, the menu and the block state', () => {
   expect(editor.currentMenu).toBe(menu.el)
   expect(menu.el.hasAttribute('hidden')).toBe(false)
   expect(b1.el.getAttribute('selected')).toBe('selected')
-  expect(b1.el.getAttribute('aria-label')).toBe('Switch 1 selected')
+  // the accessible name is type + id and must NOT carry selection state
+  expect(b1.el.getAttribute('aria-label')).toBe('Switch 1')
   expect(b2.el.getAttribute('selected')).toBeNull()
-  expect(editor.statusEl.textContent).toBe('block 1 selected')
+  // no selection-status text is injected into the editor
+  expect(editor.statusEl).toBeUndefined()
 })
 
 test('selectBlocks: reports a multi-block selection', () => {
@@ -179,9 +181,9 @@ test('selectBlocks: reports a multi-block selection', () => {
   editor.selectBlocks([b1, b2])
 
   expect(editor.selectedBlocks.length).toBe(2)
-  expect(editor.statusEl.textContent).toBe('2 blocks selected')
   expect(b1.el.getAttribute('selected')).toBe('selected')
   expect(b2.el.getAttribute('selected')).toBe('selected')
+  expect(b1.el.getAttribute('aria-label')).toBe('Switch 1')
 })
 
 test('selectBlocks: an empty list clears the selection and hides the menu', () => {
@@ -193,7 +195,6 @@ test('selectBlocks: an empty list clears the selection and hides the menu', () =
   expect(editor.currentMenu).toBeUndefined()
   expect(menu.el.getAttribute('hidden')).toBe('hidden')
   expect(b1.el.getAttribute('selected')).toBeNull()
-  expect(editor.statusEl.textContent).toBe('selection cleared')
 })
 
 test('selectBlocks: deselect() also drops a selected line', () => {

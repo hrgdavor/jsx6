@@ -45,7 +45,48 @@ export function findConnector(blockData, force) {
     let ncId = getAttr(el, 'ncid')
     if (ncId) {
       let connectData = connectorMap.get(ncId)
-      if (!connectData) {
+      // A replaced port is recognised by its PREVIOUS element no longer being connected. `isConnected`
+      // is the right test here and deliberately not "is it inside the canvas": a duplicate `ncid`
+      // (two live elements with the same id, both connected) must keep the FIRST one, which is what
+      // `explainConnectors` reports as "duplicate ncid — another element holds it".
+      let stale = connectData && connectData.el !== el && !connectData.el.isConnected
+      if (connectData && stale) {
+        // The port ELEMENT was replaced while its `ncid` stayed the same. Data-driven hosts do this
+        // all the time: blocks are added first, their intents arrive asynchronously and the port
+        // elements are rendered (or re-rendered) afterwards. The connector identity lives in
+        // `connectData`, which the lines reference directly, so it has to be UPDATED IN PLACE —
+        // treating the new element as "already known" left the map pointing at a detached element:
+        // lines hung off a dead node, their `ne-remove` could never fire, and wiring the same pair
+        // again failed with a bogus `"1/onTimeout" is already connected to "2/i1"` because
+        // `lineExists` compares `idFull` strings and kept matching the line to the dead endpoint.
+        // (A genuine duplicate — two elements with the same `ncid`, both connected — still keeps the
+        // first one, see `explainConnectors`.)
+        addResize(resizeSet, el, rootNode, blockData)
+        let cStyle = getComputedStyle(el)
+        connectData.el.removeObserve?.()
+        connectData.el = el
+        connectData.dir = getAttr(el, 'ne-connect')
+        connectData.relPos = calcPos(el, blockData.el)
+        connectData.offsetX = parseFloat(cStyle.getPropertyValue('--offset-x')) || 0
+        connectData.offsetY = parseFloat(cStyle.getPropertyValue('--offset-y')) || 0
+        connectData.size = [el.offsetWidth, el.offsetHeight]
+        // re-point the cleanup observer at the element that is actually in the DOM now
+        el.removeObserve = observeShowHide(
+          el,
+          entry => {
+            if (!entry.intersectionRatio && !el.isConnected) blockData.editor.removeConnector(connectData)
+          },
+          { root: rootNode },
+        )
+        el.ncId = ncId
+        el.ncData = connectData
+        setAttribute(el, 'ne-nodrag', true)
+        updatePos(connectData)
+        // the lines' click/`ne-remove` listeners still target the replaced element, so re-attach them
+        blockData.editor?.reattachLines?.(connectData)
+        // report the (possibly) new position as a move so the lines redraw
+        blockData.editor?.queueMove?.(connectData)
+      } else if (!connectData) {
         addResize(resizeSet, el, rootNode, blockData)
         let cStyle = getComputedStyle(el)
         let relPos = calcPos(el, blockData.el)

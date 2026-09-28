@@ -201,6 +201,100 @@ ok(
   ok(host.getBlockData('late1') == null && host.lines.length === 3, 'AUDIT-1b cleanup restored the graph')
 }
 
+/* ---- 1h. the async data-driven loop: ports rendered later, then lines wired twice ---- */
+// The reporter's flow: blocks are added first (their intents are fetched async, hence a 200ms
+// setTimeout), the ports are rendered into the block, the lines are wired from data — and then the
+// intent list reloads and the ports (and the lines) are produced again. A port element that is
+// replaced while its `ncid` stays the same used to leave `connectorMap` pointing at the DETACHED old
+// element: the line hung off a dead node, its `ne-remove` could never fire, and re-wiring failed
+// with a bogus `"1/onTimeout" is already connected to "2/i1"`.
+{
+  const sleep = ms => new Promise(r => setTimeout(r, ms))
+  const renderPorts = (blockEl, intents) => {
+    blockEl.querySelectorAll('[ncid]').forEach(p => p.remove())
+    for (const [ncid, dir] of intents) {
+      const p = document.createElement('b')
+      p.setAttribute('ncid', ncid)
+      p.setAttribute('ne-connect', dir)
+      blockEl.appendChild(p)
+    }
+  }
+  const asyncHost = new NodeEditor({ menu: () => null })
+  asyncHost.className = 'NodeEditor'
+  asyncHost.style.cssText = 'width:800px;height:600px'
+  document.body.appendChild(asyncHost)
+
+  const ab1 = document.createElement('div')
+  const ab2 = document.createElement('div')
+  asyncHost.add(ab1, '1', { type: 'Bot' })
+  asyncHost.add(ab2, '2', { type: 'Bot' })
+  ok(
+    asyncHost.getConnectors('1').size === 0,
+    'AUDIT-1h blocks start with no connectors (ports arrive with the data)',
+  )
+
+  await sleep(20)
+  renderPorts(ab1, [
+    ['onTimeout', 'out'],
+    ['finalError', 'out'],
+  ])
+  renderPorts(ab2, [
+    ['i1', 'in'],
+    ['i2', 'in'],
+  ])
+  await sleep(20)
+  ok(
+    asyncHost.inspectConnectors().length === 4,
+    'AUDIT-1h inspectConnectors() finds the asynchronously rendered ports',
+  )
+
+  const lineData = [
+    ['1/onTimeout', '2/i1'],
+    ['1/finalError', '2/i2'],
+  ]
+  const firstPass = asyncHost.loadLines(lineData)
+  ok(firstPass.attached === 2, `AUDIT-1h both lines attached (${firstPass.attached})`)
+
+  // the intent list reloads: ports re-rendered in place, lines produced again from the same data
+  await sleep(20)
+  renderPorts(ab1, [
+    ['onTimeout', 'out'],
+    ['finalError', 'out'],
+  ])
+  renderPorts(ab2, [
+    ['i1', 'in'],
+    ['i2', 'in'],
+  ])
+  await sleep(20)
+  ok(
+    asyncHost.getConnector('1/onTimeout').el === ab1.querySelector('[ncid="onTimeout"]'),
+    'AUDIT-1h after the port re-render the connector points at the LIVE element',
+  )
+  ok(
+    asyncHost.lines.every(l => l.p1.con?.el?.isConnected && l.p2.con?.el?.isConnected),
+    'AUDIT-1h no line hangs off a detached element',
+  )
+
+  const dupErrors = []
+  const origErr = console.error
+  console.error = (...a) => dupErrors.push(a.join(' '))
+  let secondPass
+  try {
+    secondPass = asyncHost.loadLines(lineData)
+  } finally {
+    console.error = origErr
+  }
+  ok(
+    secondPass.skipped === 2 && asyncHost.lines.length === 2,
+    `AUDIT-1h a second pass skips instead of throwing, and does not duplicate (${JSON.stringify(secondPass)})`,
+  )
+  ok(
+    dupErrors.length === 2 && dupErrors[0].includes('already connected'),
+    `AUDIT-1h each duplicate is reported once (${dupErrors.length})`,
+  )
+  asyncHost.destroy()
+}
+
 /* ---- 1g. a connector in a collapsed/hidden row must survive the cleanup observer ---- */
 // The cleanup observer used to treat `intersectionRatio === 0` as "the connector was removed", so a
 // `hidden` list row deleted a live connector from the map — while leaving the element and its

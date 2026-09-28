@@ -1,4 +1,4 @@
-// libs/jsx6/src/errorCodes.js
+// ../../libs/jsx6/src/errorCodes.js
 var JSX6E1_NULL_TAG = 1;
 var JSX6E2_UNSUPPORTED_TAG = 2;
 var JSX6E7_REQUIRE_FUNC = 7;
@@ -7,7 +7,7 @@ var JSX6E9_LISTENER_MUST_BE_FUNC = 9;
 var JSX6E10_CONTEXT_REQUIRED = 10;
 var JSX6E15_MULTIPLE_VERSIONS = 15;
 
-// libs/jsx6/src/core.js
+// ../../libs/jsx6/src/core.js
 var TRANS = {};
 var Group = class {
   constructor(obj) {
@@ -58,12 +58,12 @@ var runFuncNoArg = (f) => {
 };
 var errCode = (c) => "JSX6E" + c;
 
-// libs/jsx6/src/toDomNode.js
+// ../../libs/jsx6/src/toDomNode.js
 function toDomNode(n) {
   return !n || isNode(n) ? n : n.el || n;
 }
 
-// libs/jsx6/src/addClass.js
+// ../../libs/jsx6/src/addClass.js
 function addClass(node, add) {
   node = toDomNode(node) || {};
   let cl = node.classList;
@@ -82,7 +82,7 @@ function addClass(node, add) {
   return node;
 }
 
-// libs/jsx6/src/classIf.js
+// ../../libs/jsx6/src/classIf.js
 function classIf(node, cname, bool) {
   node = toDomNode(node);
   const cl = node.classList;
@@ -93,7 +93,7 @@ function classIf(node, cname, bool) {
   }
 }
 
-// libs/signal/src/observe.js
+// ../../libs/signal/src/observe.js
 var subscribeSymbol = Symbol.for("signalSubscribe");
 var triggerSymbol = Symbol.for("signalTrigger");
 var observeNow = ($signal, callback) => observe($signal, callback, true);
@@ -128,13 +128,13 @@ function _observe(obj, callback, trigger = false, passValue = false) {
 }
 var isObservable = (obj) => !!(obj && (obj[subscribeSymbol] || typeof obj.then === "function" || typeof obj.subscribe === "function"));
 
-// libs/signal/src/track.js
+// ../../libs/signal/src/track.js
 var trackState = (
   /** @type {{ collector: Set<Function> | null }} */
   { collector: null }
 );
 
-// libs/signal/src/trace.js
+// ../../libs/signal/src/trace.js
 var signalsTraced = false;
 var traceOptions = {
   /** Capture a creation site per signal. This is the expensive part of an enabled session. */
@@ -216,7 +216,7 @@ var attachTrace = ($signal, info = {}) => {
   return record;
 };
 
-// libs/signal/src/signal.js
+// ../../libs/signal/src/signal.js
 var ValueSymbol = Symbol.for("signalValue");
 var noOp = function() {
 };
@@ -277,7 +277,7 @@ var runFuncNoArg2 = (f) => {
   }
 };
 
-// libs/signal/src/computed.js
+// ../../libs/signal/src/computed.js
 var stateChildrenSymbol = Symbol.for("signalStateChildren");
 var batchDepth = 0;
 var pending = /* @__PURE__ */ new Set();
@@ -495,7 +495,7 @@ function createComputed(getValue2, { eager = false, declaredDeps = [], name, col
   return $computed;
 }
 
-// libs/signal/src/state-write-observer.js
+// ../../libs/signal/src/state-write-observer.js
 var stateWriteObservers = null;
 var hasStateWriteObservers = () => stateWriteObservers !== null;
 var notifyStateWrite = (child, value) => {
@@ -510,7 +510,7 @@ var notifyStateWrite = (child, value) => {
   }
 };
 
-// libs/signal/src/state.js
+// ../../libs/signal/src/state.js
 var mergeValueSymbol2 = Symbol.for("signalMergeValue");
 function $State(initial) {
   let internals = {};
@@ -611,7 +611,7 @@ function mergeValue($state, nv = {}) {
   return $state[mergeValueSymbol2]?.(nv);
 }
 
-// libs/signal/index.js
+// ../../libs/signal/index.js
 var signalValue = ($signal) => typeof $signal === "function" ? $signal() : $signal;
 function createDerivedSignal(signals, getValue2) {
   return createComputed(getValue2, { eager: true, declaredDeps: signals });
@@ -625,7 +625,7 @@ function $F(filter, ...signals) {
 }
 var $Or = ($sa, $sb) => $F((a, b) => a || b, $sa, $sb);
 
-// libs/signal-dom/index.js
+// ../../libs/signal-dom/index.js
 var anim = (func) => func();
 if (typeof document !== "undefined") {
   anim = window.requestAnimationFrame.bind(window);
@@ -647,7 +647,7 @@ function setAttribute(node, attrName, newValue) {
   }
 }
 
-// libs/jsx6/src/mapProp.js
+// ../../libs/jsx6/src/mapProp.js
 function mapProp(obj, callback, asArray) {
   if (obj) {
     if (isArray(obj)) {
@@ -668,7 +668,7 @@ function mapProp(obj, callback, asArray) {
   }
 }
 
-// libs/jsx6/src/setValue.js
+// ../../libs/jsx6/src/setValue.js
 var setValueFilterSymbol = Symbol.for("setValueFilterSymbol");
 function applySetValueFilter(value, source) {
   let filter = source[setValueFilterSymbol];
@@ -699,7 +699,7 @@ function setValue(obj, value) {
   }
 }
 
-// libs/jsx6/src/getValue.js
+// ../../libs/jsx6/src/getValue.js
 var getValueFilterSymbol = Symbol.for("getValueFilterSymbol");
 function applyGetValueFilter(value, source) {
   let filter = source[getValueFilterSymbol];
@@ -724,7 +724,7 @@ function getValue(obj) {
   return applyGetValueFilter(value, obj);
 }
 
-// libs/jsx6/src/dispose.js
+// ../../libs/jsx6/src/dispose.js
 var jsxDisposeSymbol = Symbol.for("jsx6_dispose");
 function addDisposer(node, dispose) {
   if (!node || typeof node !== "object" || typeof dispose !== "function")
@@ -782,7 +782,7 @@ function walkDispose(node) {
   return count;
 }
 
-// libs/jsx6/src/directives.js
+// ../../libs/jsx6/src/directives.js
 var directives = {};
 function addDirective(key, directive) {
   directives[key] = directive;
@@ -825,7 +825,7 @@ addDirective("x-filter", (el, a, filters, self) => {
   }
 });
 
-// libs/jsx6/src/findParent.js
+// ../../libs/jsx6/src/findParent.js
 function findParent(el, filter, stopFilter) {
   let p = toDomNode(el);
   if (typeof filter === "string") {
@@ -841,7 +841,7 @@ function findParent(el, filter, stopFilter) {
   }
 }
 
-// libs/jsx6/src/fireCustom.js
+// ../../libs/jsx6/src/fireCustom.js
 var fireCustom = (el, name, detail) => {
   el.dispatchEvent(new CustomEvent(name, { detail }));
 };
@@ -859,7 +859,7 @@ var listen = (el, name, callback, options) => {
   };
 };
 
-// libs/jsx6/src/forEachProp.js
+// ../../libs/jsx6/src/forEachProp.js
 function forEachProp(obj, callback) {
   if (obj) {
     if (isObj(obj)) {
@@ -872,7 +872,7 @@ function forEachProp(obj, callback) {
   }
 }
 
-// libs/jsx6/src/getAttr.js
+// ../../libs/jsx6/src/getAttr.js
 function getAttr(obj, attr, def = null) {
   if (obj) {
     if (obj.getAttribute) {
@@ -886,7 +886,7 @@ function getAttr(obj, attr, def = null) {
   }
 }
 
-// libs/jsx6/src/remove.js
+// ../../libs/jsx6/src/remove.js
 function remove(child) {
   const _child = toDomNode(child);
   disposeNode(_child);
@@ -900,7 +900,7 @@ function remove(child) {
 }
 var describe = (node) => node ? `${node.nodeName || node.constructor?.name || typeof node}` : String(node);
 
-// libs/jsx6/src/jsx2dom.js
+// ../../libs/jsx6/src/jsx2dom.js
 var markerSymbol = Symbol.for("jsx2dom_marker");
 var scopeSymbol = Symbol.for("jsx2dom_scope");
 if (globalThis[markerSymbol])
@@ -1152,7 +1152,7 @@ var factories = {
   Element: (t2, o) => factories.Html(t2, o)
 };
 
-// libs/jsx6/src/setAttrBoolean.js
+// ../../libs/jsx6/src/setAttrBoolean.js
 function setAttrBoolean(obj, attr, value) {
   if (obj) {
     if (obj.setAttribute) {
@@ -1173,7 +1173,7 @@ function setAttrBoolean(obj, attr, value) {
   }
 }
 
-// libs/jsx6/src/setSelected.js
+// ../../libs/jsx6/src/setSelected.js
 function setSelected(obj, sel) {
   if (!obj)
     return;
@@ -1184,7 +1184,7 @@ function setSelected(obj, sel) {
   }
 }
 
-// libs/jsx6/src/setVisible.js
+// ../../libs/jsx6/src/setVisible.js
 function setVisible(obj, sel) {
   if (!obj)
     return;
@@ -1197,7 +1197,7 @@ function setVisible(obj, sel) {
   }
 }
 
-// libs/w/src/JsxW.js
+// ../../libs/w/src/JsxW.js
 var JsxW = class extends HTMLElement {
   static {
     define("jsx6-wc", this);
@@ -1292,7 +1292,7 @@ function define(tag, customElement) {
   }
 }
 
-// libs/dom-observer/src/makeObserverHandler.js
+// ../../libs/dom-observer/src/makeObserverHandler.js
 var makeObserverHandler = (name) => {
   const listenMap = /* @__PURE__ */ new WeakMap();
   const listener = (
@@ -1343,7 +1343,7 @@ var makeObserverHandler = (name) => {
   return listener;
 };
 
-// libs/dom-observer/src/observeIntersect.js
+// ../../libs/dom-observer/src/observeIntersect.js
 var oberverMapBrowser = /* @__PURE__ */ new Map();
 var observerSymbol = Symbol("observeIntersect");
 function observeIntersect(el, callback, { root, rootMargin, threshold, detail } = {}) {
@@ -1371,13 +1371,13 @@ function observeIntersect(el, callback, { root, rootMargin, threshold, detail } 
   return handler.observe(el, callback);
 }
 
-// libs/dom-observer/src/observeShowHide.js
+// ../../libs/dom-observer/src/observeShowHide.js
 var visibleThreshold = [0, 1e-4];
 function observeShowHide(el, callback, { root, rootMargin, threshold = visibleThreshold } = {}) {
   return observeIntersect(el, callback, { root, rootMargin, threshold });
 }
 
-// apps/nodditor/src/runtime-default.js
+// src/runtime-default.js
 var defaultRuntime = {
   addClass,
   classIf,
@@ -1402,7 +1402,7 @@ var defaultRuntime = {
   observeShowHide
 };
 
-// apps/nodditor/src/runtime.js
+// src/runtime.js
 var replacement = null;
 var resolved = null;
 var backend = {
@@ -1415,7 +1415,7 @@ var backend = {
   }
 };
 
-// apps/nodditor/src/listenUntil.js
+// src/listenUntil.js
 var map = /* @__PURE__ */ new WeakMap();
 function listenUntil(ref, el, name, cb, options) {
   return addFinalizer(ref, backend.current.listen(el, name, cb, options));
@@ -1434,7 +1434,7 @@ function finalize(ref) {
     finalize(ref.el);
 }
 
-// apps/nodditor/src/makeLineConnector.js
+// src/makeLineConnector.js
 var { min, sqrt } = Math;
 var makeLineConnector = (strength, p1, box1, box1pos, dir1, p2, box2, box2pos, dir2) => {
   let [left1, top1] = p1;
@@ -1443,14 +1443,14 @@ var makeLineConnector = (strength, p1, box1, box1pos, dir1, p2, box2, box2pos, d
   return `M${left1} ${top1} C${left1 + strength} ${top1} ${left2 - strength} ${top2} ${left2} ${top2}`;
 };
 
-// apps/nodditor/src/svgUtil.js
+// src/svgUtil.js
 var makeLine = (strength) => backend.current.hSvg("path", {
   strength,
   style: `vector-effect:non-scaling-stroke;pointer-events:auto;cursor:pointer`,
   fill: "none"
 });
 
-// apps/nodditor/src/ConnectLine.js
+// src/ConnectLine.js
 var ConnectLine = class {
   constructor({ strength = 60 } = {}) {
     this.strength = strength;
@@ -1460,8 +1460,6 @@ var ConnectLine = class {
       this.line1 = makeLine(strength),
       this.line2 = makeLine(strength)
     );
-    this.el.setAttribute("role", "img");
-    this.el.setAttribute("tabindex", "0");
     this.updateAria();
     this.p1 = { pos: [0, 0], listen: [], align: "right", con: null };
     this.p2 = { pos: [0, 0], listen: [], align: "left", con: null };
@@ -1573,12 +1571,14 @@ var ConnectLine = class {
     this.line1.setAttribute("d", line2);
     this.line2.setAttribute("d", line2);
   }
-  /** Accessible name from the current endpoints (`aria-label`). */
+  /**
+   * Kept as a no-op for backward compatibility (and because `setPoint` calls it).
+   *
+   * It used to write the endpoint pair into an `aria-label` on the line's `g`. Lines are no longer
+   * focusable and carry no accessibility markup, so there is nothing to update. Endpoints are still
+   * readable from the DOM through the line's `p1.con.idFull` / `p2.con.idFull`.
+   */
   updateAria() {
-    let a = this.p1?.con?.idFull;
-    let b = this.p2?.con?.idFull;
-    let label = a || b ? `connection ${a ?? "?"} -> ${b ?? "?"}` : "connection";
-    this.el.setAttribute("aria-label", label);
   }
   /**
    * @param {boolean} sel
@@ -1589,7 +1589,7 @@ var ConnectLine = class {
   }
 };
 
-// apps/nodditor/src/LineInteraction.js
+// src/LineInteraction.js
 var LineInteraction = class {
   /** @type {NodeEditor} */
   editor;
@@ -1744,7 +1744,7 @@ var LineInteraction = class {
   }
 };
 
-// apps/nodditor/src/calcPos.js
+// src/calcPos.js
 var calcPos = (el, root) => {
   let top = 0;
   let left = 0;
@@ -1756,11 +1756,11 @@ var calcPos = (el, root) => {
   return [left, top];
 };
 
-// apps/nodditor/src/pairUtils.js
+// src/pairUtils.js
 var pairChanged = (a, b) => a[0] != b[0] || a[1] != b[1];
 var pairSum = (a, b) => [a[0] + b[0], a[1] + b[1]];
 
-// apps/nodditor/src/connectorUtil.js
+// src/connectorUtil.js
 function findConnector(blockData, force) {
   let { connectorMap, el: rootNode } = blockData;
   if (!force && !blockData.structDirty && blockData.resizeSet) {
@@ -1775,7 +1775,32 @@ function findConnector(blockData, force) {
     let ncId = getAttr(el, "ncid");
     if (ncId) {
       let connectData = connectorMap.get(ncId);
-      if (!connectData) {
+      let stale = connectData && connectData.el !== el && !connectData.el.isConnected;
+      if (connectData && stale) {
+        addResize(resizeSet, el, rootNode, blockData);
+        let cStyle = getComputedStyle(el);
+        connectData.el.removeObserve?.();
+        connectData.el = el;
+        connectData.dir = getAttr(el, "ne-connect");
+        connectData.relPos = calcPos(el, blockData.el);
+        connectData.offsetX = parseFloat(cStyle.getPropertyValue("--offset-x")) || 0;
+        connectData.offsetY = parseFloat(cStyle.getPropertyValue("--offset-y")) || 0;
+        connectData.size = [el.offsetWidth, el.offsetHeight];
+        el.removeObserve = observeShowHide(
+          el,
+          (entry) => {
+            if (!entry.intersectionRatio && !el.isConnected)
+              blockData.editor.removeConnector(connectData);
+          },
+          { root: rootNode }
+        );
+        el.ncId = ncId;
+        el.ncData = connectData;
+        setAttribute(el, "ne-nodrag", true);
+        updatePos(connectData);
+        blockData.editor?.reattachLines?.(connectData);
+        blockData.editor?.queueMove?.(connectData);
+      } else if (!connectData) {
         addResize(resizeSet, el, rootNode, blockData);
         let cStyle = getComputedStyle(el);
         let relPos = calcPos(el, blockData.el);
@@ -1831,7 +1856,7 @@ function updatePos(connectData) {
   connectData.pos = pairSum(connectData.relPos, connectData.root.pos);
 }
 
-// apps/nodditor/src/getBlocksMinXY.js
+// src/getBlocksMinXY.js
 function getBlocksMinXY(blocks) {
   if (!blocks?.length)
     return [0, 0];
@@ -1845,7 +1870,7 @@ function getBlocksMinXY(blocks) {
   return [minx, miny];
 }
 
-// apps/nodditor/src/getBlocksBounds.js
+// src/getBlocksBounds.js
 function getBlocksBounds(blocks) {
   if (!blocks?.length)
     return { x: 0, y: 0, maxx: 0, maxy: 0, w: 0, h: 0 };
@@ -1864,7 +1889,7 @@ function getBlocksBounds(blocks) {
   return { x: minx, y: miny, maxx, maxy, w: maxx - minx, h: maxy - miny };
 }
 
-// apps/nodditor/src/moveMenu.js
+// src/moveMenu.js
 var menuSize = (menu, zoom) => {
   let size = menu._neMenuSize;
   if (size)
@@ -1888,11 +1913,11 @@ var moveMenu = (blocks, menu, zoom = 1) => {
   let [w, h2] = menuSize(menu, zoom);
   let b = getBlocksBounds(blocks);
   let { style } = menu;
-  style.left = b.x + b.w / 2 - w / 2 + "px";
-  style.top = b.y - h2 + "px";
+  style.setProperty("--ne-menu-x", b.x + b.w / 2 - w / 2 + "px");
+  style.setProperty("--ne-menu-y", b.y - h2 + "px");
 };
 
-// apps/nodditor/src/updateObserver.js
+// src/updateObserver.js
 function updateObserver(newSet, oldSet, observer) {
   let removed = /* @__PURE__ */ new Set();
   newSet.forEach((el) => {
@@ -1909,7 +1934,7 @@ function updateObserver(newSet, oldSet, observer) {
   return removed;
 }
 
-// libs/jsx-runtime/index.js
+// ../../libs/jsx-runtime/index.js
 function jsx(tag, { children, ...attr }) {
   if (tag === Fragment)
     return children;
@@ -1917,7 +1942,7 @@ function jsx(tag, { children, ...attr }) {
 }
 var Fragment = (attr, children) => children;
 
-// apps/nodditor/src/NodeEditor.jsx
+// src/NodeEditor.jsx
 var microtask = (fn) => typeof queueMicrotask === "function" ? queueMicrotask(fn) : Promise.resolve().then(fn);
 var NodeEditor = class extends JsxW {
   static {
@@ -1980,8 +2005,6 @@ var NodeEditor = class extends JsxW {
     block.setNodeEditor?.(this);
     rootNode.nodeEditor = this;
     insert(this.contentArea, rootNode);
-    rootNode.style.top = "0";
-    rootNode.style.left = "0";
     let blockData = rootNode.neBlock = {
       id,
       type,
@@ -2020,17 +2043,54 @@ var NodeEditor = class extends JsxW {
       return;
     this._structMO = new MutationObserver((records) => {
       records.forEach((r) => {
-        for (let p = r.target; p; p = p.parentElement) {
-          let blockData = this.nodeMap.get(p);
-          if (blockData) {
-            blockData.structDirty = true;
-            this.scheduleConnectorRecheck(blockData);
-            break;
-          }
+        let blockData = this.resolveBlockForRecord(r);
+        if (blockData) {
+          blockData.structDirty = true;
+          this.scheduleConnectorRecheck(blockData);
         }
       });
     });
     this._structMO.observe(this.contentArea, { childList: true, subtree: true });
+  }
+  /**
+   * The `BlockData` a `MutationRecord` belongs to, or `null`.
+   *
+   * `neBlock` is the normal hit (no attribute read). The `nid` fallback covers a block whose element
+   * the host replaced: the registered element is then detached and the new one — which `add` marked
+   * with `nid` — has to be adopted, or discovery would keep walking the dead element.
+   *
+   * @param {MutationRecord} r
+   * @returns {BlockData|null}
+   */
+  resolveBlockForRecord(r) {
+    for (let p = r.target; p; p = p.parentElement) {
+      if (p.neBlock)
+        return p.neBlock;
+      if (p === this.contentArea)
+        break;
+      let nid = p.getAttribute?.("nid");
+      if (nid != null) {
+        let blockData = this.blockMap.get(nid);
+        if (blockData)
+          return this.adoptBlockElement(blockData, p);
+      }
+    }
+    return null;
+  }
+  /**
+   * Point a block at the element that is in the DOM now (the host replaced it), keeping `nodeMap` in
+   * sync so `getBlockData(element)` keeps resolving.
+   * @param {BlockData} blockData
+   * @param {HTMLElement} el
+   * @returns {BlockData}
+   */
+  adoptBlockElement(blockData, el) {
+    if (blockData.el !== el) {
+      this.nodeMap.delete(blockData.el);
+      blockData.el = el;
+      this.nodeMap.set(el, blockData);
+    }
+    return blockData;
   }
   /**
    * Make the connector set of a block match its DOM again.
@@ -2245,7 +2305,8 @@ var NodeEditor = class extends JsxW {
       this.nodeMap.delete(block.el);
       block.structDirty = false;
       block.connectorMap.forEach((con) => this.removeConnector(con));
-      remove(block.el);
+      if (block.el.isConnected)
+        remove(block.el);
       finalize(block);
       this.historyRecord("remove");
     }
@@ -2280,7 +2341,9 @@ var NodeEditor = class extends JsxW {
       updatePos(con);
       this.queueMove(con);
     });
-    blockData.el.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`;
+    let style = blockData.el.style;
+    style.setProperty("--ne-x", pos[0] + "px");
+    style.setProperty("--ne-y", pos[1] + "px");
   }
   // #region zoom-defaults
   /**
@@ -2363,28 +2426,17 @@ var NodeEditor = class extends JsxW {
     };
     this.observer = new ResizeObserver(handler);
     this.observer.observe(this);
-    this.svgLayer = hSvg("svg", {
-      style: "position:absolute;pointer-events: none; width: 100%; height: 100%;"
-    });
-    this.contentArea = /* @__PURE__ */ jsx("div", { style: "position:absolute;top:0;left:0;width:100%; height:100%; transform-origin: top left; z-index:0;", children: this.svgLayer });
+    this.svgLayer = hSvg("svg", { class: "ne-svg-layer" });
+    this.contentArea = /* @__PURE__ */ jsx("div", { class: "ne-content", children: this.svgLayer });
     this._zoom = 1;
     this.ensureStructObserver();
-    this.zoomUI = /* @__PURE__ */ jsx(
-      "div",
-      {
-        class: "ne-zoom-ui",
-        style: "position:absolute;right:6px;bottom:6px;z-index:var(--ne-zoom-z,1);pointer-events:auto",
-        children: [
-          /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt", title: "Zoom out", onclick: () => this.zoomTo(this.zoom / 1.25), children: "\u2212" }),
-          /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt ne-zoom-val", title: "Reset zoom to 100%", onclick: () => this.zoomTo(1) }),
-          /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt", title: "Zoom in", onclick: () => this.zoomTo(this.zoom * 1.25), children: "+" })
-        ]
-      }
-    );
+    this.zoomUI = /* @__PURE__ */ jsx("div", { class: "ne-zoom-ui", children: [
+      /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt", title: "Zoom out", onclick: () => this.zoomTo(this.zoom / 1.25), children: "\u2212" }),
+      /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt ne-zoom-val", title: "Reset zoom to 100%", onclick: () => this.zoomTo(1) }),
+      /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt", title: "Zoom in", onclick: () => this.zoomTo(this.zoom * 1.25), children: "+" })
+    ] });
     this.zoomLabel = this.zoomUI.children[1];
-    this.statusEl = /* @__PURE__ */ jsx("div", { class: "ne-sr-status", role: "status", "aria-live": "polite" });
     insert(this, this.zoomUI);
-    insert(this, this.statusEl);
     this.updateZoomUI();
     let el = this.contentArea;
     const { $s } = this;
@@ -2404,10 +2456,10 @@ var NodeEditor = class extends JsxW {
     let marqueeCur = null;
     const updateMarquee = () => {
       let st = marqueeEl.style;
-      st.left = Math.min(marqueeStart[0], marqueeCur[0]) + "px";
-      st.top = Math.min(marqueeStart[1], marqueeCur[1]) + "px";
-      st.width = Math.abs(marqueeCur[0] - marqueeStart[0]) + "px";
-      st.height = Math.abs(marqueeCur[1] - marqueeStart[1]) + "px";
+      st.setProperty("--ne-marquee-x", Math.min(marqueeStart[0], marqueeCur[0]) + "px");
+      st.setProperty("--ne-marquee-y", Math.min(marqueeStart[1], marqueeCur[1]) + "px");
+      st.setProperty("--ne-marquee-w", Math.abs(marqueeCur[0] - marqueeStart[0]) + "px");
+      st.setProperty("--ne-marquee-h", Math.abs(marqueeCur[1] - marqueeStart[1]) + "px");
     };
     let dragRaf = 0;
     let dragDelta = null;
@@ -2577,7 +2629,7 @@ var NodeEditor = class extends JsxW {
         } else {
           let menu2 = this.currentMenu;
           if (menu2)
-            menu2.style.display = "none";
+            setVisible(menu2, false);
           if (downButton === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             marqueeStart = this.contentPoint(lx, ly);
             marqueeCur = [...marqueeStart];
@@ -2649,9 +2701,7 @@ var NodeEditor = class extends JsxW {
           if (this.currentMenu && this.currentMenu != menu2)
             setVisible(this.currentMenu, false);
           setVisible(menu2, true);
-          menu2.style.display = "";
           if (!menu2.parentNode) {
-            menu2.style.position = "absolute";
             insert(this.contentArea, menu2);
           }
           this.currentMenu = menu2;
@@ -2750,13 +2800,14 @@ var NodeEditor = class extends JsxW {
     if (this._zoom == zoom)
       return;
     this._zoom = zoom;
-    this.contentArea.style.transform = `scale(${zoom})`;
+    this.contentArea.style.setProperty("--ne-zoom", String(zoom));
     this.updateSize();
     this.updateZoomUI();
   }
   updateSize() {
-    this.contentArea.style.width = this.realWidth / this._zoom + "px";
-    this.contentArea.style.height = this.realHeight / this._zoom + "px";
+    let style = this.contentArea.style;
+    style.setProperty("--ne-zoom-w", this.realWidth / this._zoom + "px");
+    style.setProperty("--ne-zoom-h", this.realHeight / this._zoom + "px");
   }
   changeZoomMouse(zoom, e) {
     const rect = this.getBoundingClientRect();
@@ -2976,6 +3027,27 @@ var NodeEditor = class extends JsxW {
     return `unknown connector: ${parts.join("; ")}`;
   }
   /**
+   * Re-attach the lines that use a connector whose ELEMENT was replaced (see `findConnector`).
+   *
+   * A line holds its endpoint as a `ConnectorData` object plus listeners bound to
+   * `con.el` (`ne-remove` in `ConnectLine.setPoint`), and a `ne-move` subscription per endpoint. When
+   * a host re-renders a port — the usual data-driven flow, where blocks are added first and their
+   * ports arrive with the async data — the old listeners die with the old element, so the lines must
+   * be re-pointed at the same `ConnectorData` (its `el` has already been updated in place).
+   *
+   * Idempotent: `setPoint` releases the previous listeners before installing new ones.
+   *
+   * @param {ConnectorData} con
+   */
+  reattachLines(con) {
+    this.lines.forEach((line2) => {
+      if (line2.p1.con === con)
+        line2.setPoint(line2.p1, con, true);
+      if (line2.p2.con === con)
+        line2.setPoint(line2.p2, con, true);
+    });
+  }
+  /**
    * @param {ConnectLine} con
    */
   addConnector(con) {
@@ -3163,7 +3235,6 @@ var NodeEditor = class extends JsxW {
     this._histLast = this.undoStack.pop();
     this._histKind = null;
     this.loadGraph(this._histLast.state, this.typeMap);
-    this.setAriaStatus("Undo");
     return true;
   }
   /**
@@ -3181,7 +3252,6 @@ var NodeEditor = class extends JsxW {
     this._histLast = this.redoStack.pop();
     this._histKind = null;
     this.loadGraph(this._histLast.state, this.typeMap);
-    this.setAriaStatus("Redo");
     return true;
   }
   /**
@@ -3204,7 +3274,6 @@ var NodeEditor = class extends JsxW {
       if (menu) {
         setVisible(menu, true);
         if (menu != old) {
-          menu.style.position = "absolute";
           insert(this.contentArea, menu);
         }
         moveMenu(blocks, menu, this._zoom);
@@ -3229,7 +3298,6 @@ var NodeEditor = class extends JsxW {
       classIf(l.el, "ne-from-sel-block", blockIdMap[l.p1.con?.root.id]);
       classIf(l.el, "ne-to-sel-block", blockIdMap[l.p2.con?.root.id]);
     });
-    this.setAriaStatus();
   }
   selectConnector(con) {
     if (con)
@@ -3238,7 +3306,6 @@ var NodeEditor = class extends JsxW {
     this.lines.forEach((p) => {
       p.setSelected(p == con);
     });
-    this.setAriaStatus();
   }
   deselect() {
     this.selectConnector();
@@ -3329,42 +3396,38 @@ var NodeEditor = class extends JsxW {
     let menu = this.currentMenu;
     if (!menu)
       return;
-    menu.style.display = "";
+    setVisible(menu, true);
     let [x, y] = this.contentPoint(e.clientX, e.clientY);
-    menu.style.left = x + "px";
-    menu.style.top = y + "px";
+    menu.style.setProperty("--ne-menu-x", x + "px");
+    menu.style.setProperty("--ne-menu-y", y + "px");
   }
   /**
-   * Accessible name of a block (id + type + selection state).
+   * Accessible NAME of a block: type + id, and nothing else.
+   *
+   * The name must not change with selection. An earlier version appended `" selected"` here, which
+   * made the block's accessible name change on every click — an `aria-label` is a name, not a place
+   * for state, and selection is already carried by the `selected` attribute. The `selected` argument
+   * is still accepted so existing callers do not have to change.
+   *
    * @param {BlockData} blockData
-   * @param {boolean} selected
+   * @param {boolean} [selected] ignored — kept for call-site compatibility
    */
   setBlockLabel(blockData, selected) {
     let { id, type, el } = blockData;
-    el.setAttribute("aria-label", `${type || "block"} ${id}${selected ? " selected" : ""}`);
+    el.setAttribute("aria-label", `${type || "block"} ${id}`);
   }
   /**
-   * Announce the current selection state in the `aria-live` status region.
-   * @param {string} [msg] explicit message; when omitted it is derived from the selection
+   * Kept as a no-op for backward compatibility.
+   *
+   * It used to write a selection message ("block 1 selected", "selection cleared") into an
+   * `aria-live` region that the editor inserted into itself. That region was only visually hidden by
+   * the stylesheet, so a host that did not load it got the sentence as literal text on the canvas —
+   * and the announcements themselves were never requested. Selection is conveyed by the `selected`
+   * attribute/stroke.
+   *
+   * @param {string} [msg] ignored
    */
   setAriaStatus(msg) {
-    let el = this.statusEl;
-    if (!el)
-      return;
-    if (!msg) {
-      let sel = this.selectedBlocks || [];
-      if (this.selectedLine) {
-        let l = this.selectedLine;
-        msg = `connection ${l.p1.con?.idFull ?? "?"} to ${l.p2.con?.idFull ?? "?"} selected`;
-      } else if (sel.length == 1) {
-        msg = `block ${sel[0].id} selected`;
-      } else if (sel.length > 1) {
-        msg = `${sel.length} blocks selected`;
-      } else {
-        msg = "selection cleared";
-      }
-    }
-    el.textContent = msg;
   }
   /** @type {boolean} */
   destroyed = false;
@@ -3457,7 +3520,7 @@ var NodeEditor = class extends JsxW {
     this.historyRecord(kind);
     let menu = this.currentMenu;
     if (menu) {
-      menu.style.display = "";
+      setVisible(menu, true);
       if (this.selectedBlocks?.length)
         moveMenu(this.selectedBlocks, menu, this._zoom);
     }
@@ -3471,7 +3534,7 @@ var NodeEditor = class extends JsxW {
   }
 };
 
-// apps/nodditor/src/selectElementText.js
+// src/selectElementText.js
 var selectElementText = (el) => {
   let range = document.createRange();
   range.selectNodeContents(el);
@@ -3480,7 +3543,7 @@ var selectElementText = (el) => {
   sel.addRange(range);
 };
 
-// apps/nodditor/src/EditableTitle.js
+// src/EditableTitle.js
 var EditableTitle = (attr = {}) => {
   backend.current.addClass(attr, "EditableTitle");
   const getValue2 = () => el.textContent;
@@ -3526,7 +3589,7 @@ var EditableTitle = (attr = {}) => {
   return Object.assign(el, { getValue: getValue2, setValue: setValue2 });
 };
 
-// apps/nodditor/src/blocks/Message.js
+// src/blocks/Message.js
 function Message(attr) {
   backend.current.addClass(attr, "ne-block");
   let title = EditableTitle();
@@ -3546,7 +3609,7 @@ function Message(attr) {
   ] });
 }
 
-// apps/nodditor/src/blocks/Switch.js
+// src/blocks/Switch.js
 function Switch(attr) {
   function expandClick({ target }) {
     if (target.hasAttribute("ne-item"))
@@ -3579,7 +3642,7 @@ function Switch(attr) {
   ] });
 }
 
-// apps/nodditor/smoke/p3.smoke.jsx
+// smoke/p3.smoke.jsx
 var failures = 0;
 var ok = (cond, msg) => {
   if (cond)
@@ -3733,12 +3796,12 @@ ok(moves.length === 1, "P3-2 the flush is not duplicated when the microtask runs
 ed.selectAll();
 ok(ed.selectedBlocks.length === N, "P3-3 selectAll selects every block");
 ok(
-  ed.blocks.every((b) => / selected/.test(b.el.getAttribute("aria-label"))),
+  ed.blocks.every((b) => b.el.getAttribute("selected") === "selected"),
   "P3-3 every block got the selected state"
 );
 ed.selectBlocks([ed.getBlockData("7")]);
 ok(
-  ed.getBlockData("7").el.getAttribute("aria-label").includes("selected") && !ed.getBlockData("8").el.getAttribute("aria-label").includes("selected"),
+  ed.getBlockData("7").el.getAttribute("selected") === "selected" && ed.getBlockData("8").el.getAttribute("selected") === null,
   "P3-3 selection membership is exact"
 );
 var groupMenu = mkMenu()[0];
@@ -3751,10 +3814,12 @@ groupMenu.getBoundingClientRect = () => {
   return { width: 100 * fakeZoom, height: 20 * fakeZoom, x: 0, y: 0 };
 };
 bd1.size = [100, 80];
+var menuX = () => groupMenu.style.getPropertyValue("--ne-menu-x");
+var menuY = () => groupMenu.style.getPropertyValue("--ne-menu-y");
 moveMenu([bd1], groupMenu, 1);
 ok(
-  groupMenu.style.left === bd1.pos[0] + 50 - 50 + "px" && groupMenu.style.top === bd1.pos[1] - 20 + "px",
-  `P3-4 menu centered over the block (${groupMenu.style.left},${groupMenu.style.top})`
+  menuX() === bd1.pos[0] + 50 - 50 + "px" && menuY() === bd1.pos[1] - 20 + "px",
+  `P3-4 menu centered over the block (${menuX()},${menuY()})`
 );
 moveMenu([bd1], groupMenu, 1);
 moveMenu([bd1], groupMenu, 1);
@@ -3763,38 +3828,39 @@ groupMenu.appendChild(document.createElement("div"));
 await tick(0);
 moveMenu([bd1], groupMenu, 1);
 ok(measures === 2, "P3-4 a content change invalidates the cached box");
-var leftZoomed = groupMenu.style.left;
-var topZoomed = groupMenu.style.top;
+var leftZoomed = menuX();
+var topZoomed = menuY();
 fakeZoom = 2;
 moveMenu([bd1], groupMenu, 2);
 ok(measures === 2, "P3-4 zooming does not force a re-measure");
-ok(
-  groupMenu.style.left === leftZoomed && groupMenu.style.top === topZoomed,
-  "P3-4 the cached box is zoom-independent"
-);
+ok(menuX() === leftZoomed && menuY() === topZoomed, "P3-4 the cached box is zoom-independent");
 groupMenu._neMenuSize = null;
 moveMenu([bd1], groupMenu, 2);
 ok(
-  measures === 3 && groupMenu.style.left === leftZoomed && groupMenu.style.top === topZoomed,
+  measures === 3 && menuX() === leftZoomed && menuY() === topZoomed,
   "P3-4 a fresh measure at zoom 2 normalizes to the same box"
 );
 var bd2 = ed.getBlockData("2");
 bd2.size = [100, 80];
 ed.selectBlocks([bd1, bd2]);
 ed.currentMenu = groupMenu;
-groupMenu.style.display = "none";
-groupMenu.style.left = "-999px";
+groupMenu.setAttribute("hidden", "hidden");
+groupMenu.style.setProperty("--ne-menu-x", "-999px");
 ed.setPos("1", [300, 400]);
 reset();
 ed.fireMoveDone(ed.getBlockData("1"));
 var bx = ed.getBlockData("1");
 var groupLeft = Math.min(bx.pos[0], bd2.pos[0]) + (Math.max(bx.pos[0] + 100, bd2.pos[0] + 100) - Math.min(bx.pos[0], bd2.pos[0])) / 2 - 50;
-ok(groupMenu.style.display === "", "P3-4 fireMoveDone re-shows the menu");
+ok(!groupMenu.hasAttribute("hidden"), "P3-4 fireMoveDone re-shows the menu");
 ok(
-  groupMenu.style.left === groupLeft + "px",
-  `P3-4 fireMoveDone repositions synchronously (left=${groupMenu.style.left}, want ${groupLeft}px)`
+  menuX() === groupLeft + "px",
+  `P3-4 fireMoveDone repositions synchronously (left=${menuX()}, want ${groupLeft}px)`
 );
 ok(measures === 3, "P3-4 the repositioning reused the cached box (no extra measure)");
+ok(
+  !/\b(left|top|display|position)\s*:/.test(groupMenu.getAttribute("style") || ""),
+  `P3-4 the menu carries no layout/visibility inline style (${groupMenu.getAttribute("style")})`
+);
 var hits = 0;
 document.elementFromPoint = (x, y) => {
   hits++;

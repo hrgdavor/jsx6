@@ -1,0 +1,161 @@
+/* ============================================================================================
+   nodditor — the library's own stylesheet. IMPORT THIS (or paste it) in any app that embeds the
+   editor. It is not optional: the editor publishes its layout as CSS custom properties and this file
+   is what turns them into `transform` / `left` / `top`. Without it every block sits at the origin —
+   in the corner — because `--ne-x` / `--ne-y` have nothing to drive.
+
+     <link rel="stylesheet" href="node_modules/@jsx6/nodditor/static/nodditor.css" />
+
+   Nothing here is a "look" you are expected to like: it is the geometry the editor needs, plus a
+   minimal default appearance for the controls it owns (zoom UI, marquee). Restyle freely — every
+   value is either a plain property or a `--ne-*` custom property you can override, for example
+   `jsx6-nodditor { --ne-zoom-z: 5 }` to lift the zoom controls above a host overlay.
+
+   Layout contract (written by the editor through the style property API, never as inline styles):
+     .ne-content     --ne-zoom (unitless scale), --ne-zoom-w, --ne-zoom-h (unscaled size)
+     .ne-block       --ne-x, --ne-y (content-space position)
+     .ne-menu        --ne-menu-x, --ne-menu-y (content-space position)
+     .ne-marquee     --ne-marquee-x, -y, -w, -h
+   Override-only:
+     --ne-content-z, --ne-zoom-z, --ne-marquee-z (stacking)
+   ============================================================================================ */
+
+jsx6-nodditor {
+  position: relative;
+}
+
+jsx6-nodditor:focus {
+  outline: none;
+}
+
+/* the canvas: pannable/zoomable layer, under the controls.
+   The two axes are separate `translateX()`/`translateY()` functions rather than one
+   `translate(x, y)` on purpose: a comma-separated value is what naive CSS parsers (and happy-dom's
+   computed-style serialiser) truncate at the first comma, which loses the Y axis. */
+.ne-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--ne-zoom-w, 100%);
+  height: var(--ne-zoom-h, 100%);
+  transform: scale(var(--ne-zoom, 1));
+  transform-origin: top left;
+  z-index: var(--ne-content-z, 0);
+}
+
+/* svg line layer inside the canvas */
+.ne-svg-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* a block: positioned by the editor through --ne-x/--ne-y */
+.ne-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateX(var(--ne-x, 0px)) translateY(var(--ne-y, 0px));
+}
+
+/* keyboard focus ring for blocks. Lines are NOT focusable and carry no accessibility markup, so they
+   cannot get a focus box at all — they used to have `role="img"` + `tabindex="0"`, which made the
+   browser draw an outline around the whole `g`, a gray box around the selected line that duplicated
+   the `.selected` stroke. */
+.ne-block:focus-visible {
+  outline: rgba(0, 0, 0, 0.1) auto 5px;
+}
+
+/* marquee rectangle while drag-selecting on the empty canvas. Its geometry comes from the CSS
+   variables the editor publishes; `z-index` is what lifts it above the blocks it is selecting (it is
+   inserted as their sibling, after them). */
+.ne-marquee {
+  position: absolute;
+  left: var(--ne-marquee-x, 0px);
+  top: var(--ne-marquee-y, 0px);
+  width: var(--ne-marquee-w, 0px);
+  height: var(--ne-marquee-h, 0px);
+  z-index: var(--ne-marquee-z, 2);
+  box-sizing: border-box;
+  border: solid 1px #2ea7a7;
+  background: rgba(46, 167, 167, 0.15);
+  pointer-events: none;
+}
+
+/* selection menu: positioned inside the canvas through --ne-menu-x/--ne-menu-y. Only the geometry is
+   here; the menu's appearance belongs to the host's own generator. */
+.ne-menu {
+  position: absolute;
+  left: var(--ne-menu-x, 0px);
+  top: var(--ne-menu-y, 0px);
+}
+.ne-menu[hidden] {
+  display: none;
+}
+
+/* #region zoom-css */
+/* zoom indicator + controls (bottom-right corner of the editor)
+ *
+ * Positioned here, not inline: the controls are inserted BEFORE the canvas in DOM order and the
+ * canvas is a full-size positioned layer, so without this `z-index` the canvas would paint over them
+ * and swallow the clicks. Override the stacking with `--ne-zoom-z` if a host renders something above
+ * them.
+ */
+.ne-zoom-ui {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: var(--ne-zoom-z, 1);
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  background: #fff;
+  border: solid 1px #ddd;
+  border-radius: 6px;
+  box-shadow: 1px 1px 3px #ccc;
+  user-select: none;
+  color: #555;
+  font-size: 13px;
+}
+.ne-zoom-ui .ne-zoom-bt {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f4f4f4;
+}
+.ne-zoom-ui .ne-zoom-bt:hover {
+  background: #e8e8e8;
+}
+.ne-zoom-ui .ne-zoom-val {
+  min-width: 42px;
+  text-align: center;
+}
+.ne-zoom-ui.at-min .ne-zoom-bt:first-child,
+.ne-zoom-ui.at-max .ne-zoom-bt:last-child {
+  opacity: 0.35;
+  pointer-events: none;
+}
+/* #endregion zoom-css */
+
+/* line colours: the host's block/connector stylesheet normally sets these (see static/ne-blocks.css);
+   these are the fallbacks for an app that only imports this file. */
+jsx6-nodditor svg g path:first-child {
+  stroke: black;
+  stroke-width: 2px;
+}
+jsx6-nodditor svg g path:nth-child(2) {
+  stroke-width: 8px;
+  stroke: transparent;
+}
+jsx6-nodditor svg g.selected path:first-child {
+  stroke: #2ea7a7;
+}
+jsx6-nodditor svg g.ne-from-sel-block path:first-child {
+  stroke: #bfc233;
+}
+jsx6-nodditor svg g.ne-to-sel-block path:first-child {
+  stroke: #2e6ca7;
+}

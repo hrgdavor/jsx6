@@ -12,7 +12,7 @@
  *       zoom control buttons
  *  P2-5 grid snapping in nudge (the drag path applies the same snap rule)
  *  P2-6 right-click context menu on blocks and lines, positioned at cursor
- *  P2-7 accessibility: roles/labels, aria-live status, keyboard-only flow
+ *  P2-7 accessibility: block roles/labels, keyboard-only flow (lines carry none)
  *
  * NOTE: undo/redo rebuilds ALL blocks (loadGraph), so BlockData/el references
  * go stale after an undo — re-fetch with getBlockData. Sections after the
@@ -91,8 +91,11 @@ ok(selIds() === '1', 'P2-1 plain click selects one block')
 pev(title('2'), 'pointerdown')
 pev(title('2'), 'pointerup', { ctrlKey: true })
 ok(selIds() === '1,2', 'P2-1 Ctrl+click toggles a second block into the selection')
-ok(ed.currentMenu === menuEl && menuEl.style.left === '75px', 'P2-1 menu centered over the group (75px)')
-ok(!menuEl.hasAttribute('hidden') && menuEl.style.display === '', 'P2-1 group menu visible')
+ok(
+  ed.currentMenu === menuEl && menuEl.style.getPropertyValue('--ne-menu-x') === '75px',
+  `P2-1 menu centered over the group (75px, via --ne-menu-x=${menuEl.style.getPropertyValue('--ne-menu-x')})`,
+)
+ok(!menuEl.hasAttribute('hidden'), 'P2-1 group menu visible')
 pev(title('1'), 'pointerdown')
 pev(title('1'), 'pointerup', { shiftKey: true })
 ok(selIds() === '2', 'P2-1 Shift+click toggles the first block off')
@@ -101,9 +104,27 @@ pev(ca, 'pointerup')
 ok(selIds() === '', 'P2-1 click on empty canvas deselects')
 
 // ---------- P2-1: marquee ----------
+// The rectangle has to be VISIBLE, not merely present: it is inserted as a sibling AFTER the blocks.
+// Its look and stacking come from nodditor.css (loaded by the runner, as a host does) — nothing is
+// written inline any more, so this asserts the resolved style, not an inline declaration.
 pev(ca, 'pointerdown', { clientX: -10, clientY: -10 })
 pev(ca, 'pointermove', { clientX: 160, clientY: 160 })
-ok(ca.querySelector('.ne-marquee'), 'P2-1 marquee rectangle shown while dragging on empty canvas')
+const marqueeBox = ca.querySelector('.ne-marquee')
+ok(marqueeBox, 'P2-1 marquee rectangle shown while dragging on empty canvas')
+if (marqueeBox) {
+  const mcs = getComputedStyle(marqueeBox)
+  ok(!(marqueeBox.getAttribute('style') || '').includes('border'), 'P2-1 the marquee carries no inline style')
+  ok(mcs.position === 'absolute', `P2-1 the marquee is absolutely positioned (${mcs.position})`)
+  ok(
+    !!mcs.borderTopWidth && mcs.borderTopWidth !== '0px',
+    `P2-1 the marquee has a visible border from the stylesheet (${mcs.borderTopWidth})`,
+  )
+  const blockZ = Number(getComputedStyle(ed.getBlockData('1').el).zIndex) || 0
+  ok(
+    Number(mcs.zIndex) > blockZ,
+    `P2-1 the marquee stacks above the blocks it selects (${mcs.zIndex} > ${blockZ})`,
+  )
+}
 pev(ca, 'pointerup', { clientX: 160, clientY: 160 })
 ok(!ca.querySelector('.ne-marquee'), 'P2-1 marquee removed on release')
 ok(selIds() === '1,2', 'P2-1 marquee selects intersecting blocks only (not block 3)')
@@ -135,7 +156,7 @@ key(ed, 'z', { ctrlKey: true, shiftKey: true })
 ok(JSON.stringify(ed.getPos('1')) === '[10,-50]', 'P2-3 Ctrl+Shift+Z redoes the nudges')
 key(ed, 'z', { ctrlKey: true })
 ok(JSON.stringify(ed.getPos('1')) === pos0, 'P2-3 undo again restores the loaded positions')
-ok(ed.statusEl.textContent === 'Undo', 'P2-7 aria-live announces undo')
+ok(ed.querySelector('.ne-sr-status') === null, 'P2-7 the editor no longer injects a selection-status element')
 
 // ---------- P2-3: structural undo/redo ----------
 key(ed, 'a', { ctrlKey: true })
@@ -220,17 +241,27 @@ const cmBlock = ctx(title3('1'), 123, 45)
 ok(cmBlock.defaultPrevented, 'P2-6 contextmenu prevented (no browser menu)')
 ok(sel3() === '1', 'P2-6 right-click selects the block under the cursor')
 ok(ed3.currentMenu === menu3 && !menu3.hasAttribute('hidden'), 'P2-6 menu shown for right-click')
-ok(menu3.style.left === '123px' && menu3.style.top === '45px', 'P2-6 menu positioned at the cursor')
+ok(
+  menu3.style.getPropertyValue('--ne-menu-x') === '123px' &&
+    menu3.style.getPropertyValue('--ne-menu-y') === '45px',
+  'P2-6 menu positioned at the cursor',
+)
 // keep a multi-selection when right-clicking inside it
 pev(title3('2'), 'pointerdown')
 pev(title3('2'), 'pointerup', { shiftKey: true })
 ok(sel3() === '1,2', 'P2-6 setup: two blocks selected')
 ctx(title3('2'), 200, 30)
-ok(sel3() === '1,2' && menu3.style.left === '200px', 'P2-6 right-click inside the group keeps it selected')
+ok(
+  sel3() === '1,2' && menu3.style.getPropertyValue('--ne-menu-x') === '200px',
+  'P2-6 right-click inside the group keeps it selected',
+)
 const line = ed3.lines.find(l => l.p1.con?.idFull === '1/o1')
 const cmLine = ctx(line.line2, 50, 60)
 ok(cmLine.defaultPrevented && ed3.selectedLine === line, 'P2-6 right-click on a line selects it')
-ok(ed3.currentMenu === menu3 && menu3.style.left === '50px', 'P2-6 menu opens at cursor for lines too')
+ok(
+  ed3.currentMenu === menu3 && menu3.style.getPropertyValue('--ne-menu-x') === '50px',
+  'P2-6 menu opens at cursor for lines too',
+)
 ctx(ed3.contentArea, 5, 5)
 ok(sel3() === '' && !ed3.selectedLine, 'P2-6 right-click on empty canvas deselects')
 
@@ -242,19 +273,59 @@ ok(
 )
 ed3.selectBlocks([bA, ed3.getBlockData('2')])
 ok(/Switch 1/.test(bA.el.getAttribute('aria-label')), 'P2-7 block aria-label has type + id')
-ok(ed3.statusEl.textContent === '2 blocks selected', 'P2-7 aria-live reports the multi-selection')
+// The accessible NAME must be stable: it used to grow a " selected" suffix on selection, which meant
+// the block announced itself as a different element after every click. Selection is state, and it is
+// carried by the `selected` attribute.
+{
+  // capture whatever selection the suite had, so this check does not disturb the assertions after it
+  const priorSelection = (ed3.selectedBlocks || []).slice()
+  const labelUnselected = bA.el.getAttribute('aria-label')
+  ed3.selectBlocks([bA])
+  const labelSelected = bA.el.getAttribute('aria-label')
+  ok(
+    labelSelected === labelUnselected,
+    `P2-7 the block accessible name does not change with selection ("${labelUnselected}")`,
+  )
+  ok(!/selected/i.test(labelSelected), 'P2-7 no selection state is written into the block aria-label')
+  ed3.selectBlocks(priorSelection)
+}
+// selection state is carried by the `selected` attribute + the `.selected` stroke, not by text
+ed3.selectBlocks([bA, ed3.getBlockData('2')])
+ok(
+  bA.el.getAttribute('selected') === 'selected' && ed3.selectedBlocks.length === 2,
+  'P2-7 a multi-selection is expressed through the selected attribute',
+)
 ed3.deselect()
-ok(ed3.statusEl.textContent === 'selection cleared', 'P2-7 aria-live reports cleared selection')
+ok(bA.el.getAttribute('selected') === null, 'P2-7 deselect clears the selected attribute')
+ok(ed3.querySelector('.ne-sr-status') === null, 'P2-7 no status text element exists on the editor')
+// Lines carry NO accessibility markup and are NOT focusable. `role="img"` + `tabindex="0"` made the
+// browser (or any host `:focus` rule) draw an outline around the whole `g` — the gray box around a
+// selected line. Selection is shown by the `.selected` stroke, so none of it is needed.
 ok(
-  line.el.getAttribute('role') === 'img' && line.el.getAttribute('tabindex') === '0',
-  'P2-7 lines are focusable images',
+  line.el.getAttribute('role') === null && line.el.getAttribute('tabindex') === null,
+  'P2-7 lines are not focusable and carry no role',
 )
-ok(
-  /connection 1\/o1 -> 2\/i1/.test(line.el.getAttribute('aria-label')),
-  'P2-7 line aria-label from endpoints',
-)
+ok(line.el.getAttribute('aria-label') === null, 'P2-7 lines carry no aria-label')
+{
+  // a host accessibility stylesheet must not be able to draw a focus box on a line either
+  const hostStyle = document.createElement('style')
+  hostStyle.textContent = 'svg g:focus, svg g:focus-visible { outline: 5px auto rgba(0,0,0,.1) !important; }'
+  document.head.appendChild(hostStyle)
+  line.el.focus()
+  ed3.selectConnector(line)
+  const cs = getComputedStyle(line.el)
+  ok(line.el.tabIndex === -1, `P2-7 a line is not in the tab order (tabIndex=${line.el.tabIndex})`)
+  ok(
+    !cs.outlineStyle || cs.outlineStyle === 'none',
+    `P2-7 no focus outline on a line even with a host focus rule (${cs.outlineStyle || 'none'})`,
+  )
+  ok(line.el.classList.contains('selected'), 'P2-7 the line still shows selection by stroke')
+  ed3.deselect()
+  document.head.removeChild(hostStyle)
+}
 ed3.selectConnector(line)
-ok(/connection .* selected/.test(ed3.statusEl.textContent), 'P2-7 aria-live reports line selection')
+ok(line.el.classList.contains('selected'), 'P2-7 a selected line carries the selected class')
+ok(ed3.selectedLine === line, 'P2-7 the editor tracks the selected line')
 ed3.deselect()
 
 // keyboard-only pass: focus block -> Enter -> arrows -> Delete -> undo

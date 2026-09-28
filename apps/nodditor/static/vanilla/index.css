@@ -3,7 +3,7 @@
  *
  * Deliberately small: it is the *host* chrome (toolbar, stage). Everything about blocks, connectors,
  * lines, the menu, the marquee and the zoom UI comes from the package's real stylesheets
- * (ne-blocks.css + NodeEditor.css), which are copied next to this file by src_build/vanillaBuild.js.
+ * (nodditor.css + ne-blocks.css), which are copied next to this file by src_build/vanillaBuild.js.
  * If a rule is needed here for the graph to be usable, that is a finding about the editor's styling
  * contract, not about the demo.
  */
@@ -11,7 +11,9 @@ html,
 body {
   margin: 0;
   height: 100%;
-  font: 14px/1.4 system-ui, sans-serif;
+  font:
+    14px/1.4 system-ui,
+    sans-serif;
   color: #333;
 }
 

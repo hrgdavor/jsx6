@@ -1,0 +1,36 @@
+/* ============================================================================================
+   ne-demo.css — the LOOK of nodditor's own demo (menu chrome, block/connector cosmetics).
+   This is not part of the library API: an app brings its own block markup and its own styling.
+   Import it only if you want the demo's appearance; the geometry the editor needs lives in
+   nodditor.css.
+   ============================================================================================ */
+
+/* the demo's selection menu chrome */
+.ne-menu {
+  padding-bottom: 5px;
+}
+.ne-demo-menu {
+  padding: 4px;
+  border: solid 1px gray;
+}
+.ne-menu .ne-bt {
+  cursor: pointer;
+  padding: 4px 8px;
+  margin: 0 5px;
+  border-radius: 5px;
+  outline: solid 1px #ddd;
+  background: #fff;
+}
+.ne-menu .ne-bt:hover {
+  background-color: #eee;
+}
+.ne-menu .ne-delete {
+  color: red;
+}
+
+/* the demo's editor box. `contain: strict` keeps the editor from growing with its blocks, which is
+   what the canvas ResizeObserver measures — it is not decoration. */
+.ne-demo-editor {
+  outline: solid 1px black;
+  contain: strict;
+}

@@ -150,8 +150,6 @@ export class NodeEditor extends JsxW {
     // @ts-ignore
     rootNode.nodeEditor = this
     insert(this.contentArea, rootNode)
-    rootNode.style.top = '0'
-    rootNode.style.left = '0'
     /** @type {BlockData} */
     let blockData = (rootNode.neBlock = {
       id,
@@ -196,17 +194,61 @@ export class NodeEditor extends JsxW {
     if (this._structMO || typeof MutationObserver !== 'function') return
     this._structMO = new MutationObserver(records => {
       records.forEach(r => {
-        for (let p = r.target; p; p = p.parentElement) {
-          let blockData = this.nodeMap.get(p)
-          if (blockData) {
-            blockData.structDirty = true
-            this.scheduleConnectorRecheck(blockData)
-            break
-          }
+        // Resolve the block whose DOM changed. Two shapes matter:
+        //   - the walk from `r.target` finds the block element (`neBlock`) — the common case: a port
+        //     was added to or removed from a block that is already registered;
+        //   - the walk finds an element carrying `nid` that is not the registered element — the host
+        //     REPLACED the block element (re-render), so the new node is adopted. Without it the
+        //     block would keep being scanned through the dead element and its ports would stay
+        //     undiscovered.
+        let blockData = this.resolveBlockForRecord(r)
+        if (blockData) {
+          blockData.structDirty = true
+          this.scheduleConnectorRecheck(blockData)
         }
       })
     })
     this._structMO.observe(this.contentArea, { childList: true, subtree: true })
+  }
+
+  /**
+   * The `BlockData` a `MutationRecord` belongs to, or `null`.
+   *
+   * `neBlock` is the normal hit (no attribute read). The `nid` fallback covers a block whose element
+   * the host replaced: the registered element is then detached and the new one — which `add` marked
+   * with `nid` — has to be adopted, or discovery would keep walking the dead element.
+   *
+   * @param {MutationRecord} r
+   * @returns {BlockData|null}
+   */
+  resolveBlockForRecord(r) {
+    for (let p = r.target; p; p = p.parentElement) {
+      if (p.neBlock) return p.neBlock
+      // the canvas root must never be treated as a block
+      if (p === this.contentArea) break
+      let nid = p.getAttribute?.('nid')
+      if (nid != null) {
+        let blockData = this.blockMap.get(nid)
+        if (blockData) return this.adoptBlockElement(blockData, p)
+      }
+    }
+    return null
+  }
+
+  /**
+   * Point a block at the element that is in the DOM now (the host replaced it), keeping `nodeMap` in
+   * sync so `getBlockData(element)` keeps resolving.
+   * @param {BlockData} blockData
+   * @param {HTMLElement} el
+   * @returns {BlockData}
+   */
+  adoptBlockElement(blockData, el) {
+    if (blockData.el !== el) {
+      this.nodeMap.delete(blockData.el)
+      blockData.el = el
+      this.nodeMap.set(el, blockData)
+    }
+    return blockData
   }
 
   /**
@@ -441,7 +483,10 @@ export class NodeEditor extends JsxW {
       this.nodeMap.delete(block.el)
       block.structDirty = false
       block.connectorMap.forEach(con => this.removeConnector(con))
-      remove(block.el)
+      // A host may have re-rendered the block by replacing its element (or moved it out of the
+      // editor) before asking for the removal; `remove` reads `el.parentElement` and throws on a
+      // detached node, which turned teardown into an exception.
+      if (block.el.isConnected) remove(block.el)
       finalize(block)
       this.historyRecord('remove')
     }
@@ -482,7 +527,11 @@ export class NodeEditor extends JsxW {
       // P3-2: queued instead of one `ne-move` per connector per frame
       this.queueMove(con)
     })
-    blockData.el.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`
+    // position is published as CSS variables; `.ne-block` in static/nodditor.css turns them into the
+    // transform. No inline declaration is written (see the README's "Styling" section).
+    let style = blockData.el.style
+    style.setProperty('--ne-x', pos[0] + 'px')
+    style.setProperty('--ne-y', pos[1] + 'px')
   }
 
   // #region zoom-defaults
@@ -586,33 +635,24 @@ export class NodeEditor extends JsxW {
     }
     this.observer = new ResizeObserver(handler)
     this.observer.observe(this)
-    this.svgLayer = hSvg('svg', {
-      style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;',
-    })
-    this.contentArea = (
-      <div style="position:absolute;top:0;left:0;width:100%; height:100%; transform-origin: top left; z-index:0;">
-        {this.svgLayer}
-      </div>
-    )
+    // The look of the three structural layers (svg line layer, canvas, zoom controls) lives in
+    // static/nodditor.css, keyed off these classes. Nothing cosmetic is written inline: see the
+    // "Styling" section of the README for the custom properties that drive the dynamic parts
+    // (`--ne-zoom`, `--ne-x`, `--ne-y`, `--ne-menu-x`, `--ne-menu-y`).
+    this.svgLayer = hSvg('svg', { class: 'ne-svg-layer' })
+    this.contentArea = <div class="ne-content">{this.svgLayer}</div>
     this._zoom = 1
     // P3-1: structural changes of the blocks (added/removed connectors) are
     // tracked by one canvas-wide MutationObserver, which is what the memoized
     // connector discovery keys off
     this.ensureStructObserver()
-    // zoom indicator + controls, in the (unscaled) editor corner — see changeZoom*/zoomTo
-    //
-    // The inline style is not decoration: the controls are inserted BEFORE the canvas (see below),
-    // and the canvas is a full-size `position: absolute` layer, so with the default `z-index: auto`
-    // it paints on top and swallows the clicks. The controls must carry their own stacking position
-    // rather than rely on the host loading a stylesheet, because "the zoom buttons do not respond"
-    // is not a symptom a host can debug from the visuals. `--ne-zoom-z` lets the stylesheet reorder
-    // it; `pointer-events: auto` is a guard for a host that sets `none` on the editor's children.
+    // zoom indicator + controls, in the (unscaled) editor corner — see changeZoom*/zoomTo.
+    // Stacking is the stylesheet's job (`.ne-zoom-ui` carries `z-index`, see static/nodditor.css):
+    // the controls are inserted BEFORE the canvas, and the canvas is a full-size positioned layer, so
+    // without an explicit z-index it would paint over them and swallow the clicks.
     // #region zoom-markup
     this.zoomUI = (
-      <div
-        class="ne-zoom-ui"
-        style="position:absolute;right:6px;bottom:6px;z-index:var(--ne-zoom-z,1);pointer-events:auto"
-      >
+      <div class="ne-zoom-ui">
         <div class="ne-zoom-bt" title="Zoom out" onclick={() => this.zoomTo(this.zoom / 1.25)}>
           −
         </div>
@@ -624,11 +664,7 @@ export class NodeEditor extends JsxW {
     )
     // #endregion zoom-markup
     this.zoomLabel = this.zoomUI.children[1]
-    // aria-live region announcing selection changes (screen-reader status). It stays out of the way
-    // of both layers, and its visual hiding is the stylesheet's business.
-    this.statusEl = <div class="ne-sr-status" role="status" aria-live="polite"></div>
     insert(this, this.zoomUI)
-    insert(this, this.statusEl)
     this.updateZoomUI()
     let el = this.contentArea
     // @ts-ignore
@@ -654,11 +690,12 @@ export class NodeEditor extends JsxW {
     let marqueeStart = null
     let marqueeCur = null
     const updateMarquee = () => {
+      // geometry is published as CSS custom properties; `.ne-marquee` turns them into left/top/size
       let st = marqueeEl.style
-      st.left = Math.min(marqueeStart[0], marqueeCur[0]) + 'px'
-      st.top = Math.min(marqueeStart[1], marqueeCur[1]) + 'px'
-      st.width = Math.abs(marqueeCur[0] - marqueeStart[0]) + 'px'
-      st.height = Math.abs(marqueeCur[1] - marqueeStart[1]) + 'px'
+      st.setProperty('--ne-marquee-x', Math.min(marqueeStart[0], marqueeCur[0]) + 'px')
+      st.setProperty('--ne-marquee-y', Math.min(marqueeStart[1], marqueeCur[1]) + 'px')
+      st.setProperty('--ne-marquee-w', Math.abs(marqueeCur[0] - marqueeStart[0]) + 'px')
+      st.setProperty('--ne-marquee-h', Math.abs(marqueeCur[1] - marqueeStart[1]) + 'px')
     }
     // P3-2: pointer events arrive faster than the display refreshes. The drag
     // and the canvas pan keep only the LATEST pending delta and apply it once
@@ -835,11 +872,14 @@ export class NodeEditor extends JsxW {
           dragStart = dragList.map(b => [b.pos[0], b.pos[1]])
         } else {
           let menu = this.currentMenu
-          if (menu) menu.style.display = 'none'
+          if (menu) setVisible(menu, false)
           if (downButton === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             // left drag over empty canvas: marquee select (pan with middle button or Alt+drag)
             marqueeStart = this.contentPoint(lx, ly) // lx/ly = pointerdown client pos
             marqueeCur = [...marqueeStart]
+            // The look and the stacking come from `.ne-marquee` in static/nodditor.css and its
+            // geometry from `--ne-marquee-*`; nothing is set inline. The marquee is inserted as a
+            // sibling AFTER the blocks, so the stylesheet's `z-index` is what keeps it above them.
             marqueeEl = <div class="ne-marquee"></div>
             insert(this.contentArea, marqueeEl)
             updateMarquee()
@@ -909,9 +949,7 @@ export class NodeEditor extends JsxW {
         if (menu) {
           if (this.currentMenu && this.currentMenu != menu) setVisible(this.currentMenu, false)
           setVisible(menu, true)
-          menu.style.display = ''
           if (!menu.parentNode) {
-            menu.style.position = 'absolute'
             insert(this.contentArea, menu)
           }
           this.currentMenu = menu
@@ -1014,14 +1052,15 @@ export class NodeEditor extends JsxW {
     zoom = this.clampZoom(zoom)
     if (this._zoom == zoom) return
     this._zoom = zoom
-    this.contentArea.style.transform = `scale(${zoom})`
+    this.contentArea.style.setProperty('--ne-zoom', String(zoom))
     this.updateSize()
     this.updateZoomUI()
   }
 
   updateSize() {
-    this.contentArea.style.width = this.realWidth / this._zoom + 'px'
-    this.contentArea.style.height = this.realHeight / this._zoom + 'px'
+    let style = this.contentArea.style
+    style.setProperty('--ne-zoom-w', this.realWidth / this._zoom + 'px')
+    style.setProperty('--ne-zoom-h', this.realHeight / this._zoom + 'px')
   }
 
   changeZoomMouse(zoom, e) {
@@ -1243,6 +1282,26 @@ export class NodeEditor extends JsxW {
     return `unknown connector: ${parts.join('; ')}`
   }
   /**
+   * Re-attach the lines that use a connector whose ELEMENT was replaced (see `findConnector`).
+   *
+   * A line holds its endpoint as a `ConnectorData` object plus listeners bound to
+   * `con.el` (`ne-remove` in `ConnectLine.setPoint`), and a `ne-move` subscription per endpoint. When
+   * a host re-renders a port — the usual data-driven flow, where blocks are added first and their
+   * ports arrive with the async data — the old listeners die with the old element, so the lines must
+   * be re-pointed at the same `ConnectorData` (its `el` has already been updated in place).
+   *
+   * Idempotent: `setPoint` releases the previous listeners before installing new ones.
+   *
+   * @param {ConnectorData} con
+   */
+  reattachLines(con) {
+    this.lines.forEach(line => {
+      if (line.p1.con === con) line.setPoint(line.p1, con, true)
+      if (line.p2.con === con) line.setPoint(line.p2, con, true)
+    })
+  }
+
+  /**
    * @param {ConnectLine} con
    */
   addConnector(con) {
@@ -1437,7 +1496,6 @@ export class NodeEditor extends JsxW {
     this._histLast = this.undoStack.pop()
     this._histKind = null
     this.loadGraph(this._histLast.state, this.typeMap)
-    this.setAriaStatus('Undo')
     return true
   }
 
@@ -1455,7 +1513,6 @@ export class NodeEditor extends JsxW {
     this._histLast = this.redoStack.pop()
     this._histKind = null
     this.loadGraph(this._histLast.state, this.typeMap)
-    this.setAriaStatus('Redo')
     return true
   }
   /**
@@ -1479,7 +1536,6 @@ export class NodeEditor extends JsxW {
       if (menu) {
         setVisible(menu, true)
         if (menu != old) {
-          menu.style.position = 'absolute'
           insert(this.contentArea, menu)
         }
         moveMenu(blocks, menu, this._zoom)
@@ -1506,7 +1562,6 @@ export class NodeEditor extends JsxW {
       classIf(l.el, 'ne-from-sel-block', blockIdMap[l.p1.con?.root.id])
       classIf(l.el, 'ne-to-sel-block', blockIdMap[l.p2.con?.root.id])
     })
-    this.setAriaStatus()
   }
 
   selectConnector(con) {
@@ -1515,7 +1570,6 @@ export class NodeEditor extends JsxW {
     this.lines.forEach(p => {
       p.setSelected(p == con)
     })
-    this.setAriaStatus()
     //this.focus()
   }
 
@@ -1611,43 +1665,42 @@ export class NodeEditor extends JsxW {
   placeMenuAtCursor(e) {
     let menu = this.currentMenu
     if (!menu) return
-    menu.style.display = ''
+    setVisible(menu, true)
     let [x, y] = this.contentPoint(e.clientX, e.clientY)
-    menu.style.left = x + 'px'
-    menu.style.top = y + 'px'
+    menu.style.setProperty('--ne-menu-x', x + 'px')
+    menu.style.setProperty('--ne-menu-y', y + 'px')
   }
 
   /**
-   * Accessible name of a block (id + type + selection state).
+   * Accessible NAME of a block: type + id, and nothing else.
+   *
+   * The name must not change with selection. An earlier version appended `" selected"` here, which
+   * made the block's accessible name change on every click — an `aria-label` is a name, not a place
+   * for state, and selection is already carried by the `selected` attribute. The `selected` argument
+   * is still accepted so existing callers do not have to change.
+   *
    * @param {BlockData} blockData
-   * @param {boolean} selected
+   * @param {boolean} [selected] ignored — kept for call-site compatibility
    */
   setBlockLabel(blockData, selected) {
     let { id, type, el } = blockData
-    el.setAttribute('aria-label', `${type || 'block'} ${id}${selected ? ' selected' : ''}`)
+    void selected
+    el.setAttribute('aria-label', `${type || 'block'} ${id}`)
   }
 
   /**
-   * Announce the current selection state in the `aria-live` status region.
-   * @param {string} [msg] explicit message; when omitted it is derived from the selection
+   * Kept as a no-op for backward compatibility.
+   *
+   * It used to write a selection message ("block 1 selected", "selection cleared") into an
+   * `aria-live` region that the editor inserted into itself. That region was only visually hidden by
+   * the stylesheet, so a host that did not load it got the sentence as literal text on the canvas —
+   * and the announcements themselves were never requested. Selection is conveyed by the `selected`
+   * attribute/stroke.
+   *
+   * @param {string} [msg] ignored
    */
   setAriaStatus(msg) {
-    let el = this.statusEl
-    if (!el) return
-    if (!msg) {
-      let sel = this.selectedBlocks || []
-      if (this.selectedLine) {
-        let l = this.selectedLine
-        msg = `connection ${l.p1.con?.idFull ?? '?'} to ${l.p2.con?.idFull ?? '?'} selected`
-      } else if (sel.length == 1) {
-        msg = `block ${sel[0].id} selected`
-      } else if (sel.length > 1) {
-        msg = `${sel.length} blocks selected`
-      } else {
-        msg = 'selection cleared'
-      }
-    }
-    el.textContent = msg
+    void msg
   }
 
   /** @type {boolean} */
@@ -1749,7 +1802,7 @@ export class NodeEditor extends JsxW {
     this.historyRecord(kind)
     let menu = this.currentMenu
     if (menu) {
-      menu.style.display = ''
+      setVisible(menu, true)
       // P3-4: re-show and reposition in the SAME frame. The `setTimeout` used to
       // postpone this because `moveMenu` had to measure the menu (a forced
       // layout); `moveMenu` now reuses the cached menu box, so no wait is needed

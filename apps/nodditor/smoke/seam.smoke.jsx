@@ -156,6 +156,77 @@ ok(
 )
 if (unwired.length) console.error('     ' + unwired.join('\n     '))
 
+/**
+ * SEAM-1c: nothing writes inline styles.
+ *
+ * Styling belongs in `static/nodditor.css`; the dynamic parts are published as CSS custom
+ * properties (`style.setProperty('--ne-…')`), which is the one allowed form because it is how the
+ * stylesheet and the editor communicate. A direct `el.style.left = …` / `style.display = …`, or a
+ * `style="…"` attribute in the JSX, is rejected: those are what made the marquee, the selection
+ * status text and the line focus box appear in one host and not another.
+ */
+const styleWrites = []
+for (const file of sourceFiles) {
+  const lines = readFileSync(file, 'utf8').split('\n')
+  lines.forEach((line, i) => {
+    if (/^\s*(\/\/|\*|\/\*)/.test(line)) return
+    if (/\bstyle\s*=\s*["'`]/.test(line)) {
+      styleWrites.push(`${file}:${i + 1} inline style attribute: ${line.trim()}`)
+      return
+    }
+    // `style.setProperty(...)` is the allowed form; any other `.style.<prop> =` write is not
+    const m = line.match(/\.style\.([A-Za-z]+)\s*=/)
+    if (m && m[1] !== 'setProperty') {
+      styleWrites.push(`${file}:${i + 1} .style.${m[1]} =: ${line.trim()}`)
+    }
+  })
+}
+ok(
+  styleWrites.length === 0,
+  `SEAM-1c no inline style manipulation (${styleWrites.length} found; CSS custom properties are the allowed form)`,
+)
+if (styleWrites.length) console.error('     ' + styleWrites.join('\n     '))
+
+/**
+ * SEAM-1d: the library stylesheet has to be COMPLETE.
+ *
+ * With no inline styles, `static/nodditor.css` is what turns the published custom properties into
+ * layout — the editor is unusable without it (every block ends up at the origin, "in the corner").
+ * So the rules the editor depends on are pinned here: dropping one in a refactor would otherwise only
+ * show up as a broken app.
+ */
+const libraryCss = readFileSync('static/nodditor.css', 'utf8')
+const requiredCss = [
+  ['.ne-content', ['--ne-zoom', '--ne-zoom-w', '--ne-zoom-h', 'scale(']],
+  ['.ne-block', ['position: absolute', '--ne-x', '--ne-y', 'translate']],
+  ['.ne-svg-layer', ['position: absolute', 'pointer-events: none']],
+  ['.ne-marquee', ['--ne-marquee-x', '--ne-marquee-y', '--ne-marquee-w', '--ne-marquee-h', 'z-index']],
+  ['.ne-menu', ['position: absolute', '--ne-menu-x', '--ne-menu-y']],
+  ['.ne-zoom-ui', ['position: absolute', 'z-index', 'pointer-events: auto']],
+]
+const missingCss = []
+for (const [selector, needles] of requiredCss) {
+  const block = libraryCss.match(new RegExp(`\\${selector}\\s*\\{[^}]*\\}`))?.[0]
+  if (!block) {
+    missingCss.push(`${selector}: rule missing`)
+    continue
+  }
+  for (const needle of needles) {
+    if (!block.includes(needle)) missingCss.push(`${selector}: missing "${needle}"`)
+  }
+}
+ok(
+  missingCss.length === 0,
+  `SEAM-1d the library stylesheet (static/nodditor.css) has every rule the editor needs (${missingCss.length} missing)`,
+)
+if (missingCss.length) console.error('     ' + missingCss.join('\n     '))
+// blocks must not be positioned with a comma-separated transform: naive CSS parsers (and happy-dom's
+// computed-style serialiser) truncate it at the comma and lose the Y axis
+ok(
+  !/\.ne-block\s*\{[^}]*translate\(/.test(libraryCss),
+  'SEAM-1d .ne-block positions with translateX()/translateY(), not translate(x, y)',
+)
+
 // ---------- SEAM-2: the default backend is the app's four dependencies ----------
 const defaultImports = [...jsx6Imports(readFileSync(DEFAULT_BACKEND, 'utf8'))].sort()
 ok(
@@ -409,7 +480,7 @@ document.body.appendChild(editor)
 
 ok(editor.querySelector('svg') === editor.svgLayer, 'SEAM-5 tpl() built the svg layer')
 ok(!!editor.querySelector('.ne-zoom-ui'), 'SEAM-5 tpl() inserted the zoom UI')
-ok(editor.querySelector('.ne-sr-status').className === 'ne-sr-status', 'SEAM-5 the aria-live region exists')
+ok(editor.querySelector('.ne-sr-status') === null, 'SEAM-5 tpl() injects no selection-status element')
 
 // The zoom controls are inserted BEFORE the canvas, and the canvas is a full-size absolutely
 // positioned layer — with the default `z-index: auto` it paints on top and swallows the clicks, so

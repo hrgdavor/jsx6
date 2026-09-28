@@ -4,6 +4,25 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
 
 ## Unreleased
 
+- **BREAKING (styling): the library stylesheet is now required.** The editor no
+  longer writes inline styles; it publishes its layout as CSS custom properties
+  (`--ne-x`/`--ne-y` per block, `--ne-zoom`/`--ne-zoom-w`/`--ne-zoom-h` on the
+  canvas, `--ne-menu-x`/`--ne-menu-y`, `--ne-marquee-x/-y/-w/-h`) and
+  `static/nodditor.css` turns them into `transform`/`left`/`top`. An app that
+  does not load that file renders every block at the origin (in the corner),
+  because the variables have nothing to drive. Add
+  `<link rel="stylesheet" href="…/@jsx6/nodditor/static/nodditor.css" />`.
+  `static/NodeEditor.css` still works — it is now a shim that `@import`s
+  `nodditor.css` (library geometry) plus `ne-demo.css` (the demo's look).
+  See `doc/styling-migration.md`.
+- Removed: accessibility markup on LINES (`role="img"`, `tabindex="0"` and the
+  endpoint `aria-label`). A focusable `<g>` is what made browsers — or any host
+  `:focus` rule — draw a gray box around a selected line, duplicating the
+  `.selected` stroke. Lines are no longer focusable; blocks keep `role="group"`,
+  `tabindex` and a stable `aria-label` (`"Switch 1"`).
+- Selection state is no longer written into the block `aria-label` (it was
+  `"Switch 1 selected"`), because an accessible name must not change with
+  selection.
 - The misspelled `NodeEditor.lineinteraciton` property will be renamed to
   `lineinteraction` in v2 (breaking change). The old name is kept for now and
   the correctly spelled `lineinteraction` is available as an alias, so
@@ -14,7 +33,12 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
   Ctrl+Y, Ctrl +/-/0 zoom), undo/redo built on `saveGraph`/`loadGraph`
   (requires `editor.typeMap`), right-click context menu at the cursor for
   blocks and lines, and accessibility (ARIA roles/labels, tabbable blocks/
-  lines, `aria-live` selection status).
+  lines).
+- Removed: the `aria-live` selection-status element the editor used to inject
+  (`"block 1 selected"` / `"selection cleared"`). It was only hidden by the
+  demo stylesheet, so a host that did not load that file got the sentence as
+  text on the canvas, and selection state is already carried by the `selected`
+  attribute and the line stroke. `setAriaStatus()` remains as a no-op.
 - Behavior change: dragging with the LEFT button on empty canvas now draws a
   selection marquee; canvas panning moved to MIDDLE button or Alt+left drag.
 - Zoom: the hard 100% cap is replaced by configurable `zoomMin`/`zoomMax`

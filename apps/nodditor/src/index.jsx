@@ -58,7 +58,7 @@ function toggleSnap() {
 }
 
 let menu = (
-  <div class="fx ne-menu" style="padding: 4px; border: solid 1px gray">
+  <div class="fx ne-menu ne-demo-menu">
     <div class="ne-bt ne-delete" title="Delete selection" onclick={deleteSelection}>
       X
     </div>
@@ -81,7 +81,7 @@ let menu = (
 const editor = (
   <NodeEditor
     // @ts-ignore
-    class="fxs1 fx1 NodeEditor"
+    class="fxs1 fx1 NodeEditor ne-demo-editor"
     menu={() => menu}
     typeMap={typeMap}
     zoomMax={4}
@@ -91,7 +91,6 @@ const editor = (
     }}
     onne-move-done={moveDone}
     onne-remove={saveGraph}
-    style="outline: solid 1px black; contain:strict"
   />
 )
 

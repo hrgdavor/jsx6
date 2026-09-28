@@ -12,17 +12,10 @@
 import esbuild from 'esbuild'
 import { pathToFileURL } from 'url'
 
-const { GlobalRegistrator } = await import('@happy-dom/global-registrator')
-GlobalRegistrator.register({ url: 'http://localhost/' })
+import { setupDom } from './dom-setup.mjs'
 
-globalThis.IntersectionObserver = class {
-  constructor(callback) {
-    this.callback = callback
-  }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+// DOM globals + the editor stylesheet (see dom-setup.mjs).
+await setupDom()
 
 // run from the app root: node smoke/p2.run.mjs
 // NOTE: must mirror the app build's tsconfig (empty) — esbuild would otherwise

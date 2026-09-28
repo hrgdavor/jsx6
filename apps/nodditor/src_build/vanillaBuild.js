@@ -5,7 +5,7 @@ import { esbDef } from './esbDef.js'
 
 /**
  * Build the vanilla demo (`static/vanilla/`) into `build_vanilla/`, and copy the stylesheets it
- * links (the package's own `NodeEditor.css`/`ne-blocks.css` plus the demo's own files).
+ * links (the library's `nodditor.css` + the demo look `ne-blocks.css`) plus the demo's own files.
  *
  * Separate from the app build on purpose: the vanilla demo is the *minimal* host, so it must not
  * share an entry point with the JSX demo page (`src/index.jsx`). If a library change breaks this
@@ -16,8 +16,12 @@ const outDir = 'build_vanilla'
 
 const dev = process.argv.includes('--dev')
 
-/** Stylesheets the demo links from the package's `static/`: everything about blocks and lines. */
-export const VANILLA_CSS = ['NodeEditor.css', 'ne-blocks.css']
+/**
+ * Stylesheets linked from the package's `static/`. `nodditor.css` is the library geometry the editor
+ * needs; `ne-blocks.css` is the demo's block/connector look. (The vanilla demo links them straight
+ * from `static/vanilla/index.html`; the bundle only copies them next to the built html.)
+ */
+export const VANILLA_CSS = ['nodditor.css', 'ne-blocks.css']
 
 export async function buildVanilla(out = outDir, options = {}) {
   await runEsbuild(esbuild, {

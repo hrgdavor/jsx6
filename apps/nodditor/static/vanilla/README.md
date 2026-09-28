@@ -59,7 +59,7 @@ that does not know them will look broken:
 ## Files
 
 - [index.html](index.html) — the entire host markup (toolbar + the editor element)
-- [index.css](index.css) — host chrome only; block/line/menu styling comes from the package's own
-  `NodeEditor.css` and `ne-blocks.css`, which the build copies next to it
+- [index.css](index.css) — host chrome only; block/line/menu geometry comes from the library's
+  `nodditor.css` and the look from `ne-blocks.css`, both copied next to it by the build
 - [demo.js](demo.js) — the graph model (`makeBlock`, `typeMap`, `defaultGraph`) and `startVanillaDemo`
 - [boot.js](boot.js) — the demo page entry (`bootVanillaDemo()`)

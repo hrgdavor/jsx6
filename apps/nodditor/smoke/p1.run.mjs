@@ -16,17 +16,12 @@
 import esbuild from 'esbuild'
 import { pathToFileURL } from 'url'
 
-const { GlobalRegistrator } = await import('@happy-dom/global-registrator')
-GlobalRegistrator.register({ url: 'http://localhost/' })
+import { setupDom } from './dom-setup.mjs'
 
-globalThis.IntersectionObserver = class {
-  constructor(callback) {
-    this.callback = callback
-  }
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-}
+// DOM globals + the editor stylesheet: the structural layout (canvas layer, block transform, zoom
+// controls, marquee, menu) lives in static/NodeEditor.css and is driven by CSS custom properties,
+// so a suite that does not load it would only test the variable defaults.
+await setupDom()
 
 // run from the app root: node smoke/p1.run.mjs
 // NOTE: must mirror the app build's tsconfig (empty) — esbuild would otherwise

@@ -92,7 +92,8 @@ Blocks and connectors:
 Selection:
 
 - `selectBlocks(blockArray)` — sets `selectedBlocks`, shows/positions the menu, updates the `selected`
-  attribute, the `aria-label` of each block and the `aria-live` status text.
+  attribute and the `aria-label` of each block. Selection is state, not part of the accessible name,
+  so the label never changes with selection.
 - `selectConnector(line)`, `selectAll()`, `toggleBlockSelection(block)`, `deselect()`
 - `deleteSelection()` — removes the selected line, otherwise the selected blocks
 - `blocksInRect(x1, y1, x2, y2)` — marquee hit test (touching counts as inside)
@@ -395,10 +396,50 @@ Conclusions from that measurement:
 
 ## Styling
 
-The package ships no CSS: the demo's styles are static assets, not part of the API.
-[static/NodeEditor.css](static/NodeEditor.css) contains the structural bits (block focus ring,
-marquee rectangle, zoom UI, `aria-live` status) and [static/ne-blocks.css](static/ne-blocks.css) the
-demo block/connector look.
+> **Upgrading from a version whose blocks were positioned with inline styles?** Your blocks will all
+> sit in the corner until the stylesheet is loaded — it is a required dependency now. See
+> [doc/styling-migration.md](doc/styling-migration.md) for the one-line fix and the full list of
+> changes.
+
+The package ships no CSS *build*, but it does ship one **required** stylesheet:
+[static/nodditor.css](static/nodditor.css). It contains the geometry the editor needs — the canvas,
+the block transform, the zoom controls, the marquee, the selection menu — and a minimal default look
+for the controls the editor creates. Link it (or paste it, or `@import` it):
+
+```html
+<link rel="stylesheet" href="node_modules/@jsx6/nodditor/static/nodditor.css" />
+```
+
+[static/ne-blocks.css](static/ne-blocks.css) and [static/ne-demo.css](static/ne-demo.css) are the
+**demo's** look only (block chrome, menu chrome, the demo editor box) — an app brings its own.
+`static/NodeEditor.css` is a deprecated two-line shim that `@import`s both, kept so an existing
+`<link>` keeps working.
+
+**The editor writes no inline styles.** Everything dynamic is published as a CSS custom property, and
+the stylesheet turns it into layout. That means a host can see, override or re-anchor any of it from
+CSS, and nothing depends on a declaration the editor injected at runtime:
+
+| element | variables | consumed by |
+| --- | --- | --- |
+| canvas (`.ne-content`) | `--ne-zoom` (unitless), `--ne-zoom-w`, `--ne-zoom-h` | `transform: scale(…)`, size |
+| block (`.ne-block`) | `--ne-x`, `--ne-y` | `transform: translateX() translateY()` |
+| selection menu (`.ne-menu`) | `--ne-menu-x`, `--ne-menu-y` | `left`, `top` |
+| marquee (`.ne-marquee`) | `--ne-marquee-x/-y/-w/-h` | `left`, `top`, `width`, `height` |
+| stacking (override only) | `--ne-content-z`, `--ne-zoom-z`, `--ne-marquee-z` | `z-index` |
+
+All of them have defaults (`0px`, `scale(1)`), so an override is a plain CSS declaration:
+
+```css
+jsx6-nodditor {
+  --ne-zoom-z: 5; /* lift the zoom controls above a host overlay */
+}
+```
+
+**No accessibility markup on lines.** Lines are not focusable and carry no `role`/`tabindex`/
+`aria-label` — a focusable `<g>` is what made browsers (or a host `:focus` rule) draw a gray box
+around a selected line, duplicating the `.selected` stroke. Blocks keep `role="group"`, `tabindex`
+and a stable `aria-label` (`"Switch 1"`) because the keyboard flow (Enter to select, arrows to nudge,
+Delete to remove) depends on them.
 
 ## Testing
 

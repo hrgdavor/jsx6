@@ -197,14 +197,16 @@ ok(moves.length === 1, 'P3-2 the flush is not duplicated when the microtask runs
 // ---------- P3-3: selection of a big graph ----------
 ed.selectAll()
 ok(ed.selectedBlocks.length === N, 'P3-3 selectAll selects every block')
+// Selection is carried by the `selected` attribute, NOT by the accessible name (the aria-label used
+// to grow a " selected" suffix, which made a block announce itself as a different element on click).
 ok(
-  ed.blocks.every(b => / selected/.test(b.el.getAttribute('aria-label'))),
+  ed.blocks.every(b => b.el.getAttribute('selected') === 'selected'),
   'P3-3 every block got the selected state',
 )
 ed.selectBlocks([ed.getBlockData('7')])
 ok(
-  ed.getBlockData('7').el.getAttribute('aria-label').includes('selected') &&
-    !ed.getBlockData('8').el.getAttribute('aria-label').includes('selected'),
+  ed.getBlockData('7').el.getAttribute('selected') === 'selected' &&
+    ed.getBlockData('8').el.getAttribute('selected') === null,
   'P3-3 selection membership is exact',
 )
 
@@ -220,10 +222,14 @@ groupMenu.getBoundingClientRect = () => {
   return { width: 100 * fakeZoom, height: 20 * fakeZoom, x: 0, y: 0 }
 }
 bd1.size = [100, 80]
+// the menu position is published as CSS variables (`--ne-menu-x` / `--ne-menu-y`); nodditor.css
+// turns them into left/top. Nothing is written inline any more.
+const menuX = () => groupMenu.style.getPropertyValue('--ne-menu-x')
+const menuY = () => groupMenu.style.getPropertyValue('--ne-menu-y')
 moveMenu([bd1], groupMenu, 1)
 ok(
-  groupMenu.style.left === bd1.pos[0] + 50 - 50 + 'px' && groupMenu.style.top === bd1.pos[1] - 20 + 'px',
-  `P3-4 menu centered over the block (${groupMenu.style.left},${groupMenu.style.top})`,
+  menuX() === bd1.pos[0] + 50 - 50 + 'px' && menuY() === bd1.pos[1] - 20 + 'px',
+  `P3-4 menu centered over the block (${menuX()},${menuY()})`,
 )
 moveMenu([bd1], groupMenu, 1)
 moveMenu([bd1], groupMenu, 1)
@@ -235,19 +241,16 @@ ok(measures === 2, 'P3-4 a content change invalidates the cached box')
 
 // the cache is stored UNSCALED: zooming in grows the rendered box but must not
 // move the menu (block coordinates are unscaled content coordinates)
-const leftZoomed = groupMenu.style.left
-const topZoomed = groupMenu.style.top
+const leftZoomed = menuX()
+const topZoomed = menuY()
 fakeZoom = 2
 moveMenu([bd1], groupMenu, 2)
 ok(measures === 2, 'P3-4 zooming does not force a re-measure')
-ok(
-  groupMenu.style.left === leftZoomed && groupMenu.style.top === topZoomed,
-  'P3-4 the cached box is zoom-independent',
-)
+ok(menuX() === leftZoomed && menuY() === topZoomed, 'P3-4 the cached box is zoom-independent')
 groupMenu._neMenuSize = null
 moveMenu([bd1], groupMenu, 2)
 ok(
-  measures === 3 && groupMenu.style.left === leftZoomed && groupMenu.style.top === topZoomed,
+  measures === 3 && menuX() === leftZoomed && menuY() === topZoomed,
   'P3-4 a fresh measure at zoom 2 normalizes to the same box',
 )
 
@@ -255,8 +258,9 @@ const bd2 = ed.getBlockData('2')
 bd2.size = [100, 80]
 ed.selectBlocks([bd1, bd2])
 ed.currentMenu = groupMenu
-groupMenu.style.display = 'none'
-groupMenu.style.left = '-999px'
+// hide it and park it somewhere wrong, the way a drag start does (via `setVisible`, not inline style)
+groupMenu.setAttribute('hidden', 'hidden')
+groupMenu.style.setProperty('--ne-menu-x', '-999px')
 ed.setPos('1', [300, 400])
 reset()
 ed.fireMoveDone(ed.getBlockData('1'))
@@ -265,12 +269,18 @@ const groupLeft =
   Math.min(bx.pos[0], bd2.pos[0]) +
   (Math.max(bx.pos[0] + 100, bd2.pos[0] + 100) - Math.min(bx.pos[0], bd2.pos[0])) / 2 -
   50
-ok(groupMenu.style.display === '', 'P3-4 fireMoveDone re-shows the menu')
+ok(!groupMenu.hasAttribute('hidden'), 'P3-4 fireMoveDone re-shows the menu')
 ok(
-  groupMenu.style.left === groupLeft + 'px',
-  `P3-4 fireMoveDone repositions synchronously (left=${groupMenu.style.left}, want ${groupLeft}px)`,
+  menuX() === groupLeft + 'px',
+  `P3-4 fireMoveDone repositions synchronously (left=${menuX()}, want ${groupLeft}px)`,
 )
 ok(measures === 3, 'P3-4 the repositioning reused the cached box (no extra measure)')
+
+// no inline style manipulation: the menu carries only CSS custom properties
+ok(
+  !/\b(left|top|display|position)\s*:/.test(groupMenu.getAttribute('style') || ''),
+  `P3-4 the menu carries no layout/visibility inline style (${groupMenu.getAttribute('style')})`,
+)
 
 // ---------- P3-5: connect-drag hit test is coalesced ----------
 let hits = 0
