@@ -358,6 +358,31 @@ ok(editor.querySelector('svg') === editor.svgLayer, 'SEAM-5 tpl() built the svg 
 ok(!!editor.querySelector('.ne-zoom-ui'), 'SEAM-5 tpl() inserted the zoom UI')
 ok(editor.querySelector('.ne-sr-status').className === 'ne-sr-status', 'SEAM-5 the aria-live region exists')
 
+// The zoom controls are inserted BEFORE the canvas, and the canvas is a full-size absolutely
+// positioned layer — with the default `z-index: auto` it paints on top and swallows the clicks, so
+// the buttons are visible but dead. Assert the stacking, not just the presence of the markup.
+{
+  const zoomUI = editor.querySelector('.ne-zoom-ui')
+  const zOf = el => Number(globalThis.getComputedStyle(el).zIndex)
+  ok(
+    zOf(zoomUI) > zOf(editor.contentArea),
+    `SEAM-5 zoom controls stack above the canvas (${zOf(zoomUI)} > ${zOf(editor.contentArea)})`,
+  )
+  ok(
+    globalThis.getComputedStyle(zoomUI).pointerEvents !== 'none',
+    `SEAM-5 zoom controls accept pointer events (${globalThis.getComputedStyle(zoomUI).pointerEvents})`,
+  )
+  const buttons = [...zoomUI.querySelectorAll('.ne-zoom-bt')]
+  ok(buttons.length === 3, `SEAM-5 zoom out / reset / in buttons are present (${buttons.length})`)
+  const before = editor.zoom
+  buttons[2].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  ok(editor.zoom > before, `SEAM-5 zoom-in button raises the zoom (${before} -> ${editor.zoom})`)
+  buttons[0].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  ok(editor.zoom === before, `SEAM-5 zoom-out button restores it (${editor.zoom})`)
+  buttons[1].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  ok(editor.zoom === 1, `SEAM-5 reset button returns to 100% (${editor.zoom})`)
+}
+
 editor.add(<Switch />, '1', { pos: [30, 40], type: 'Switch' })
 const b1 = editor.getBlockData('1')
 const cons = [...b1.connectorMap.keys()].sort()

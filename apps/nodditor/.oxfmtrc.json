@@ -46,6 +46,7 @@
     "shrinkwrap.json",
     "lib",
     "*.md",
-    "smoke/*.bundle.mjs"
+    "smoke/*.bundle.mjs",
+    "doc/*.bundle.mjs"
   ]
 }

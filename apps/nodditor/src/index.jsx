@@ -1,11 +1,13 @@
 /**
  * The JSX demo page.
  *
- * Note what is NOT here: no jsx6 import and no backend primitive. The page uses the editor's public
- * API and plain DOM only, so it is a consumer of nodditor rather than a second way into jsx6 — and
- * the demo surface can be excluded from the "only one module imports jsx6" rule without losing
- * anything (see test/runtime.test.js).
+ * It is a plain consumer: no jsx6 import of its own, and the only backend primitive it touches is
+ * `insert` (which knows how to mount a component — the editor element — into the document). Every
+ * other call is the editor's public API and plain DOM, which is why the demo surface needs no
+ * `@jsx6/*` import (asserted by test/runtime.test.js).
  */
+import { backend } from './runtime.js'
+
 import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'

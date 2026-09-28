@@ -39,7 +39,8 @@ import { insert } from '@jsx6/jsx6'
 const editor = (
   <NodeEditor
     class="fxs1 fx1"
-    typeMap={{ Switch: () => <Switch /> }}   // block factories for loadGraph / undo / redo
+    typeMap={{ Switch: ({ id }) => <Switch id={id} /> }} // renders a block from its data; used by
+                                                          // loadGraph / undo / redo (see below)
     menu={() => menuElement}                 // selection menu generator (see below)
     zoomMin={0.3}
     zoomMax={4}
@@ -155,20 +156,54 @@ Discovery is automatic (recursively, on every structural DOM change), and the ed
 custom properties `--offset-x` / `--offset-y` shift the line endpoint relative to the connector box
 (the demo styles this in [static/ne-blocks.css](static/ne-blocks.css)).
 
+**When discovery runs — and when to force it.** Connector discovery is memoized per block (it is
+what keeps a resize of a 200-block graph cheap): a block is re-walked when the canvas
+`MutationObserver` reports a structural change to it, when `add()` registers it, and once more when
+the editor is attached to the document (mutations made while it was detached are not observable).
+
+For **data-driven blocks** — the editor is given the diagram, the host renders each block from that
+data, and the connectors only exist afterwards — the safe order is:
+
+1. `loadGraph({ blocks, lines: [] })` or `add()` per block; the editor scans each block as it
+   arrives. Connectors that do not exist yet simply are not discovered.
+2. Render the blocks' connectors into their elements.
+3. Call `addConnectorFromTo(idFull1, idFull2)` per line. If an endpoint is not in the map yet, the
+   editor **forces one rescan of the two blocks involved** before failing, so lines wired in the same
+   task as the rendering still connect.
+
+If you would rather be explicit (or you changed a block's DOM in a way the observer cannot see, e.g.
+while the block was detached), force it yourself:
+
+```js
+const block = editor.add(<MyBlock />, '1', { type: 'MyBlock' })
+myRenderer(block.el) // fills in the connectors synchronously
+editor.recheckConnectors(block, true) // walk that block's subtree now
+editor.addConnectorFromTo('1/o1', '2/i1') // safe: both connectors are in the map
+```
+
+`recheckConnectors(blockData)` without `force` is a no-op for an unchanged block — by design, and
+asserted by the P3 smoke suite (`P3-1 recheck of an unchanged block walks ZERO elements`). Deferring
+instead also works: after a microtask the observer has marked the block dirty and the rescan happens
+on its own. An `unknown connector` error therefore means the endpoint genuinely does not exist in
+that block's DOM (wrong `ncid`, or connectors nested inside a shadow root, which the walk does not
+cross).
+
 ### Registering custom blocks
 
-Two independent things are involved:
+The editor never builds block markup. **Rendering a block from the given data is the host's job**, and
+a factory is how the editor asks for it. Two independent things are involved:
 
-1. **Instantiation** — `add(<MyBlock />, id, { type: 'MyBlock' })` takes the element directly, so no
-   registration is needed for the block you create by hand.
-2. **Rebuilding** — `loadGraph` (and with it undo/redo and the demo's `localStorage` restore) only has
-   `{id, type, pos}`, so every `type` that can appear in a saved graph needs a factory:
+1. **Instantiation** — `add(<MyBlock data={data} />, id, { type: 'MyBlock' })` takes the element
+   directly, so no registration is needed for the block you create by hand.
+2. **Rebuilding** — `loadGraph` (and with it undo/redo and the demo's `localStorage` restore) has the
+   saved entry per block, so every `type` that can appear in a saved graph needs a factory. The
+   factory receives **that entry** — the whole `{id, type, pos, …}` object, including any extra keys
+   your own `saveGraph` produced:
 
    ```jsx
    const typeMap = {
-     Switch: () => <Switch />,
-     Message: () => <Message />,
-     MyBlock: () => <MyBlock />,
+     Switch: ({ id, type, label }) => <Switch id={id} label={label} />, // your markup, your data
+     Message: ({ id }) => <Message id={id} />,
    }
 
    <NodeEditor typeMap={typeMap} />
@@ -176,6 +211,46 @@ Two independent things are involved:
 
    Factories must return a **fresh** element per call — `loadGraph` calls one per block. A missing
    entry throws `` no factory registered for block type "…" ``.
+
+### Data-driven blocks: render → inspect → wire lines
+
+This is the order the library is built for, and the reason `typeMap` factories receive their block's
+data: the connectors live in **your** markup, so the editor can only know them after you have
+rendered it.
+
+```js
+// 1. blocks: the typeMap factories render each block's own markup from its data
+editor.loadGraph({ blocks: diagram.blocks, lines: [] })
+
+// 2. inspect: discover the connectors that markup produced
+const connectors = editor.inspectConnectors() // [{ blockId, id, idFull, dir, el }, …]
+//    editor.getConnectors(blockId) gives one block's Map when you need a narrower look
+
+// 3. lines: now they can be attached
+editor.loadLines(diagram.lines)
+```
+
+* `loadGraph` performs step 2 for you (before it wires any line), so a synchronous factory needs no
+  extra call. Call `inspectConnectors()` yourself when the block markup arrives later — after an
+  `await`, a frame, or a render callback — and then call `loadLines(lines)`.
+* Both inspection calls **force** a scan, so they work no matter what the `MutationObserver` has or
+  has not seen.
+* `addConnectorFromTo(from, to)` remains the strict, one-line API (it throws on a bad endpoint); use
+  it for interactive wiring.
+
+#### Corrupt data must not cost the document
+
+`loadLines` (and therefore `loadGraph`) is **tolerant**: a line whose endpoint does not exist, is a
+duplicate, or connects a connector to itself is reported to the console and skipped, while the
+remaining lines still attach. It returns `{ attached, skipped }`.
+
+```
+NodeEditor: skipping line ["1/does-not-exist","2/in"] — NodeEditor: unknown connector:
+  "1/does-not-exist" does not exist in block "1" (type "Custom"); discovered there: "in", "out"
+```
+
+The message names the block, its type, and the connectors that *were* discovered — usually enough to
+see the data problem (a stale `ncid`, a block whose markup changed) without debugging the editor.
 
 ## Events
 
@@ -212,6 +287,9 @@ their endpoints without extra work.
     editor.changeZoomMouse(e.deltaY > 0 ? -0.1 : 0.1, e)
   }}
   ```
+
+- The bottom-right **zoom controls** ("-", percentage/reset, "+") ship with the editor; their
+  defaults, CSS and stacking are documented in [doc/zoom-controls.md](doc/zoom-controls.md).
 
 ## Replacing the backend
 

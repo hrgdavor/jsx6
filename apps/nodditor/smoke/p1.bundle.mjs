@@ -1,4 +1,4 @@
-// ../../libs/jsx6/src/errorCodes.js
+// libs/jsx6/src/errorCodes.js
 var JSX6E1_NULL_TAG = 1;
 var JSX6E2_UNSUPPORTED_TAG = 2;
 var JSX6E7_REQUIRE_FUNC = 7;
@@ -7,7 +7,7 @@ var JSX6E9_LISTENER_MUST_BE_FUNC = 9;
 var JSX6E10_CONTEXT_REQUIRED = 10;
 var JSX6E15_MULTIPLE_VERSIONS = 15;
 
-// ../../libs/jsx6/src/core.js
+// libs/jsx6/src/core.js
 var TRANS = {};
 var Group = class {
   constructor(obj) {
@@ -58,12 +58,12 @@ var runFuncNoArg = (f) => {
 };
 var errCode = (c) => "JSX6E" + c;
 
-// ../../libs/jsx6/src/toDomNode.js
+// libs/jsx6/src/toDomNode.js
 function toDomNode(n) {
   return !n || isNode(n) ? n : n.el || n;
 }
 
-// ../../libs/jsx6/src/addClass.js
+// libs/jsx6/src/addClass.js
 function addClass(node, add) {
   node = toDomNode(node) || {};
   let cl = node.classList;
@@ -82,7 +82,7 @@ function addClass(node, add) {
   return node;
 }
 
-// ../../libs/jsx6/src/classIf.js
+// libs/jsx6/src/classIf.js
 function classIf(node, cname, bool) {
   node = toDomNode(node);
   const cl = node.classList;
@@ -93,7 +93,7 @@ function classIf(node, cname, bool) {
   }
 }
 
-// ../../libs/signal/src/observe.js
+// libs/signal/src/observe.js
 var subscribeSymbol = Symbol.for("signalSubscribe");
 var triggerSymbol = Symbol.for("signalTrigger");
 var observeNow = ($signal, callback) => observe($signal, callback, true);
@@ -128,13 +128,13 @@ function _observe(obj, callback, trigger = false, passValue = false) {
 }
 var isObservable = (obj) => !!(obj && (obj[subscribeSymbol] || typeof obj.then === "function" || typeof obj.subscribe === "function"));
 
-// ../../libs/signal/src/track.js
+// libs/signal/src/track.js
 var trackState = (
   /** @type {{ collector: Set<Function> | null }} */
   { collector: null }
 );
 
-// ../../libs/signal/src/trace.js
+// libs/signal/src/trace.js
 var signalsTraced = false;
 var traceOptions = {
   /** Capture a creation site per signal. This is the expensive part of an enabled session. */
@@ -216,7 +216,7 @@ var attachTrace = ($signal, info = {}) => {
   return record;
 };
 
-// ../../libs/signal/src/signal.js
+// libs/signal/src/signal.js
 var ValueSymbol = Symbol.for("signalValue");
 var noOp = function() {
 };
@@ -277,7 +277,7 @@ var runFuncNoArg2 = (f) => {
   }
 };
 
-// ../../libs/signal/src/computed.js
+// libs/signal/src/computed.js
 var stateChildrenSymbol = Symbol.for("signalStateChildren");
 var batchDepth = 0;
 var pending = /* @__PURE__ */ new Set();
@@ -495,7 +495,7 @@ function createComputed(getValue2, { eager = false, declaredDeps = [], name, col
   return $computed;
 }
 
-// ../../libs/signal/src/state-write-observer.js
+// libs/signal/src/state-write-observer.js
 var stateWriteObservers = null;
 var hasStateWriteObservers = () => stateWriteObservers !== null;
 var notifyStateWrite = (child, value) => {
@@ -510,7 +510,7 @@ var notifyStateWrite = (child, value) => {
   }
 };
 
-// ../../libs/signal/src/state.js
+// libs/signal/src/state.js
 var mergeValueSymbol2 = Symbol.for("signalMergeValue");
 function $State(initial) {
   let internals = {};
@@ -611,7 +611,7 @@ function mergeValue($state, nv = {}) {
   return $state[mergeValueSymbol2]?.(nv);
 }
 
-// ../../libs/signal/index.js
+// libs/signal/index.js
 var signalValue = ($signal) => typeof $signal === "function" ? $signal() : $signal;
 function createDerivedSignal(signals, getValue2) {
   return createComputed(getValue2, { eager: true, declaredDeps: signals });
@@ -625,7 +625,7 @@ function $F(filter, ...signals) {
 }
 var $Or = ($sa, $sb) => $F((a, b) => a || b, $sa, $sb);
 
-// ../../libs/signal-dom/index.js
+// libs/signal-dom/index.js
 var anim = (func) => func();
 if (typeof document !== "undefined") {
   anim = window.requestAnimationFrame.bind(window);
@@ -647,7 +647,7 @@ function setAttribute(node, attrName, newValue) {
   }
 }
 
-// ../../libs/jsx6/src/mapProp.js
+// libs/jsx6/src/mapProp.js
 function mapProp(obj, callback, asArray) {
   if (obj) {
     if (isArray(obj)) {
@@ -668,7 +668,7 @@ function mapProp(obj, callback, asArray) {
   }
 }
 
-// ../../libs/jsx6/src/setValue.js
+// libs/jsx6/src/setValue.js
 var setValueFilterSymbol = Symbol.for("setValueFilterSymbol");
 function applySetValueFilter(value, source) {
   let filter = source[setValueFilterSymbol];
@@ -699,7 +699,7 @@ function setValue(obj, value) {
   }
 }
 
-// ../../libs/jsx6/src/getValue.js
+// libs/jsx6/src/getValue.js
 var getValueFilterSymbol = Symbol.for("getValueFilterSymbol");
 function applyGetValueFilter(value, source) {
   let filter = source[getValueFilterSymbol];
@@ -724,7 +724,7 @@ function getValue(obj) {
   return applyGetValueFilter(value, obj);
 }
 
-// ../../libs/jsx6/src/dispose.js
+// libs/jsx6/src/dispose.js
 var jsxDisposeSymbol = Symbol.for("jsx6_dispose");
 function addDisposer(node, dispose) {
   if (!node || typeof node !== "object" || typeof dispose !== "function")
@@ -782,7 +782,7 @@ function walkDispose(node) {
   return count;
 }
 
-// ../../libs/jsx6/src/directives.js
+// libs/jsx6/src/directives.js
 var directives = {};
 function addDirective(key, directive) {
   directives[key] = directive;
@@ -825,7 +825,7 @@ addDirective("x-filter", (el, a, filters, self) => {
   }
 });
 
-// ../../libs/jsx6/src/findParent.js
+// libs/jsx6/src/findParent.js
 function findParent(el, filter, stopFilter) {
   let p = toDomNode(el);
   if (typeof filter === "string") {
@@ -841,7 +841,7 @@ function findParent(el, filter, stopFilter) {
   }
 }
 
-// ../../libs/jsx6/src/fireCustom.js
+// libs/jsx6/src/fireCustom.js
 var fireCustom = (el, name, detail) => {
   el.dispatchEvent(new CustomEvent(name, { detail }));
 };
@@ -859,7 +859,7 @@ var listen = (el, name, callback, options) => {
   };
 };
 
-// ../../libs/jsx6/src/forEachProp.js
+// libs/jsx6/src/forEachProp.js
 function forEachProp(obj, callback) {
   if (obj) {
     if (isObj(obj)) {
@@ -872,7 +872,7 @@ function forEachProp(obj, callback) {
   }
 }
 
-// ../../libs/jsx6/src/getAttr.js
+// libs/jsx6/src/getAttr.js
 function getAttr(obj, attr, def = null) {
   if (obj) {
     if (obj.getAttribute) {
@@ -886,7 +886,7 @@ function getAttr(obj, attr, def = null) {
   }
 }
 
-// ../../libs/jsx6/src/remove.js
+// libs/jsx6/src/remove.js
 function remove(child) {
   const _child = toDomNode(child);
   disposeNode(_child);
@@ -900,7 +900,7 @@ function remove(child) {
 }
 var describe = (node) => node ? `${node.nodeName || node.constructor?.name || typeof node}` : String(node);
 
-// ../../libs/jsx6/src/jsx2dom.js
+// libs/jsx6/src/jsx2dom.js
 var markerSymbol = Symbol.for("jsx2dom_marker");
 var scopeSymbol = Symbol.for("jsx2dom_scope");
 if (globalThis[markerSymbol])
@@ -1152,7 +1152,7 @@ var factories = {
   Element: (t2, o) => factories.Html(t2, o)
 };
 
-// ../../libs/jsx6/src/setAttrBoolean.js
+// libs/jsx6/src/setAttrBoolean.js
 function setAttrBoolean(obj, attr, value) {
   if (obj) {
     if (obj.setAttribute) {
@@ -1173,7 +1173,7 @@ function setAttrBoolean(obj, attr, value) {
   }
 }
 
-// ../../libs/jsx6/src/setSelected.js
+// libs/jsx6/src/setSelected.js
 function setSelected(obj, sel) {
   if (!obj)
     return;
@@ -1184,7 +1184,7 @@ function setSelected(obj, sel) {
   }
 }
 
-// ../../libs/jsx6/src/setVisible.js
+// libs/jsx6/src/setVisible.js
 function setVisible(obj, sel) {
   if (!obj)
     return;
@@ -1197,70 +1197,7 @@ function setVisible(obj, sel) {
   }
 }
 
-// src/selectElementText.js
-var selectElementText = (el) => {
-  let range = document.createRange();
-  range.selectNodeContents(el);
-  let sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-};
-
-// ../../libs/jsx-runtime/index.js
-function jsx(tag, { children, ...attr }) {
-  if (tag === Fragment)
-    return children;
-  return toDom(tag, attr, children);
-}
-var Fragment = (attr, children) => children;
-
-// src/EditableTitle.js
-var EditableTitle = (attr = {}) => {
-  addClass(attr, "EditableTitle");
-  const getValue2 = () => el.textContent;
-  const setValue2 = (v) => el.textContent = v;
-  let old;
-  const commit = () => {
-    el.removeAttribute("contenteditable");
-    let value = el.textContent;
-    if (value != old) {
-      fireCustom(el, "change", { value });
-    }
-  };
-  let el = /* @__PURE__ */ jsx(
-    "div",
-    {
-      ...attr,
-      onpointerup: (e) => {
-        if (e.ctrlKey || e.shiftKey || e.altKey)
-          return;
-        old = el.textContent;
-        el.setAttribute("contenteditable", "true");
-        selectElementText(el);
-        el.focus();
-      },
-      onkeydown: (e) => {
-        if (!el.isContentEditable)
-          return;
-        if (e.key === "Enter") {
-          commit();
-          e.preventDefault();
-        } else if (e.key === "Escape") {
-          el.textContent = old;
-          el.removeAttribute("contenteditable");
-          e.preventDefault();
-        }
-      },
-      onblur: (e) => {
-        if (el.isContentEditable)
-          commit();
-      }
-    }
-  );
-  return Object.assign(el, { getValue: getValue2, setValue: setValue2 });
-};
-
-// ../../libs/w/src/JsxW.js
+// libs/w/src/JsxW.js
 var JsxW = class extends HTMLElement {
   static {
     define("jsx6-wc", this);
@@ -1355,10 +1292,196 @@ function define(tag, customElement) {
   }
 }
 
-// src/listenUntil.js
+// libs/dom-observer/src/makeObserverHandler.js
+var makeObserverHandler = (name) => {
+  const listenMap = /* @__PURE__ */ new WeakMap();
+  const listener = (
+    /** @type {ObserverHandler} */
+    (entries) => {
+      entries.forEach((entry) => {
+        listenMap.get(entry.target)?.forEach((fn) => {
+          try {
+            if (fn)
+              fn(entry);
+          } catch (e) {
+            const message = e instanceof Error ? e.message : String(e);
+            console.error(`problem calling ${name} listener:  ${message}`, fn, e);
+          }
+        });
+      });
+    }
+  );
+  listener.observer = /** @type {AttachedObserver} */
+  /** @type {unknown} */
+  void 0;
+  listener.observe = (el, callback, options) => {
+    const observer = listener.observer;
+    let arr = listenMap.get(el);
+    if (!arr) {
+      observer.observe(el, options);
+      listenMap.set(el, arr = []);
+    }
+    arr.push(callback);
+    return () => {
+      let arr2 = listenMap.get(el);
+      if (arr2) {
+        let count = arr2.length;
+        let countLeft = 0;
+        for (let i = 0; i < count; i++) {
+          if (arr2[i] === callback)
+            arr2[i] = void 0;
+          if (arr2[i])
+            countLeft++;
+        }
+        if (!countLeft) {
+          listenMap.delete(el);
+          observer.unobserve(el);
+        }
+      }
+    };
+  };
+  return listener;
+};
+
+// libs/dom-observer/src/observeIntersect.js
+var oberverMapBrowser = /* @__PURE__ */ new Map();
+var observerSymbol = Symbol("observeIntersect");
+function observeIntersect(el, callback, { root, rootMargin, threshold, detail } = {}) {
+  if (!threshold && detail && typeof detail === "number") {
+    threshold = [0];
+    for (let i = detail; i < 1; i += detail) {
+      threshold.push(i);
+    }
+    threshold.push(1);
+  }
+  const key = JSON.stringify({ rootMargin, threshold });
+  let observerMap;
+  if (root) {
+    observerMap = root[observerSymbol] = root[observerSymbol] || /* @__PURE__ */ new Map();
+  } else {
+    observerMap = oberverMapBrowser;
+  }
+  let handler = observerMap.get(key);
+  if (!handler) {
+    handler = makeObserverHandler("IntersectionObserver");
+    const observer = new IntersectionObserver(handler, { root, rootMargin, threshold });
+    handler.observer = observer;
+    observerMap.set(key, handler);
+  }
+  return handler.observe(el, callback);
+}
+
+// libs/dom-observer/src/observeShowHide.js
+var visibleThreshold = [0, 1e-4];
+function observeShowHide(el, callback, { root, rootMargin, threshold = visibleThreshold } = {}) {
+  return observeIntersect(el, callback, { root, rootMargin, threshold });
+}
+
+// apps/nodditor/src/runtime-default.js
+var defaultRuntime = {
+  addClass,
+  classIf,
+  findParent,
+  fireCustom,
+  getAttr,
+  hSvg,
+  insert,
+  isNode,
+  listen,
+  listenCustom,
+  remove,
+  runFuncNoArg,
+  setAttribute,
+  setSelected,
+  setVisible,
+  toDomNode,
+  $Or,
+  observeNow,
+  JsxW,
+  define,
+  observeShowHide
+};
+
+// apps/nodditor/src/runtime.js
+var replacement = null;
+var resolved = null;
+var backend = {
+  get current() {
+    if (!replacement)
+      return defaultRuntime;
+    if (!resolved)
+      resolved = { ...defaultRuntime, ...replacement };
+    return resolved;
+  }
+};
+
+// apps/nodditor/src/selectElementText.js
+var selectElementText = (el) => {
+  let range = document.createRange();
+  range.selectNodeContents(el);
+  let sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+};
+
+// libs/jsx-runtime/index.js
+function jsx(tag, { children, ...attr }) {
+  if (tag === Fragment)
+    return children;
+  return toDom(tag, attr, children);
+}
+var Fragment = (attr, children) => children;
+
+// apps/nodditor/src/EditableTitle.js
+var EditableTitle = (attr = {}) => {
+  backend.current.addClass(attr, "EditableTitle");
+  const getValue2 = () => el.textContent;
+  const setValue2 = (v) => el.textContent = v;
+  let old;
+  const commit = () => {
+    el.removeAttribute("contenteditable");
+    let value = el.textContent;
+    if (value != old) {
+      backend.current.fireCustom(el, "change", { value });
+    }
+  };
+  let el = /* @__PURE__ */ jsx(
+    "div",
+    {
+      ...attr,
+      onpointerup: (e) => {
+        if (e.ctrlKey || e.shiftKey || e.altKey)
+          return;
+        old = el.textContent;
+        el.setAttribute("contenteditable", "true");
+        selectElementText(el);
+        el.focus();
+      },
+      onkeydown: (e) => {
+        if (!el.isContentEditable)
+          return;
+        if (e.key === "Enter") {
+          commit();
+          e.preventDefault();
+        } else if (e.key === "Escape") {
+          el.textContent = old;
+          el.removeAttribute("contenteditable");
+          e.preventDefault();
+        }
+      },
+      onblur: (e) => {
+        if (el.isContentEditable)
+          commit();
+      }
+    }
+  );
+  return Object.assign(el, { getValue: getValue2, setValue: setValue2 });
+};
+
+// apps/nodditor/src/listenUntil.js
 var map = /* @__PURE__ */ new WeakMap();
 function listenUntil(ref, el, name, cb, options) {
-  return addFinalizer(ref, listen(el, name, cb, options));
+  return addFinalizer(ref, backend.current.listen(el, name, cb, options));
 }
 function addFinalizer(ref, fn) {
   let arr = map.get(ref);
@@ -1368,13 +1491,13 @@ function addFinalizer(ref, fn) {
   return fn;
 }
 function finalize(ref) {
-  map.get(ref)?.forEach(runFuncNoArg);
+  map.get(ref)?.forEach(backend.current.runFuncNoArg);
   map.delete(ref);
-  if (isNode(ref?.el))
+  if (backend.current.isNode(ref?.el))
     finalize(ref.el);
 }
 
-// src/makeLineConnector.js
+// apps/nodditor/src/makeLineConnector.js
 var { min, sqrt } = Math;
 var makeLineConnector = (strength, p1, box1, box1pos, dir1, p2, box2, box2pos, dir2) => {
   let [left1, top1] = p1;
@@ -1383,18 +1506,23 @@ var makeLineConnector = (strength, p1, box1, box1pos, dir1, p2, box2, box2pos, d
   return `M${left1} ${top1} C${left1 + strength} ${top1} ${left2 - strength} ${top2} ${left2} ${top2}`;
 };
 
-// src/svgUtil.js
-var makeLine = (strength) => hSvg("path", {
+// apps/nodditor/src/svgUtil.js
+var makeLine = (strength) => backend.current.hSvg("path", {
   strength,
   style: `vector-effect:non-scaling-stroke;pointer-events:auto;cursor:pointer`,
   fill: "none"
 });
 
-// src/ConnectLine.js
+// apps/nodditor/src/ConnectLine.js
 var ConnectLine = class {
   constructor({ strength = 60 } = {}) {
     this.strength = strength;
-    this.el = hSvg("g", {}, this.line1 = makeLine(strength), this.line2 = makeLine(strength));
+    this.el = backend.current.hSvg(
+      "g",
+      {},
+      this.line1 = makeLine(strength),
+      this.line2 = makeLine(strength)
+    );
     this.el.setAttribute("role", "img");
     this.el.setAttribute("tabindex", "0");
     this.updateAria();
@@ -1419,8 +1547,8 @@ var ConnectLine = class {
     this.setPoint(this.p2, con, skipUpdate);
   }
   finalize() {
-    this.p1.listen?.forEach(runFuncNoArg);
-    this.p2.listen?.forEach(runFuncNoArg);
+    this.p1.listen?.forEach(backend.current.runFuncNoArg);
+    this.p2.listen?.forEach(backend.current.runFuncNoArg);
   }
   /**
    * @param {LinePoint} p
@@ -1431,19 +1559,19 @@ var ConnectLine = class {
     let old = p.con;
     p.con = con;
     if (old)
-      p.listen?.forEach(runFuncNoArg);
+      p.listen?.forEach(backend.current.runFuncNoArg);
     this.updateAria();
     if (!con)
       return;
     this.setPosAligned(p, con, skipUpdate);
     let source = con.root?.editor || con.editor;
-    p.listen[0] = source ? listenCustom(source, "ne-move", (detail) => {
+    p.listen[0] = source ? backend.current.listenCustom(source, "ne-move", (detail) => {
       if (detail.stamp === con.movedStamp)
         this.setPosAligned(p, con);
-    }) : listenCustom(con.el, "ne-move", () => {
+    }) : backend.current.listenCustom(con.el, "ne-move", () => {
       this.setPosAligned(p, con);
     });
-    p.listen[1] = listenCustom(con.el, "ne-remove", (_detail) => {
+    p.listen[1] = backend.current.listenCustom(con.el, "ne-remove", (_detail) => {
       this.setPoint(p, null);
     });
     if (!skipUpdate)
@@ -1520,11 +1648,11 @@ var ConnectLine = class {
    */
   setSelected(sel) {
     this.selected = sel;
-    classIf(this.el, "selected", sel);
+    backend.current.classIf(this.el, "selected", sel);
   }
 };
 
-// src/LineInteraction.js
+// apps/nodditor/src/LineInteraction.js
 var LineInteraction = class {
   /** @type {NodeEditor} */
   editor;
@@ -1540,7 +1668,7 @@ var LineInteraction = class {
   newConnector(con) {
     const markTarget = (con2, mark) => {
       if (con2)
-        classIf(con2.el, "target", mark);
+        backend.current.classIf(con2.el, "target", mark);
     };
     let isDown = false;
     let isMoving = false;
@@ -1679,92 +1807,7 @@ var LineInteraction = class {
   }
 };
 
-// ../../libs/dom-observer/src/makeObserverHandler.js
-var makeObserverHandler = (name) => {
-  const listenMap = /* @__PURE__ */ new WeakMap();
-  const listener = (
-    /** @type {ObserverHandler} */
-    (entries) => {
-      entries.forEach((entry) => {
-        listenMap.get(entry.target)?.forEach((fn) => {
-          try {
-            if (fn)
-              fn(entry);
-          } catch (e) {
-            const message = e instanceof Error ? e.message : String(e);
-            console.error(`problem calling ${name} listener:  ${message}`, fn, e);
-          }
-        });
-      });
-    }
-  );
-  listener.observer = /** @type {AttachedObserver} */
-  /** @type {unknown} */
-  void 0;
-  listener.observe = (el, callback, options) => {
-    const observer = listener.observer;
-    let arr = listenMap.get(el);
-    if (!arr) {
-      observer.observe(el, options);
-      listenMap.set(el, arr = []);
-    }
-    arr.push(callback);
-    return () => {
-      let arr2 = listenMap.get(el);
-      if (arr2) {
-        let count = arr2.length;
-        let countLeft = 0;
-        for (let i = 0; i < count; i++) {
-          if (arr2[i] === callback)
-            arr2[i] = void 0;
-          if (arr2[i])
-            countLeft++;
-        }
-        if (!countLeft) {
-          listenMap.delete(el);
-          observer.unobserve(el);
-        }
-      }
-    };
-  };
-  return listener;
-};
-
-// ../../libs/dom-observer/src/observeIntersect.js
-var oberverMapBrowser = /* @__PURE__ */ new Map();
-var observerSymbol = Symbol("observeIntersect");
-function observeIntersect(el, callback, { root, rootMargin, threshold, detail } = {}) {
-  if (!threshold && detail && typeof detail === "number") {
-    threshold = [0];
-    for (let i = detail; i < 1; i += detail) {
-      threshold.push(i);
-    }
-    threshold.push(1);
-  }
-  const key = JSON.stringify({ rootMargin, threshold });
-  let observerMap;
-  if (root) {
-    observerMap = root[observerSymbol] = root[observerSymbol] || /* @__PURE__ */ new Map();
-  } else {
-    observerMap = oberverMapBrowser;
-  }
-  let handler = observerMap.get(key);
-  if (!handler) {
-    handler = makeObserverHandler("IntersectionObserver");
-    const observer = new IntersectionObserver(handler, { root, rootMargin, threshold });
-    handler.observer = observer;
-    observerMap.set(key, handler);
-  }
-  return handler.observe(el, callback);
-}
-
-// ../../libs/dom-observer/src/observeShowHide.js
-var visibleThreshold = [0, 1e-4];
-function observeShowHide(el, callback, { root, rootMargin, threshold = visibleThreshold } = {}) {
-  return observeIntersect(el, callback, { root, rootMargin, threshold });
-}
-
-// src/calcPos.js
+// apps/nodditor/src/calcPos.js
 var calcPos = (el, root) => {
   let top = 0;
   let left = 0;
@@ -1776,11 +1819,11 @@ var calcPos = (el, root) => {
   return [left, top];
 };
 
-// src/pairUtils.js
+// apps/nodditor/src/pairUtils.js
 var pairChanged = (a, b) => a[0] != b[0] || a[1] != b[1];
 var pairSum = (a, b) => [a[0] + b[0], a[1] + b[1]];
 
-// src/connectorUtil.js
+// apps/nodditor/src/connectorUtil.js
 function findConnector(blockData, force) {
   let { connectorMap, el: rootNode } = blockData;
   if (!force && !blockData.structDirty && blockData.resizeSet) {
@@ -1792,7 +1835,7 @@ function findConnector(blockData, force) {
   blockData.structDirty = false;
   return { resizeSet, cached: false };
   function visit(el) {
-    let ncId = getAttr(el, "ncid");
+    let ncId = backend.current.getAttr(el, "ncid");
     if (ncId) {
       let connectData = connectorMap.get(ncId);
       if (!connectData) {
@@ -1801,7 +1844,7 @@ function findConnector(blockData, force) {
         let relPos = calcPos(el, blockData.el);
         connectData = {
           id: ncId,
-          dir: getAttr(el, "ne-connect"),
+          dir: backend.current.getAttr(el, "ne-connect"),
           changed: 1,
           pos: [0, 0],
           idFull: blockData.id + "/" + ncId,
@@ -1813,7 +1856,7 @@ function findConnector(blockData, force) {
           editor: this,
           size: [el.offsetWidth, el.offsetHeight]
         };
-        el.removeObserve = observeShowHide(
+        el.removeObserve = backend.current.observeShowHide(
           el,
           (entry) => {
             if (!entry.intersectionRatio)
@@ -1826,7 +1869,7 @@ function findConnector(blockData, force) {
         updatePos(connectData);
         el.ncId = ncId;
         el.ncData = connectData;
-        setAttribute(el, "ne-nodrag", true);
+        backend.current.setAttribute(el, "ne-nodrag", true);
       }
     }
     let ch = el.firstElementChild;
@@ -1851,7 +1894,7 @@ function updatePos(connectData) {
   connectData.pos = pairSum(connectData.relPos, connectData.root.pos);
 }
 
-// src/getBlocksMinXY.js
+// apps/nodditor/src/getBlocksMinXY.js
 function getBlocksMinXY(blocks) {
   if (!blocks?.length)
     return [0, 0];
@@ -1865,7 +1908,7 @@ function getBlocksMinXY(blocks) {
   return [minx, miny];
 }
 
-// src/getBlocksBounds.js
+// apps/nodditor/src/getBlocksBounds.js
 function getBlocksBounds(blocks) {
   if (!blocks?.length)
     return { x: 0, y: 0, maxx: 0, maxy: 0, w: 0, h: 0 };
@@ -1884,7 +1927,7 @@ function getBlocksBounds(blocks) {
   return { x: minx, y: miny, maxx, maxy, w: maxx - minx, h: maxy - miny };
 }
 
-// src/moveMenu.js
+// apps/nodditor/src/moveMenu.js
 var menuSize = (menu, zoom) => {
   let size = menu._neMenuSize;
   if (size)
@@ -1912,7 +1955,7 @@ var moveMenu = (blocks, menu, zoom = 1) => {
   style.top = b.y - h2 + "px";
 };
 
-// src/updateObserver.js
+// apps/nodditor/src/updateObserver.js
 function updateObserver(newSet, oldSet, observer) {
   let removed = /* @__PURE__ */ new Set();
   newSet.forEach((el) => {
@@ -1929,11 +1972,11 @@ function updateObserver(newSet, oldSet, observer) {
   return removed;
 }
 
-// src/NodeEditor.jsx
+// apps/nodditor/src/NodeEditor.jsx
 var microtask = (fn) => typeof queueMicrotask === "function" ? queueMicrotask(fn) : Promise.resolve().then(fn);
-var NodeEditor = class extends JsxW {
+var NodeEditor = class extends backend.current.JsxW {
   static {
-    define("jsx6-nodditor", this);
+    backend.current.define("jsx6-nodditor", this);
   }
   /** @type {Array<BlockData>} */
   blocks = [];
@@ -1967,23 +2010,31 @@ var NodeEditor = class extends JsxW {
     this.lineinteraciton = v;
   }
   /**
+   * Register a block element with the editor.
    *
-   * @param {any} block
-   * @param {string} id
+   * The editor never builds block markup — that is the host's, and it is the reason `typeMap`
+   * factories exist. This method takes whatever element the host produced and makes it a block;
+   * connectors are then discovered from that markup (`ncid` / `ne-connect`), which is the step that
+   * has to happen before any line can refer to them.
+   *
+   * @param {any} block the block element (or a component with `.el`); any markup the host likes
+   * @param {string} id block id; also written to the element as `nid`
    * @param {Object} [param2]
+   * @param {Array<number>} [param2.pos] initial content position
+   * @param {string} [param2.type] type used by `saveGraph`/`loadGraph`
    * @returns {BlockData}
    */
   add(block, id, { pos = [0, 0], type = "" } = {}) {
     if (this.blockMap.has(id))
       throw new Error(`NodeEditor: block id "${id}" is already in use`);
-    setAttribute(block, "nid", id);
+    backend.current.setAttribute(block, "nid", id);
     let rootNode = (
       /** @type {HTMLBlock}*/
-      toDomNode(block)
+      backend.current.toDomNode(block)
     );
     block.setNodeEditor?.(this);
     rootNode.nodeEditor = this;
-    insert(this.contentArea, rootNode);
+    backend.current.insert(this.contentArea, rootNode);
     rootNode.style.top = "0";
     rootNode.style.left = "0";
     let blockData = rootNode.neBlock = {
@@ -2037,21 +2088,55 @@ var NodeEditor = class extends JsxW {
     this._structMO.observe(this.contentArea, { childList: true, subtree: true });
   }
   /**
-   * Make the connector set of a block match its DOM again. Cheap by design
-   * (P3-1): `findConnector` re-walks the subtree only when the block changed
-   * structurally, so this is a no-op for plain resize/move notifications.
+   * Make the connector set of a block match its DOM again.
+   *
+   * Memoised by design (P3-1): the subtree is re-walked only when the block is marked structurally
+   * dirty — by the canvas `MutationObserver`, or by [add](#add) which starts a block dirty. Pass
+   * `force = true` when the caller *knows* the DOM changed outside what the observer can see:
+   * a block whose connectors were added while it was **detached** (its mutations were never
+   * observed), or a read in the same task as the DOM change, before the observer's microtask ran.
+   *
    * @param {BlockData} blockData
+   * @param {boolean} [force] walk the subtree even when the block is not marked dirty
    */
-  recheckConnectors(blockData) {
+  recheckConnectors(blockData, force) {
+    if (force)
+      blockData.structDirty = true;
     let { resizeSet, cached } = findConnector(blockData);
     if (cached)
       return;
+    resizeSet = /* @__PURE__ */ new Set([blockData.el]);
+    blockData.connectorMap.forEach((con) => this.addObservedChain(resizeSet, con.el, blockData.el));
     updateObserver(resizeSet, blockData.resizeSet, this.observer);
     blockData.resizeSet = resizeSet;
   }
   /**
+   * Add `el` and every ancestor up to (and including) `root` to `set`.
+   *
+   * Mirrors `connectorUtil.addResize`: the elements between a connector and its block are the ones
+   * whose size can move or resize the endpoint, so they are what the block's `ResizeObserver` has to
+   * watch.
+   *
+   * @param {Set<Element>} set
+   * @param {HTMLElement} el
+   * @param {HTMLElement} root
+   */
+  addObservedChain(set, el, root) {
+    let node = el;
+    while (node) {
+      set.add(node);
+      if (node === root)
+        return;
+      node = node.parentElement;
+    }
+  }
+  /**
    * Re-discover a block's connectors and refresh their positions, reporting the
    * moved ones through the batched `ne-move` queue (P3-2).
+   *
+   * Memoised: this is what the `ResizeObserver` handler calls for every block
+   * in a resize batch, so it must not walk a block whose DOM did not change.
+   *
    * @param {BlockData} blockData
    * @param {number} [changeTs] `ResizeObserver` batch stamp to compare
    *   `ConnectorData.changed` against (its connector box changed in this batch)
@@ -2135,7 +2220,7 @@ var NodeEditor = class extends JsxW {
   getBlockData(id) {
     if (typeof id === "string")
       return this.blockMap.get(id);
-    if (isNode(id))
+    if (backend.current.isNode(id))
       return this.nodeMap.get(id);
     return id;
   }
@@ -2178,7 +2263,7 @@ var NodeEditor = class extends JsxW {
       if (this.selectedLine == line)
         this.selectedLine = null;
       this.lines.splice(idx, 1);
-      remove(line.el);
+      backend.current.remove(line.el);
       finalize(line);
       this.historyRecord("remove");
     }
@@ -2199,7 +2284,9 @@ var NodeEditor = class extends JsxW {
     blockData.connectorMap.delete(con.id);
     blockData.resizeSet.delete(con.el);
     this.observer?.unobserve?.(con.el);
-    let lines = this.lines.filter((line) => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull);
+    let lines = this.lines.filter(
+      (line) => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull
+    );
     this.fireCustom(con.el, "ne-remove", { ...con });
     lines.forEach((l) => this.removeLine(l));
     con.el.removeObserve?.();
@@ -2213,7 +2300,7 @@ var NodeEditor = class extends JsxW {
       this.nodeMap.delete(block.el);
       block.structDirty = false;
       block.connectorMap.forEach((con) => this.removeConnector(con));
-      remove(block.el);
+      backend.current.remove(block.el);
       finalize(block);
       this.historyRecord("remove");
     }
@@ -2250,6 +2337,7 @@ var NodeEditor = class extends JsxW {
     });
     blockData.el.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`;
   }
+  // #region zoom-defaults
   /**
    * @param {Object} [param]
    * @param {Function} [param.menu] menu generator, receives the selected blocks (see `menuGenerator`)
@@ -2330,26 +2418,33 @@ var NodeEditor = class extends JsxW {
     };
     this.observer = new ResizeObserver(handler);
     this.observer.observe(this);
-    this.svgLayer = hSvg("svg", {
+    this.svgLayer = backend.current.hSvg("svg", {
       style: "position:absolute;pointer-events: none; width: 100%; height: 100%;"
     });
-    this.contentArea = /* @__PURE__ */ jsx("div", { style: "position:absolute;top:0;left:0;width:100%; height:100%; transform-origin: top left;", children: this.svgLayer });
+    this.contentArea = /* @__PURE__ */ jsx("div", { style: "position:absolute;top:0;left:0;width:100%; height:100%; transform-origin: top left; z-index:0;", children: this.svgLayer });
     this._zoom = 1;
     this.ensureStructObserver();
-    this.zoomUI = /* @__PURE__ */ jsx("div", { class: "ne-zoom-ui", children: [
-      /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt", title: "Zoom out", onclick: () => this.zoomTo(this.zoom / 1.25), children: "\u2212" }),
-      /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt ne-zoom-val", title: "Reset zoom to 100%", onclick: () => this.zoomTo(1) }),
-      /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt", title: "Zoom in", onclick: () => this.zoomTo(this.zoom * 1.25), children: "+" })
-    ] });
+    this.zoomUI = /* @__PURE__ */ jsx(
+      "div",
+      {
+        class: "ne-zoom-ui",
+        style: "position:absolute;right:6px;bottom:6px;z-index:var(--ne-zoom-z,1);pointer-events:auto",
+        children: [
+          /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt", title: "Zoom out", onclick: () => this.zoomTo(this.zoom / 1.25), children: "\u2212" }),
+          /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt ne-zoom-val", title: "Reset zoom to 100%", onclick: () => this.zoomTo(1) }),
+          /* @__PURE__ */ jsx("div", { class: "ne-zoom-bt", title: "Zoom in", onclick: () => this.zoomTo(this.zoom * 1.25), children: "+" })
+        ]
+      }
+    );
     this.zoomLabel = this.zoomUI.children[1];
     this.statusEl = /* @__PURE__ */ jsx("div", { class: "ne-sr-status", role: "status", "aria-live": "polite" });
-    insert(this, this.zoomUI);
-    insert(this, this.statusEl);
+    backend.current.insert(this, this.zoomUI);
+    backend.current.insert(this, this.statusEl);
     this.updateZoomUI();
     let el = this.contentArea;
     const { $s } = this;
-    this.$focusOrSelecting = $Or($s.isDown, $s.hasFocus);
-    observeNow(this.$focusOrSelecting, (f) => classIf(el, "focused", f));
+    this.$focusOrSelecting = backend.current.$Or($s.isDown, $s.hasFocus);
+    backend.current.observeNow(this.$focusOrSelecting, (f) => backend.current.classIf(el, "focused", f));
     let lx = 0;
     let ly = 0;
     let domNode;
@@ -2426,7 +2521,7 @@ var NodeEditor = class extends JsxW {
       let hasDrag;
       let hasBlock;
       let insideMenu;
-      domNode = findParent(e.target, (p) => {
+      domNode = backend.current.findParent(e.target, (p) => {
         if (!p.hasAttribute)
           return false;
         if (p.hasAttribute("ne-drag"))
@@ -2444,7 +2539,7 @@ var NodeEditor = class extends JsxW {
         return;
       downButton = e.button || 0;
       if (domNode) {
-        nid = getAttr(domNode, "nid");
+        nid = backend.current.getAttr(domNode, "nid");
         blockData = this.getBlockData(nid);
       } else {
         blockData = void 0;
@@ -2511,7 +2606,7 @@ var NodeEditor = class extends JsxW {
         }
       }
       if (marqueeEl) {
-        remove(marqueeEl);
+        backend.current.remove(marqueeEl);
         marqueeEl = null;
       }
       blockData = domNode = nid = void 0;
@@ -2542,7 +2637,7 @@ var NodeEditor = class extends JsxW {
             marqueeStart = this.contentPoint(lx, ly);
             marqueeCur = [...marqueeStart];
             marqueeEl = /* @__PURE__ */ jsx("div", { class: "ne-marquee" });
-            insert(this.contentArea, marqueeEl);
+            backend.current.insert(this.contentArea, marqueeEl);
             updateMarquee();
           }
         }
@@ -2588,11 +2683,11 @@ var NodeEditor = class extends JsxW {
     });
     el.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      if (this.currentMenu && findParent(e.target, (p) => p == this.currentMenu))
+      if (this.currentMenu && backend.current.findParent(e.target, (p) => p == this.currentMenu))
         return;
-      let node = findParent(e.target, (p) => p.hasAttribute && p.hasAttribute("nid"));
+      let node = backend.current.findParent(e.target, (p) => p.hasAttribute && p.hasAttribute("nid"));
       if (node) {
-        let bd = this.getBlockData(getAttr(node, "nid"));
+        let bd = this.getBlockData(backend.current.getAttr(node, "nid"));
         if (!bd)
           return;
         if (!(this.selectedBlocks || []).includes(bd))
@@ -2600,19 +2695,19 @@ var NodeEditor = class extends JsxW {
         this.placeMenuAtCursor(e);
         return;
       }
-      let g = findParent(e.target, (p) => p.tagName == "g");
+      let g = backend.current.findParent(e.target, (p) => p.tagName == "g");
       let line = g && this.lines.find((l) => l.el == g);
       if (line) {
         this.selectConnector(line);
         let menu2 = this.menuGenerator?.([]);
         if (menu2) {
           if (this.currentMenu && this.currentMenu != menu2)
-            setVisible(this.currentMenu, false);
-          setVisible(menu2, true);
+            backend.current.setVisible(this.currentMenu, false);
+          backend.current.setVisible(menu2, true);
           menu2.style.display = "";
           if (!menu2.parentNode) {
             menu2.style.position = "absolute";
-            insert(this.contentArea, menu2);
+            backend.current.insert(this.contentArea, menu2);
           }
           this.currentMenu = menu2;
           this.placeMenuAtCursor(e);
@@ -2669,7 +2764,7 @@ var NodeEditor = class extends JsxW {
           e.preventDefault();
           return;
         }
-        let g = findParent(e.target, (p) => p.tagName == "g");
+        let g = backend.current.findParent(e.target, (p) => p.tagName == "g");
         let line = g && this.lines.find((l) => l.el == g);
         if (line) {
           this.selectConnector(line);
@@ -2692,11 +2787,11 @@ var NodeEditor = class extends JsxW {
         }
       }
     };
-    listen(this, "keydown", keypress);
+    backend.current.listen(this, "keydown", keypress);
     this.onfocus = (e) => $s.hasFocus = true;
     this.onblur = (e) => $s.hasFocus = false;
-    listen(this, "focusin", () => $s.hasFocus = true);
-    listen(this, "focusout", (e) => {
+    backend.current.listen(this, "focusin", () => $s.hasFocus = true);
+    backend.current.listen(this, "focusout", (e) => {
       if (!this.contains(e.relatedTarget))
         $s.hasFocus = false;
     });
@@ -2772,8 +2867,8 @@ var NodeEditor = class extends JsxW {
     if (this.zoomLabel)
       this.zoomLabel.textContent = Math.round(this._zoom * 100) + "%";
     if (this.zoomUI) {
-      classIf(this.zoomUI, "at-min", this._zoom <= this.zoomMin);
-      classIf(this.zoomUI, "at-max", this._zoom >= this.zoomMax);
+      backend.current.classIf(this.zoomUI, "at-min", this._zoom <= this.zoomMin);
+      backend.current.classIf(this.zoomUI, "at-max", this._zoom >= this.zoomMax);
     }
   }
   clear() {
@@ -2821,8 +2916,12 @@ var NodeEditor = class extends JsxW {
   addConnectorFromTo(c1, c2) {
     let con1 = this.getConnector(c1);
     let con2 = this.getConnector(c2);
+    if (!con1)
+      con1 = this.getConnectorAfterRescan(c1);
+    if (!con2)
+      con2 = this.getConnectorAfterRescan(c2);
     if (!con1 || !con2)
-      throw new Error(`NodeEditor: unknown connector: "${con1?.idFull ?? c1}" / "${con2?.idFull ?? c2}"`);
+      throw new Error(`NodeEditor: ${this.describeMissingConnector(c1, con1, c2, con2)}`);
     if (con1 == con2)
       throw new Error(`NodeEditor: cannot connect a connector to itself: "${con1.idFull}"`);
     if (this.lineExists(con1.idFull, con2.idFull))
@@ -2835,13 +2934,69 @@ var NodeEditor = class extends JsxW {
     return con;
   }
   /**
+   * Look a connector up again after forcing a rescan of the block it belongs to.
+   *
+   * Used only when a plain lookup failed, so a host that renders connectors asynchronously (or in
+   * the same task as the lookup) still gets its lines. The id is `"blockId/ncid"`; an array or an
+   * object form has no block name to rescan and is left to the caller's error.
+   *
+   * @param {string|Array<string>} ref
+   * @returns {ConnectorData | undefined}
+   */
+  getConnectorAfterRescan(ref) {
+    if (typeof ref !== "string" || !ref.includes("/"))
+      return void 0;
+    let blockId = ref.slice(0, ref.indexOf("/"));
+    let blockData = this.blockMap.get(blockId);
+    if (!blockData)
+      return void 0;
+    this.recheckConnectors(blockData, true);
+    return this.getConnector(ref);
+  }
+  /**
+   * Build the "connector not found" message.
+   *
+   * A bare `unknown connector: "1/o1"` does not say *why*, and the usual cause is host-side: the
+   * block's markup has not rendered its connectors yet (or it renders them with a different `ncid`).
+   * So the message names the block, lists the connectors that WERE discovered, and says whether the
+   * block exists at all.
+   *
+   * @param {string|Array<string>} c1
+   * @param {ConnectorData|undefined} con1
+   * @param {string|Array<string>} c2
+   * @param {ConnectorData|undefined} con2
+   * @returns {string}
+   */
+  describeMissingConnector(c1, con1, c2, con2) {
+    let parts = [];
+    for (const [ref, con] of [
+      [c1, con1],
+      [c2, con2]
+    ]) {
+      if (con)
+        continue;
+      let name = Array.isArray(ref) ? ref.join("/") : String(ref);
+      let blockId = typeof ref === "string" && ref.includes("/") ? ref.slice(0, ref.indexOf("/")) : null;
+      let blockData = blockId ? this.blockMap.get(blockId) : null;
+      if (blockData) {
+        let known = [...blockData.connectorMap.keys()];
+        parts.push(
+          `"${name}" does not exist in block "${blockData.id}" (type "${blockData.type}"); discovered there: ${known.length ? known.map((k) => `"${k}"`).join(", ") : "none"}`
+        );
+      } else {
+        parts.push(`"${name}" does not exist (no block "${blockId ?? "?"}" registered)`);
+      }
+    }
+    return `unknown connector: ${parts.join("; ")}`;
+  }
+  /**
    * @param {ConnectLine} con
    */
   addConnector(con) {
     listenUntil(con, con.el, "click", (e) => {
       this.selectConnector(con);
     });
-    insert(this.svgLayer, con.el);
+    backend.current.insert(this.svgLayer, con.el);
     this.lines.push(con);
     return con;
   }
@@ -2866,12 +3021,25 @@ var NodeEditor = class extends JsxW {
   }
   /**
    * Rebuild the graph from a saved state (as produced by `saveGraph`),
-   * clearing the editor first. `typeMap` maps a block `type` to a factory
-   * that returns a FRESH block element (e.g. `{ Switch: () => <Switch/> }`)
-   * — the editor does not know block components itself, so every block type
-   * in `state.blocks` must have an entry in `typeMap`. Defaults to the
-   * editor's own `typeMap` (set via `tpl({ typeMap })` or the property).
+   * clearing the editor first.
+   *
+   * `typeMap` maps a block `type` to a factory **that receives the block's own data** and returns a
+   * FRESH block element: `{ Switch: ({ id, type, ...data }) => <Switch id={id} {...data} /> }`. The
+   * editor does not know block components itself, and it never builds block markup — rendering it
+   * from the provided data is the host's job, which is why the descriptor is passed through.
+   * Extra keys on a block entry arrive in the factory untouched (a host that needs custom per-block
+   * data can put it there and read it back in the factory).
+   *
+   * Lines are wired **after** every block has been added, so a factory that renders connectors
+   * synchronously gets them discovered before any line refers to them. A factory that renders
+   * asynchronously must be awaited by the host: load blocks first, then call
+   * [inspectConnectors](#inspectConnectors), then add the lines (see the README).
+   *
+   * **Bad line entries are skipped, not fatal** — see [loadLines](#loadLines): each one is reported
+   * to the console and the remaining lines still attach, so corrupt data cannot blank a document.
+   *
    * The undo/redo baseline is reset afterwards: loading is not an "edit".
+   *
    * @param {GraphState} state
    * @param {Object<string, Function>} [typeMap]
    * @throws {Error} when a block type has no factory in `typeMap`
@@ -2884,15 +3052,78 @@ var NodeEditor = class extends JsxW {
         let make = typeMap2?.[b.type];
         if (typeof make !== "function")
           throw new Error(`NodeEditor: no factory registered for block type "${b.type}" (id "${b.id}")`);
-        this.add(make(), b.id, { pos: [b.pos[0], b.pos[1]], type: b.type });
+        this.add(make(b), b.id, { pos: [b.pos[0], b.pos[1]], type: b.type });
       }
-      for (let [c1, c2] of state2?.lines ?? []) {
-        this.addConnectorFromTo(c1, c2);
-      }
+      this.inspectConnectors();
+      this.loadLines(state2?.lines);
     } finally {
       this._loadingGraph = false;
     }
     this.historyReset();
+  }
+  /**
+   * Wire the lines of a loaded graph, tolerating bad entries.
+   *
+   * One line that cannot be attached (a connector the block markup does not have, a duplicate, a
+   * self-connection) must not cost the whole document: the editor reports it to the console with the
+   * same detail as the strict error and continues with the remaining lines. That matters for
+   * data-driven diagrams, where the block markup comes from the host and stale or corrupt line data
+   * is a normal occurrence.
+   *
+   * `addConnectorFromTo` stays strict on purpose: it is also the interactive path (a host wiring one
+   * line from user input), where failing loudly is the right behaviour.
+   *
+   * @param {Array<[string, string]>} [lines]
+   * @returns {{ attached: number, skipped: number }}
+   */
+  loadLines(lines) {
+    let attached = 0;
+    let skipped = 0;
+    for (let entry of lines ?? []) {
+      let [c1, c2] = Array.isArray(entry) ? entry : [void 0, void 0];
+      try {
+        this.addConnectorFromTo(c1, c2);
+        attached++;
+      } catch (err) {
+        skipped++;
+        console.error(`NodeEditor: skipping line ${JSON.stringify(entry)} \u2014 ${err.message}`);
+      }
+    }
+    return { attached, skipped };
+  }
+  /**
+   * Inspect the rendered blocks and (re)discover their connectors.
+   *
+   * This is the explicit middle step of the data-driven flow: the host renders the block markup from
+   * its data, calls this, and only then wires lines — so the connectors are guaranteed to be in the
+   * map no matter how the markup was produced. Every block is force-scanned, so it is safe to call
+   * after an asynchronous render as well.
+   *
+   * @returns {Array<{ blockId: string, id: string, idFull: string, dir: string, el: HTMLElement }>}
+   *   every connector currently discovered, in block order
+   */
+  inspectConnectors() {
+    let found = [];
+    this.blocks.forEach((blockData) => {
+      this.recheckConnectors(blockData, true);
+      blockData.connectorMap.forEach((con) => {
+        found.push({ blockId: blockData.id, id: con.id, idFull: con.idFull, dir: con.dir, el: con.el });
+      });
+    });
+    return found;
+  }
+  /**
+   * The connectors discovered in one block, as `id -> ConnectorData`.
+   *
+   * Use it to validate host data before wiring lines (`editor.getConnectors(id).has('o1')`), or to
+   * build a connector list for the user.
+   *
+   * @param {string|BlockData} block id or `BlockData`
+   * @returns {Map<string, ConnectorData>}
+   */
+  getConnectors(block) {
+    let blockData = this.getBlockData(block);
+    return blockData ? blockData.connectorMap : /* @__PURE__ */ new Map();
   }
   /**
    * Undo/redo snapshots reuse the P1 `{blocks, lines}` serialization.
@@ -2983,18 +3214,18 @@ var NodeEditor = class extends JsxW {
       this.selectConnector(null);
       menu = this.menuGenerator?.(blocks);
       if (old && old != menu)
-        setVisible(old, false);
+        backend.current.setVisible(old, false);
       if (menu) {
-        setVisible(menu, true);
+        backend.current.setVisible(menu, true);
         if (menu != old) {
           menu.style.position = "absolute";
-          insert(this.contentArea, menu);
+          backend.current.insert(this.contentArea, menu);
         }
         moveMenu(blocks, menu, this._zoom);
       }
     } else {
       if (old)
-        setVisible(old, false);
+        backend.current.setVisible(old, false);
     }
     this.currentMenu = menu;
     let selSet = new Set(blocks);
@@ -3004,13 +3235,13 @@ var NodeEditor = class extends JsxW {
       if (block.setSelected) {
         block.setSelected(sel);
       } else {
-        setSelected(block, sel);
+        backend.current.setSelected(block, sel);
       }
       this.setBlockLabel(p, sel);
     });
     this.lines.forEach((l) => {
-      classIf(l.el, "ne-from-sel-block", blockIdMap[l.p1.con?.root.id]);
-      classIf(l.el, "ne-to-sel-block", blockIdMap[l.p2.con?.root.id]);
+      backend.current.classIf(l.el, "ne-from-sel-block", blockIdMap[l.p1.con?.root.id]);
+      backend.current.classIf(l.el, "ne-to-sel-block", blockIdMap[l.p2.con?.root.id]);
     });
     this.setAriaStatus();
   }
@@ -3186,6 +3417,30 @@ var NodeEditor = class extends JsxW {
     this._histLast = null;
   }
   /**
+   * The editor was attached to the document.
+   *
+   * Forces one connector rescan per block. A block's DOM can legitimately change **while it is
+   * detached** — a component that fills in its connectors during construction, or a host that
+   * builds the whole graph first and attaches the editor afterwards. Those mutations were never
+   * observed (the canvas `MutationObserver` watches `contentArea`, and a disconnected tree reports
+   * nothing), so the memoised scan would keep the block's connector set empty forever and every
+   * line referring to it would fail with "unknown connector" — for a graph loaded before mounting.
+   *
+   * One walk per block, once, on attach; the memoisation is untouched after that.
+   */
+  connectedCallback() {
+    super.connectedCallback?.();
+    if (this.destroyed || !this.blocks?.length)
+      return;
+    this.blocks.forEach((blockData) => {
+      try {
+        this.recheckConnectors(blockData, true);
+      } catch (err) {
+        console.error("NodeEditor: connector rescan on connect failed", err);
+      }
+    });
+  }
+  /**
    * The custom element was removed from the DOM — release everything it
    * holds (the canvas ResizeObserver is never disconnected otherwise).
    */
@@ -3200,9 +3455,9 @@ var NodeEditor = class extends JsxW {
    * @param {*} [detail]
    */
   fireCustom(el, name, detail = {}) {
-    fireCustom(el, name, detail);
+    backend.current.fireCustom(el, name, detail);
     if (el != this)
-      fireCustom(this, name, detail);
+      backend.current.fireCustom(this, name, detail);
   }
   /**
    * Signal the end of a move/edit: fires `ne-move-done` (the demo persists on
@@ -3230,9 +3485,9 @@ var NodeEditor = class extends JsxW {
   }
 };
 
-// src/blocks/Message.js
+// apps/nodditor/src/blocks/Message.js
 function Message(attr) {
-  addClass(attr, "ne-block");
+  backend.current.addClass(attr, "ne-block");
   let title2 = EditableTitle();
   title2.setValue("Message");
   return /* @__PURE__ */ jsx("div", { ...attr, children: [
@@ -3250,14 +3505,14 @@ function Message(attr) {
   ] });
 }
 
-// src/blocks/Switch.js
+// apps/nodditor/src/blocks/Switch.js
 function Switch(attr) {
   function expandClick({ target }) {
     if (target.hasAttribute("ne-item"))
       return;
     target.innerHTML += "<br/>-----------";
   }
-  addClass(attr, "ne-block");
+  backend.current.addClass(attr, "ne-block");
   let title2 = EditableTitle({ onchange: (e) => console.log("change") });
   title2.setValue("Block 1");
   return /* @__PURE__ */ jsx("div", { ...attr, children: [
@@ -3283,7 +3538,7 @@ function Switch(attr) {
   ] });
 }
 
-// smoke/p1.smoke.jsx
+// apps/nodditor/smoke/p1.smoke.jsx
 var failures = 0;
 var ok = (cond, msg) => {
   if (cond)

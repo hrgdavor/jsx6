@@ -94,6 +94,30 @@ ok(
 const beforeOps = new Map(counts)
 const round = name => (counts.get(name) || 0) - (beforeOps.get(name) || 0)
 
+/**
+ * A data-driven block factory: it renders ITS OWN markup from the block's data, which is the shape
+ * this library exists to support. `seen` collects the descriptors it was handed so the audit can
+ * assert the factory really receives them.
+ */
+const dataTypeMap = seen => ({
+  Custom: data => {
+    seen.push({ ...data })
+    const el = document.createElement('div')
+    el.className = 'host-markup'
+    el.dataset.label = data.label ?? ''
+    for (const [ncid, dir] of [
+      ['in', 'in'],
+      ['out', 'out'],
+    ]) {
+      const port = document.createElement('span')
+      port.setAttribute('ncid', ncid)
+      port.setAttribute('ne-connect', dir)
+      el.appendChild(port)
+    }
+    return el
+  },
+})
+
 /* ---- 1. the demo's own claims: blocks are plain DOM, nothing jsx6-shaped ---- */
 const blockEls = host.blocks.map(b => b.el)
 ok(
@@ -111,6 +135,151 @@ ok(
   conEls.every(el => el.tagName === 'SPAN' || el.tagName === 'B'),
   'AUDIT-1 connectors are ordinary elements',
 )
+
+/* ---- 1b. regression: a block that gains connectors after its first scan ---- */
+// `recheckConnectors()` is the host-facing rescan. It used to be memoised, so it silently did
+// nothing for a block whose connectors appeared without the canvas MutationObserver having
+// noticed — and every line referring to those connectors then failed with "unknown connector".
+// This is the shape that broke: build the block empty, scan it, then append the ports.
+{
+  const late = host.add(document.createElement('div'), 'late1', { type: 'Value', pos: [0, 400] })
+  ok(late.connectorMap.size === 0, 'AUDIT-1b a block added empty has no connectors yet')
+  const port = document.createElement('span')
+  port.setAttribute('ncid', 'o1')
+  port.setAttribute('ne-connect', 'out')
+  late.el.appendChild(port)
+  // `recheckConnectors` is memoised (P3-1), so a host that changed the DOM outside what the canvas
+  // MutationObserver can see passes `force` — the exact escape hatch the reporter needed.
+  host.recheckConnectors(late, true)
+  ok(
+    late.connectorMap.has('o1'),
+    `AUDIT-1b recheckConnectors(bd, true) discovers a connector added after the first scan (${[...late.connectorMap.keys()].join(',') || 'none'})`,
+  )
+  // and the discovered connector is usable, which is what the reporter's lines needed
+  const sinkPort = document.createElement('span')
+  sinkPort.setAttribute('ncid', 'late-in')
+  sinkPort.setAttribute('ne-connect', 'in')
+  host.getBlockData('2').el.appendChild(sinkPort)
+  host.recheckConnectors(host.getBlockData('2'), true)
+  ok(host.getConnector('2/late-in') != null, 'AUDIT-1b the sink block discovered its late connector too')
+  host.addConnectorFromTo('late1/o1', '2/late-in')
+  ok(host.lineExists('late1/o1', '2/late-in') === true, 'AUDIT-1b a line to the late connector loads')
+
+  /* ---- 1c. the data-driven flow: the host renders ports, then wires lines in the SAME task ---- */
+  // No explicit rescan here — `addConnectorFromTo` has to cope on its own, which is what a host
+  // that renders blocks from data and then generates connectors from that data will do.
+  const rendered = host.add(document.createElement('div'), 'rendered1', { type: 'Value', pos: [0, 500] })
+  const renderedPort = document.createElement('span')
+  renderedPort.setAttribute('ncid', 'o1')
+  renderedPort.setAttribute('ne-connect', 'out')
+  rendered.el.appendChild(renderedPort)
+  const sink = host.getBlockData('3')
+  const dataSinkPort = document.createElement('span')
+  dataSinkPort.setAttribute('ncid', 'data-in')
+  dataSinkPort.setAttribute('ne-connect', 'in')
+  sink.el.appendChild(dataSinkPort)
+  let wired = null
+  try {
+    wired = host.addConnectorFromTo('rendered1/o1', '3/data-in')
+  } catch (err) {
+    ok(false, `AUDIT-1c addConnectorFromTo wired freshly rendered ports — ${err.message}`)
+  }
+  ok(
+    wired !== null && host.lineExists('rendered1/o1', '3/data-in'),
+    'AUDIT-1c freshly rendered ports wire without a manual rescan',
+  )
+  void wired
+  host.selectConnector(null)
+  host.selectBlocks([rendered])
+  host.deleteSelection()
+  // put the editor back the way the rest of the audit expects it
+  host.selectConnector(null)
+  host.selectBlocks([late])
+  host.deleteSelection()
+  ok(host.getBlockData('late1') == null && host.lines.length === 3, 'AUDIT-1b cleanup restored the graph')
+}
+
+/* ---- 1d. the documented data-driven flow: factory renders from data → inspect → lines ---- */
+{
+  const seen = []
+  const dataHost = new NodeEditor({ menu: () => null })
+  dataHost.className = 'NodeEditor'
+  dataHost.style.cssText = 'width:800px;height:600px'
+  document.body.appendChild(dataHost)
+  dataHost.typeMap = dataTypeMap(seen)
+  dataHost.loadGraph({
+    blocks: [
+      { id: 'A', type: 'Custom', pos: [10, 20], label: 'from data' }, // extra key: host's own data
+      { id: 'B', type: 'Custom', pos: [200, 20], label: 'second' },
+    ],
+    lines: [],
+  })
+  ok(
+    seen.length === 2 && seen[0].id === 'A' && seen[0].label === 'from data',
+    `AUDIT-1d the factory received the block's own data (${JSON.stringify(seen[0])})`,
+  )
+  ok(
+    dataHost.blocks.every(b => b.el.dataset.label !== undefined),
+    'AUDIT-1d each block rendered its own markup from that data',
+  )
+  // the explicit inspection step, before any line exists
+  const inspect = dataHost.inspectConnectors()
+  ok(
+    inspect.length === 4 && inspect.every(c => c.idFull.includes('/')),
+    `AUDIT-1d inspectConnectors() reports every rendered connector (${inspect.map(c => c.idFull).join(', ')})`,
+  )
+  ok(dataHost.getConnectors('A').has('out'), "AUDIT-1d getConnectors(id) exposes one block's connectors")
+  // and now the lines, which can only be added because inspection happened first
+  const lines = dataHost.loadLines([
+    ['A/out', 'B/in'],
+    ['A/nope', 'B/in'], // corrupt: no such connector
+    ['A/out', 'B/in'], // corrupt: duplicate
+    ['B/out', 'A/in'],
+  ])
+  ok(
+    lines.attached === 2 && lines.skipped === 2,
+    `AUDIT-1d corrupt line entries are skipped, the rest attach (${lines.attached} attached, ${lines.skipped} skipped)`,
+  )
+  ok(dataHost.lines.length === 2, `AUDIT-1d both good lines are on screen (${dataHost.lines.length})`)
+  ok(dataHost.lineExists('B/out', 'A/in') === true, 'AUDIT-1d the line AFTER a corrupt one still attached')
+  dataHost.selectConnector(null)
+  dataHost.destroy()
+}
+
+/* ---- 1e. a corrupt line in a loaded graph must not cost the document ---- */
+{
+  const robustHost = new NodeEditor({ menu: () => null, typeMap: dataTypeMap([]) })
+  robustHost.className = 'NodeEditor'
+  robustHost.style.cssText = 'width:800px;height:600px'
+  document.body.appendChild(robustHost)
+  const errors = []
+  const origError = console.error
+  console.error = (...args) => errors.push(args.join(' '))
+  try {
+    robustHost.loadGraph({
+      blocks: [
+        { id: '1', type: 'Custom', pos: [0, 0] },
+        { id: '2', type: 'Custom', pos: [200, 0] },
+      ],
+      lines: [
+        ['1/out', '2/in'],
+        ['1/does-not-exist', '2/in'], // corrupt: the block has no such connector
+        ['9/out', '2/in'], // corrupt: no such block
+        ['2/out', '1/in'],
+      ],
+    })
+  } finally {
+    console.error = origError
+  }
+  ok(robustHost.lines.length === 2, `AUDIT-1e the valid lines still loaded (${robustHost.lines.length} of 4)`)
+  ok(robustHost.lineExists('2/out', '1/in') === true, 'AUDIT-1e the line after the corrupt ones attached')
+  ok(errors.length === 2, `AUDIT-1e each bad line was reported to the console (${errors.length})`)
+  ok(
+    errors[0].includes('skipping line') && errors[0].includes('does-not-exist'),
+    `AUDIT-1e the report names the entry and the reason (${errors[0]})`,
+  )
+  robustHost.destroy()
+}
 
 /* ---- 2. selection + menu ---- */
 const first = host.getBlockData('1')

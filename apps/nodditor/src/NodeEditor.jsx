@@ -110,16 +110,26 @@ export class NodeEditor extends backend.current.JsxW {
   }
 
   /**
+   * Register a block element with the editor.
    *
-   * @param {any} block
-   * @param {string} id
+   * The editor never builds block markup — that is the host's, and it is the reason `typeMap`
+   * factories exist. This method takes whatever element the host produced and makes it a block;
+   * connectors are then discovered from that markup (`ncid` / `ne-connect`), which is the step that
+   * has to happen before any line can refer to them.
+   *
+   * @param {any} block the block element (or a component with `.el`); any markup the host likes
+   * @param {string} id block id; also written to the element as `nid`
    * @param {Object} [param2]
+   * @param {Array<number>} [param2.pos] initial content position
+   * @param {string} [param2.type] type used by `saveGraph`/`loadGraph`
    * @returns {BlockData}
    */
   add(block, id, { pos = [0, 0], type = '' } = {}) {
     if (this.blockMap.has(id)) throw new Error(`NodeEditor: block id "${id}" is already in use`)
     backend.current.setAttribute(block, 'nid', id)
     let rootNode = /** @type {HTMLBlock}*/ (backend.current.toDomNode(block))
+    // The element can be the host's own component: hand it the editor so it can react (e.g. render
+    // connectors from data after it knows which block it is).
     block.setNodeEditor?.(this)
     // @ts-ignore
     rootNode.nodeEditor = this
@@ -184,14 +194,28 @@ export class NodeEditor extends backend.current.JsxW {
   }
 
   /**
-   * Make the connector set of a block match its DOM again. Cheap by design
-   * (P3-1): `findConnector` re-walks the subtree only when the block changed
-   * structurally, so this is a no-op for plain resize/move notifications.
+   * Make the connector set of a block match its DOM again.
+   *
+   * Memoised by design (P3-1): the subtree is re-walked only when the block is marked structurally
+   * dirty — by the canvas `MutationObserver`, or by [add](#add) which starts a block dirty. Pass
+   * `force = true` when the caller *knows* the DOM changed outside what the observer can see:
+   * a block whose connectors were added while it was **detached** (its mutations were never
+   * observed), or a read in the same task as the DOM change, before the observer's microtask ran.
+   *
    * @param {BlockData} blockData
+   * @param {boolean} [force] walk the subtree even when the block is not marked dirty
    */
-  recheckConnectors(blockData) {
+  recheckConnectors(blockData, force) {
+    if (force) blockData.structDirty = true
     let { resizeSet, cached } = findConnector(blockData)
     if (cached) return
+    // Derive the observation set from the connectors that ARE registered, not from what this walk
+    // happened to add: a rescan of a block whose connectors were discovered by an earlier walk finds
+    // them already in the map, so `findConnector` skips them and returns a set containing only the
+    // block root. Installing that would unobserve every connector of the block (no resize tracking),
+    // which is what a forced rescan used to do.
+    resizeSet = new Set([blockData.el])
+    blockData.connectorMap.forEach(con => this.addObservedChain(resizeSet, con.el, blockData.el))
     updateObserver(resizeSet, blockData.resizeSet, this.observer)
     // keep the set we actually installed: it used to stay the empty initial
     // one, so elements that left the block were never unobserved and every
@@ -200,8 +224,32 @@ export class NodeEditor extends backend.current.JsxW {
   }
 
   /**
+   * Add `el` and every ancestor up to (and including) `root` to `set`.
+   *
+   * Mirrors `connectorUtil.addResize`: the elements between a connector and its block are the ones
+   * whose size can move or resize the endpoint, so they are what the block's `ResizeObserver` has to
+   * watch.
+   *
+   * @param {Set<Element>} set
+   * @param {HTMLElement} el
+   * @param {HTMLElement} root
+   */
+  addObservedChain(set, el, root) {
+    let node = el
+    while (node) {
+      set.add(node)
+      if (node === root) return
+      node = node.parentElement
+    }
+  }
+
+  /**
    * Re-discover a block's connectors and refresh their positions, reporting the
    * moved ones through the batched `ne-move` queue (P3-2).
+   *
+   * Memoised: this is what the `ResizeObserver` handler calls for every block
+   * in a resize batch, so it must not walk a block whose DOM did not change.
+   *
    * @param {BlockData} blockData
    * @param {number} [changeTs] `ResizeObserver` batch stamp to compare
    *   `ConnectorData.changed` against (its connector box changed in this batch)
@@ -421,6 +469,7 @@ export class NodeEditor extends backend.current.JsxW {
     blockData.el.style.transform = `translate(${pos[0]}px, ${pos[1]}px)`
   }
 
+  // #region zoom-defaults
   /**
    * @param {Object} [param]
    * @param {Function} [param.menu] menu generator, receives the selected blocks (see `menuGenerator`)
@@ -431,6 +480,7 @@ export class NodeEditor extends backend.current.JsxW {
    * @param {Object<string, Function>} [param.typeMap] block factories, used by `loadGraph` and undo/redo
    */
   tpl({ menu = null, zoomMin = 0.3, zoomMax = 4, snap = 0, nudgeStep = 10, typeMap = null, ...attr } = {}) {
+    // #endregion zoom-defaults
     attr.tabindex = '0'
     super.tpl(attr)
     this.menuGenerator = menu
@@ -524,7 +574,7 @@ export class NodeEditor extends backend.current.JsxW {
       style: 'position:absolute;pointer-events: none; width: 100%; height: 100%;',
     })
     this.contentArea = (
-      <div style="position:absolute;top:0;left:0;width:100%; height:100%; transform-origin: top left;">
+      <div style="position:absolute;top:0;left:0;width:100%; height:100%; transform-origin: top left; z-index:0;">
         {this.svgLayer}
       </div>
     )
@@ -534,8 +584,19 @@ export class NodeEditor extends backend.current.JsxW {
     // connector discovery keys off
     this.ensureStructObserver()
     // zoom indicator + controls, in the (unscaled) editor corner — see changeZoom*/zoomTo
+    //
+    // The inline style is not decoration: the controls are inserted BEFORE the canvas (see below),
+    // and the canvas is a full-size `position: absolute` layer, so with the default `z-index: auto`
+    // it paints on top and swallows the clicks. The controls must carry their own stacking position
+    // rather than rely on the host loading a stylesheet, because "the zoom buttons do not respond"
+    // is not a symptom a host can debug from the visuals. `--ne-zoom-z` lets the stylesheet reorder
+    // it; `pointer-events: auto` is a guard for a host that sets `none` on the editor's children.
+    // #region zoom-markup
     this.zoomUI = (
-      <div class="ne-zoom-ui">
+      <div
+        class="ne-zoom-ui"
+        style="position:absolute;right:6px;bottom:6px;z-index:var(--ne-zoom-z,1);pointer-events:auto"
+      >
         <div class="ne-zoom-bt" title="Zoom out" onclick={() => this.zoomTo(this.zoom / 1.25)}>
           −
         </div>
@@ -545,8 +606,10 @@ export class NodeEditor extends backend.current.JsxW {
         </div>
       </div>
     )
+    // #endregion zoom-markup
     this.zoomLabel = this.zoomUI.children[1]
-    // aria-live region announcing selection changes (screen-reader status)
+    // aria-live region announcing selection changes (screen-reader status). It stays out of the way
+    // of both layers, and its visual hiding is the stylesheet's business.
     this.statusEl = <div class="ne-sr-status" role="status" aria-live="polite"></div>
     backend.current.insert(this, this.zoomUI)
     backend.current.insert(this, this.statusEl)
@@ -1053,8 +1116,13 @@ export class NodeEditor extends backend.current.JsxW {
   addConnectorFromTo(c1, c2) {
     let con1 = this.getConnector(c1)
     let con2 = this.getConnector(c2)
-    if (!con1 || !con2)
-      throw new Error(`NodeEditor: unknown connector: "${con1?.idFull ?? c1}" / "${con2?.idFull ?? c2}"`)
+    // A host that renders a block's connectors itself (data-driven blocks) can legitimately call
+    // this in the same task as the DOM change, before the canvas `MutationObserver` has marked the
+    // block dirty. Give the two blocks involved one forced rescan each before giving up: it only
+    // happens on the failure path, so the happy path stays allocation-free.
+    if (!con1) con1 = this.getConnectorAfterRescan(c1)
+    if (!con2) con2 = this.getConnectorAfterRescan(c2)
+    if (!con1 || !con2) throw new Error(`NodeEditor: ${this.describeMissingConnector(c1, con1, c2, con2)}`)
     if (con1 == con2) throw new Error(`NodeEditor: cannot connect a connector to itself: "${con1.idFull}"`)
     if (this.lineExists(con1.idFull, con2.idFull))
       throw new Error(`NodeEditor: "${con1.idFull}" is already connected to "${con2.idFull}"`)
@@ -1064,6 +1132,62 @@ export class NodeEditor extends backend.current.JsxW {
     let con = this.addConnector(path)
     this.historyRecord('line')
     return con
+  }
+
+  /**
+   * Look a connector up again after forcing a rescan of the block it belongs to.
+   *
+   * Used only when a plain lookup failed, so a host that renders connectors asynchronously (or in
+   * the same task as the lookup) still gets its lines. The id is `"blockId/ncid"`; an array or an
+   * object form has no block name to rescan and is left to the caller's error.
+   *
+   * @param {string|Array<string>} ref
+   * @returns {ConnectorData | undefined}
+   */
+  getConnectorAfterRescan(ref) {
+    if (typeof ref !== 'string' || !ref.includes('/')) return undefined
+    let blockId = ref.slice(0, ref.indexOf('/'))
+    let blockData = this.blockMap.get(blockId)
+    if (!blockData) return undefined
+    this.recheckConnectors(blockData, true)
+    return this.getConnector(ref)
+  }
+
+  /**
+   * Build the "connector not found" message.
+   *
+   * A bare `unknown connector: "1/o1"` does not say *why*, and the usual cause is host-side: the
+   * block's markup has not rendered its connectors yet (or it renders them with a different `ncid`).
+   * So the message names the block, lists the connectors that WERE discovered, and says whether the
+   * block exists at all.
+   *
+   * @param {string|Array<string>} c1
+   * @param {ConnectorData|undefined} con1
+   * @param {string|Array<string>} c2
+   * @param {ConnectorData|undefined} con2
+   * @returns {string}
+   */
+  describeMissingConnector(c1, con1, c2, con2) {
+    let parts = []
+    for (const [ref, con] of [
+      [c1, con1],
+      [c2, con2],
+    ]) {
+      if (con) continue
+      let name = Array.isArray(ref) ? ref.join('/') : String(ref)
+      let blockId = typeof ref === 'string' && ref.includes('/') ? ref.slice(0, ref.indexOf('/')) : null
+      let blockData = blockId ? this.blockMap.get(blockId) : null
+      if (blockData) {
+        let known = [...blockData.connectorMap.keys()]
+        parts.push(
+          `"${name}" does not exist in block "${blockData.id}" (type "${blockData.type}"); ` +
+            `discovered there: ${known.length ? known.map(k => `"${k}"`).join(', ') : 'none'}`,
+        )
+      } else {
+        parts.push(`"${name}" does not exist (no block "${blockId ?? '?'}" registered)`)
+      }
+    }
+    return `unknown connector: ${parts.join('; ')}`
   }
   /**
    * @param {ConnectLine} con
@@ -1100,12 +1224,25 @@ export class NodeEditor extends backend.current.JsxW {
 
   /**
    * Rebuild the graph from a saved state (as produced by `saveGraph`),
-   * clearing the editor first. `typeMap` maps a block `type` to a factory
-   * that returns a FRESH block element (e.g. `{ Switch: () => <Switch/> }`)
-   * — the editor does not know block components itself, so every block type
-   * in `state.blocks` must have an entry in `typeMap`. Defaults to the
-   * editor's own `typeMap` (set via `tpl({ typeMap })` or the property).
+   * clearing the editor first.
+   *
+   * `typeMap` maps a block `type` to a factory **that receives the block's own data** and returns a
+   * FRESH block element: `{ Switch: ({ id, type, ...data }) => <Switch id={id} {...data} /> }`. The
+   * editor does not know block components itself, and it never builds block markup — rendering it
+   * from the provided data is the host's job, which is why the descriptor is passed through.
+   * Extra keys on a block entry arrive in the factory untouched (a host that needs custom per-block
+   * data can put it there and read it back in the factory).
+   *
+   * Lines are wired **after** every block has been added, so a factory that renders connectors
+   * synchronously gets them discovered before any line refers to them. A factory that renders
+   * asynchronously must be awaited by the host: load blocks first, then call
+   * [inspectConnectors](#inspectConnectors), then add the lines (see the README).
+   *
+   * **Bad line entries are skipped, not fatal** — see [loadLines](#loadLines): each one is reported
+   * to the console and the remaining lines still attach, so corrupt data cannot blank a document.
+   *
    * The undo/redo baseline is reset afterwards: loading is not an "edit".
+   *
    * @param {GraphState} state
    * @param {Object<string, Function>} [typeMap]
    * @throws {Error} when a block type has no factory in `typeMap`
@@ -1118,15 +1255,82 @@ export class NodeEditor extends backend.current.JsxW {
         let make = typeMap?.[b.type]
         if (typeof make !== 'function')
           throw new Error(`NodeEditor: no factory registered for block type "${b.type}" (id "${b.id}")`)
-        this.add(make(), b.id, { pos: [b.pos[0], b.pos[1]], type: b.type })
+        // the factory gets the whole block entry: it renders the markup from the provided data
+        this.add(make(b), b.id, { pos: [b.pos[0], b.pos[1]], type: b.type })
       }
-      for (let [c1, c2] of state?.lines ?? []) {
-        this.addConnectorFromTo(c1, c2)
-      }
+      this.inspectConnectors()
+      this.loadLines(state?.lines)
     } finally {
       this._loadingGraph = false
     }
     this.historyReset()
+  }
+
+  /**
+   * Wire the lines of a loaded graph, tolerating bad entries.
+   *
+   * One line that cannot be attached (a connector the block markup does not have, a duplicate, a
+   * self-connection) must not cost the whole document: the editor reports it to the console with the
+   * same detail as the strict error and continues with the remaining lines. That matters for
+   * data-driven diagrams, where the block markup comes from the host and stale or corrupt line data
+   * is a normal occurrence.
+   *
+   * `addConnectorFromTo` stays strict on purpose: it is also the interactive path (a host wiring one
+   * line from user input), where failing loudly is the right behaviour.
+   *
+   * @param {Array<[string, string]>} [lines]
+   * @returns {{ attached: number, skipped: number }}
+   */
+  loadLines(lines) {
+    let attached = 0
+    let skipped = 0
+    for (let entry of lines ?? []) {
+      let [c1, c2] = Array.isArray(entry) ? entry : [undefined, undefined]
+      try {
+        this.addConnectorFromTo(c1, c2)
+        attached++
+      } catch (err) {
+        skipped++
+        console.error(`NodeEditor: skipping line ${JSON.stringify(entry)} — ${err.message}`)
+      }
+    }
+    return { attached, skipped }
+  }
+
+  /**
+   * Inspect the rendered blocks and (re)discover their connectors.
+   *
+   * This is the explicit middle step of the data-driven flow: the host renders the block markup from
+   * its data, calls this, and only then wires lines — so the connectors are guaranteed to be in the
+   * map no matter how the markup was produced. Every block is force-scanned, so it is safe to call
+   * after an asynchronous render as well.
+   *
+   * @returns {Array<{ blockId: string, id: string, idFull: string, dir: string, el: HTMLElement }>}
+   *   every connector currently discovered, in block order
+   */
+  inspectConnectors() {
+    let found = []
+    this.blocks.forEach(blockData => {
+      this.recheckConnectors(blockData, true)
+      blockData.connectorMap.forEach(con => {
+        found.push({ blockId: blockData.id, id: con.id, idFull: con.idFull, dir: con.dir, el: con.el })
+      })
+    })
+    return found
+  }
+
+  /**
+   * The connectors discovered in one block, as `id -> ConnectorData`.
+   *
+   * Use it to validate host data before wiring lines (`editor.getConnectors(id).has('o1')`), or to
+   * build a connector list for the user.
+   *
+   * @param {string|BlockData} block id or `BlockData`
+   * @returns {Map<string, ConnectorData>}
+   */
+  getConnectors(block) {
+    let blockData = this.getBlockData(block)
+    return blockData ? blockData.connectorMap : new Map()
   }
 
   /**
@@ -1433,6 +1637,31 @@ export class NodeEditor extends backend.current.JsxW {
     this.undoStack.length = 0
     this.redoStack.length = 0
     this._histLast = null
+  }
+
+  /**
+   * The editor was attached to the document.
+   *
+   * Forces one connector rescan per block. A block's DOM can legitimately change **while it is
+   * detached** — a component that fills in its connectors during construction, or a host that
+   * builds the whole graph first and attaches the editor afterwards. Those mutations were never
+   * observed (the canvas `MutationObserver` watches `contentArea`, and a disconnected tree reports
+   * nothing), so the memoised scan would keep the block's connector set empty forever and every
+   * line referring to it would fail with "unknown connector" — for a graph loaded before mounting.
+   *
+   * One walk per block, once, on attach; the memoisation is untouched after that.
+   */
+  connectedCallback() {
+    super.connectedCallback?.()
+    if (this.destroyed || !this.blocks?.length) return
+    this.blocks.forEach(blockData => {
+      try {
+        this.recheckConnectors(blockData, true)
+      } catch (err) {
+        // never let a rescan break mounting: a host can still force one later
+        console.error('NodeEditor: connector rescan on connect failed', err)
+      }
+    })
   }
 
   /**

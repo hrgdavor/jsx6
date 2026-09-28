@@ -58,11 +58,15 @@ jsx6-nodditor svg g.ne-to-sel-block path:first-child {
   pointer-events: none;
 }
 
-/* zoom indicator + controls (bottom-right corner of the editor) */
+/* #region zoom-css */
+/* zoom indicator + controls (bottom-right corner of the editor)
+ *
+ * `position`, `right`, `bottom`, `z-index` and `pointer-events` are set INLINE by the editor
+ * (src/NodeEditor.jsx) because the controls sit under the canvas layer in DOM order and must stay
+ * clickable even when a host does not load this stylesheet. Only the look lives here.
+ * Override the stacking with `--ne-zoom-z` if a host renders something above them.
+ */
 .ne-zoom-ui {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
   display: flex;
   align-items: center;
   gap: 3px;
@@ -93,6 +97,7 @@ jsx6-nodditor svg g.ne-to-sel-block path:first-child {
   opacity: 0.35;
   pointer-events: none;
 }
+/* #endregion zoom-css */
 
 /* aria-live selection status — visually hidden */
 .ne-sr-status {
