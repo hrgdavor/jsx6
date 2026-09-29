@@ -60,12 +60,21 @@ convention nodditor uses for its pan/zoom.
 
 ## Demo
 
+Serve the PACKAGE ROOT (not `docs/`), because the demo pages import `../index.js`,
+which only resolves when the server root is the package directory:
+
 ```
-bun x live-server libs/line-render/docs
+bun x live-server libs/line-render
 ```
 
-then open the served URL in a WebGPU-capable browser. Wheel = zoom at the
-cursor, drag = pan, hover = highlight, click = pick.
+then open in a WebGPU-capable browser:
+
+- `http://127.0.0.1:4000/docs/index.html` — the WebGPU canvas alone: wheel = zoom
+  at the cursor, drag = pan, hover = highlight, click = pick.
+- `http://127.0.0.1:4000/docs/compare.html` — side-by-side verification: the WebGPU
+  canvas next to a native SVG rendering of the exact same edges and grid under one
+  shared pan/zoom. If the implementation is correct, the two panels overlap pixel
+  for pixel at any zoom.
 
 ## Notes
 

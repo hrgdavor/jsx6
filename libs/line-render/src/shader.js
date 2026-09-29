@@ -9,7 +9,8 @@
 export const LINE_SHADER = `
 struct Uniforms {
   canvasSize: vec2f,
-  viewTransform: vec3f, // x: panX, y: panY, z: zoomScale
+  pan: vec2f, // panX, panY (bytes 8..15, same layout as before)
+  zoom: f32, // zoomScale (bytes 16..19, same layout as before)
   segmentsPerCurve: f32,
 };
 
@@ -17,7 +18,7 @@ struct Edge {
   p0: vec2f, c0: vec2f, c1: vec2f, p1: vec2f,
   color: vec4f,
   width: f32, // Width in SCREEN PIXELS
-  pad: vec3f,
+  pad: vec2f, // 64-byte stride, matching packEdges' 16 floats per edge
 };
 
 @group(0) @binding(0) var<uniform> u: Uniforms;
@@ -53,8 +54,8 @@ fn sampleTangent(p0: vec2f, c0: vec2f, c1: vec2f, p1: vec2f, t: f32) -> vec2f {
   let safeTan = select(vec2f(1.0, 0.0), tan / tanLen, tanLen > 0.0001);
 
   // 2. Apply Pan & Zoom to transform to screen coordinates
-  let pan = u.viewTransform.xy;
-  let zoom = u.viewTransform.z;
+  let pan = u.pan;
+  let zoom = u.zoom;
   let screenPos = worldPos * zoom + pan;
 
   // 3. Extrude stroke width in SCREEN PIXELS (independent of zoom level)

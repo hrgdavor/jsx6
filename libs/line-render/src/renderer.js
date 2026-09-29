@@ -40,6 +40,14 @@ export class LineRenderer {
   edgeBuffer
   /** @type {number} */
   edgeCap
+  /** @type {string | null} */
+  format
+  /** @type {any} */
+  msaaTexture
+  /** @type {number} */
+  msaaW
+  /** @type {number} */
+  msaaH
 
   /**
    * @param {HTMLCanvasElement} canvas
@@ -58,6 +66,10 @@ export class LineRenderer {
     this.uniformBuffer = null
     this.edgeBuffer = null
     this.edgeCap = 0
+    this.format = null
+    this.msaaTexture = null
+    this.msaaW = 0
+    this.msaaH = 0
   }
 
   /**
@@ -78,6 +90,7 @@ export class LineRenderer {
     this.ctx = this.canvas.getContext('webgpu')
     if (!this.ctx) throw new Error('Could not acquire the webgpu canvas context')
     const format = gpu.getPreferredCanvasFormat()
+    this.format = format
     this.ctx.configure({ device: this.device, format })
     const module = this.device.createShaderModule({ code: LINE_SHADER })
     this.pipeline = this.device.createRenderPipeline({
@@ -85,6 +98,7 @@ export class LineRenderer {
       vertex: { module, entryPoint: 'vs' },
       fragment: { module, entryPoint: 'fs', targets: [{ format }] },
       primitive: { topology: 'triangle-strip' },
+      multisample: { count: 4 },
     })
     this.uniformBuffer = this.device.createBuffer({
       size: 32,
@@ -112,15 +126,36 @@ export class LineRenderer {
    * @param {import('./curve.js').Edge[]} edges
    */
   render(edges) {
-    if (!this.device) throw new Error('LineRenderer.init() must be called before render()')
+    if (!this.device || !this.format) {
+      throw new Error('LineRenderer.init() must be called before render()')
+    }
+    const format = this.format
     const encoder = this.device.createCommandEncoder()
+    // MSAA: the pass renders into an offscreen 4-sample texture (the color
+    // attachment) and resolves it into the (1-sample) canvas texture via
+    // `resolveTarget` — per the spec the attachment must be multisampled
+    // and the resolve target single-sampled
+    const w = this.canvas.width
+    const h = this.canvas.height
+    if (!this.msaaTexture || this.msaaW !== w || this.msaaH !== h) {
+      if (this.msaaTexture) this.msaaTexture.destroy()
+      this.msaaTexture = this.device.createTexture({
+        size: [w, h],
+        format,
+        sampleCount: 4,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      })
+      this.msaaW = w
+      this.msaaH = h
+    }
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
-          view: this.ctx.getCurrentTexture().createView(),
+          view: this.msaaTexture.createView(),
           loadOp: 'clear',
           clearValue: this.clear,
           storeOp: 'store',
+          resolveTarget: this.ctx.getCurrentTexture().createView(),
         },
       ],
     })
@@ -166,6 +201,10 @@ export class LineRenderer {
 
   /** Release the GPU resources. */
   dispose() {
+    if (this.msaaTexture) {
+      this.msaaTexture.destroy()
+      this.msaaTexture = null
+    }
     if (this.edgeBuffer) {
       this.edgeBuffer.destroy()
       this.edgeBuffer = null

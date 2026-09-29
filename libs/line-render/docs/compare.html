@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@jsx6/line-render — WebGPU vs native SVG</title>
+    <style>
+      :root {
+        color-scheme: dark
+      }
+      body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #ddd }
+      .bar { display: flex; gap: 16px; align-items: center; padding: 10px 16px; font-size: 13px }
+      .bar button {
+        font: inherit; background: #222; color: #ddd; border: 1px solid #444;
+        border-radius: 4px; padding: 4px 10px; cursor: pointer
+      }
+      .panels { display: flex; gap: 8px; padding: 0 16px; user-select: none }
+      .panel { position: relative }
+      .panel canvas, .panel svg { display: block; cursor: crosshair; background: #0d0d14; touch-action: none }
+      .label {
+        position: absolute; top: 8px; left: 8px; z-index: 1; font-size: 12px;
+        background: rgba(0, 0, 0, 0.55); padding: 2px 8px; border-radius: 4px
+      }
+      .readout { padding: 8px 16px 0; font-size: 13px; font-variant-numeric: tabular-nums; opacity: 0.85 }
+       .note { padding: 8px 16px 4px; font-size: 13px; opacity: 0.7 }
+      pre.paths { margin: 0 16px 8px; font-size: 12px; opacity: 0.7 }
+      #gpu-error { color: #f88; padding: 0 16px 8px; font-size: 13px }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <span>
+        <b>WebGPU</b> (<code>@jsx6/line-render</code>) vs <b>native SVG</b> — identical edges,
+        identical world-space grid, one shared pan/zoom. If the implementation is right, the two
+        panels overlap pixel for pixel.
+      </span>
+      <button id="reset">reset view</button>
+    </div>
+    <div class="panels">
+      <div class="panel">
+        <span class="label">WebGPU — one instanced triangle-strip draw</span>
+        <canvas id="gpu" width="720" height="540"></canvas>
+      </div>
+      <div class="panel">
+        <span class="label">SVG — browser-native &lt;path&gt;</span>
+        <svg id="svg" width="720" height="540" viewBox="0 0 720 540"
+          aria-label="Native SVG rendering of the same edges"></svg>
+      </div>
+    </div>
+    <p class="readout" id="readout"></p>
+    <div id="gpu-error"></div>
+    <pre class="paths" id="paths"></pre>
+    <p class="note">
+      Both panels draw the same cubic Bezier edges under the same viewport (<code>screen = world * zoom + pan</code>).
+      The GPU side samples each curve at 32 points and extrudes a fixed screen-pixel width along the tangent
+      normal; the SVG side is the browser's own Bezier rasterizer with <code>vector-effect="non-scaling-stroke"</code>
+      so its stroke width stays in screen pixels too. Wheel = zoom at cursor · drag = pan · hover = highlight ·
+      click = pick (reported in the readout).
+    </p>
+    <script type="module">
+      import { LineRenderer, edgeDistance, pickEdge, screenToWorld } from '../index.js'
+
+      const W = 720
+      const H = 540
+      const GRID_STEP = 50
+      const GRID_COLOR = '#262b38'
+      const SVGNS = 'http://www.w3.org/2000/svg'
+
+      const canvas = document.getElementById('gpu')
+      const svg = document.getElementById('svg')
+      const readout = document.getElementById('readout')
+      const gpuError = document.getElementById('gpu-error')
+      const pathsEl = document.getElementById('paths')
+      const renderer = new LineRenderer(canvas, { segmentsPerCurve: 32, clear: [0.05, 0.05, 0.08, 1] })
+
+      // World-space edges — the exact data structure the renderer packs into the GPU buffer
+      const edges = [
+        {
+          x0: 351.95, y0: 148.96, cx0: 411.95, cy0: 148.96,
+          cx1: 179.95, cy1: 498.96, x1: 239.95, y1: 498.96,
+          color: [0.2, 0.7, 1.0, 1.0],
+          width: 4,
+        },
+        {
+          x0: 120, y0: 80, cx0: 320, cy0: 80,
+          cx1: 160, cy1: 380, x1: 420, y1: 380,
+          color: [0.6, 0.9, 0.3, 1.0],
+          width: 4,
+        },
+        {
+          x0: 540, y0: 110, cx0: 640, cy0: 240,
+          cx1: 330, cy1: 470, x1: 240, y1: 440,
+          color: [1.0, 0.55, 0.2, 1.0],
+          width: 8,
+        },
+      ]
+
+      const view = { panX: 0, panY: 0, zoom: 1 }
+      let hovered = -1
+      let picked = -1
+      let cursorX = 0
+      let cursorY = 0
+
+      const rgba = c =>
+        `rgba(${Math.round(c[0] * 255)}, ${Math.round(c[1] * 255)}, ${Math.round(c[2] * 255)}, ${c[3]})`
+
+      pathsEl.textContent =
+        'Both panels draw exactly these cubic curves:\n' +
+        edges.map((e, i) => `edge ${i}: M ${e.x0} ${e.y0} C ${e.cx0} ${e.cy0} ${e.cx1} ${e.cy1} ${e.x1} ${e.y1}`).join('\n')
+
+      // A straight line expressed as a colinear cubic Bezier, so the grid rides in the same
+      // GPU buffer as the real edges (the renderer only knows how to draw cubics)
+      function straightEdge(x0, y0, x1, y1, width) {
+        return {
+          x0,
+          y0,
+          cx0: x0 + (x1 - x0) / 3,
+          cy0: y0 + (y1 - y0) / 3,
+          cx1: x0 + (2 * (x1 - x0)) / 3,
+          cy1: y0 + (2 * (y1 - y0)) / 3,
+          x1,
+          y1,
+          color: [0.149, 0.169, 0.22, 1],
+          width,
+        }
+      }
+
+      // Grid lines over the currently visible world rectangle
+      function gridLines() {
+        const [wx0, wy0] = screenToWorld(0, 0, view.panX, view.panY, view.zoom)
+        const [wx1, wy1] = screenToWorld(W, H, view.panX, view.panY, view.zoom)
+        const out = []
+        for (let x = Math.floor(wx0 / GRID_STEP) * GRID_STEP; x <= wx1; x += GRID_STEP) {
+          out.push([x, wy0, x, wy1])
+        }
+        for (let y = Math.floor(wy0 / GRID_STEP) * GRID_STEP; y <= wy1; y += GRID_STEP) {
+          out.push([wx0, y, wx1, y])
+        }
+        return out
+      }
+
+      // --- SVG side ---
+      const worldG = document.createElementNS(SVGNS, 'g')
+      const gridG = document.createElementNS(SVGNS, 'g')
+      worldG.appendChild(gridG)
+      const paths = edges.map(e => {
+        const p = document.createElementNS(SVGNS, 'path')
+        p.setAttribute('d', `M ${e.x0} ${e.y0} C ${e.cx0} ${e.cy0} ${e.cx1} ${e.cy1} ${e.x1} ${e.y1}`)
+        p.setAttribute('fill', 'none')
+        p.setAttribute('vector-effect', 'non-scaling-stroke')
+        worldG.appendChild(p)
+        return p
+      })
+      svg.appendChild(worldG)
+
+      function paintSvg() {
+        worldG.setAttribute('transform', `translate(${view.panX} ${view.panY}) scale(${view.zoom})`)
+        const fragment = document.createDocumentFragment()
+        for (const [a, b, c, d] of gridLines()) {
+          const el = document.createElementNS(SVGNS, 'line')
+          el.setAttribute('x1', a)
+          el.setAttribute('y1', b)
+          el.setAttribute('x2', c)
+          el.setAttribute('y2', d)
+          el.setAttribute('stroke', GRID_COLOR)
+          el.setAttribute('stroke-width', 1)
+          el.setAttribute('vector-effect', 'non-scaling-stroke')
+          fragment.appendChild(el)
+        }
+        while (gridG.firstChild) gridG.firstChild.remove()
+        gridG.appendChild(fragment)
+        for (let i = 0; i < edges.length; i++) {
+          const e = edges[i]
+          const hov = i === hovered
+          paths[i].setAttribute('stroke', hov ? 'rgb(255, 255, 255)' : rgba(e.color))
+          paths[i].setAttribute('stroke-width', hov ? e.width + 2 : e.width)
+        }
+      }
+
+      // --- shared draw ---
+      let gpuOk = false
+
+      function draw() {
+        if (gpuOk) {
+          const batch = []
+          for (const [a, b, c, d] of gridLines()) batch.push(straightEdge(a, b, c, d, 1))
+          for (let i = 0; i < edges.length; i++) {
+            const e = edges[i]
+            batch.push(i === hovered ? { ...e, color: [1, 1, 1, 1], width: e.width + 2 } : e)
+          }
+          renderer.setViewport(view.panX, view.panY, view.zoom)
+          renderer.render(batch)
+        }
+        paintSvg()
+        updateReadout()
+      }
+
+      function updateReadout() {
+        const [wx, wy] = screenToWorld(cursorX, cursorY, view.panX, view.panY, view.zoom)
+        const hoverPart =
+          hovered < 0
+            ? 'hover: —'
+            : `hover: edge ${hovered} (${(edgeDistance(edges[hovered], wx, wy, 24) * view.zoom).toFixed(1)}px)`
+        const pickPart = picked < 0 ? 'pick: —' : `pick: edge ${picked}`
+        readout.textContent = `zoom ×${view.zoom.toFixed(3)} · pan (${view.panX.toFixed(1)}, ${view.panY.toFixed(1)}) · cursor world (${wx.toFixed(1)}, ${wy.toFixed(1)}) · ${hoverPart} · ${pickPart}`
+      }
+
+      // --- interaction: either panel drives the shared viewport ---
+      let panning = false
+      let downX = 0
+      let downY = 0
+
+      function zoomAt(mx, my, factor) {
+        const next = Math.min(32, Math.max(0.25, view.zoom * factor))
+        const f = next / view.zoom
+        view.panX = mx - (mx - view.panX) * f
+        view.panY = my - (my - view.panY) * f
+        view.zoom = next
+      }
+
+      function updateHover(mx, my) {
+        const hit = pickEdge(edges, mx, my, view.panX, view.panY, view.zoom)
+        const idx = hit ? edges.indexOf(hit) : -1
+        if (idx === hovered) return false
+        hovered = idx
+        return true
+      }
+
+      function attach(el) {
+        el.addEventListener('wheel', e => {
+          e.preventDefault()
+          zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? 1.1 : 0.9)
+          if (updateHover(e.offsetX, e.offsetY)) draw()
+        }, { passive: false })
+        el.addEventListener('pointerdown', e => {
+          panning = true
+          downX = e.offsetX
+          downY = e.offsetY
+          el.setPointerCapture(e.pointerId)
+        })
+        el.addEventListener('pointermove', e => {
+          cursorX = e.offsetX
+          cursorY = e.offsetY
+          const hoverChanged = updateHover(e.offsetX, e.offsetY)
+          if (panning) {
+            view.panX += e.offsetX - downX
+            view.panY += e.offsetY - downY
+            downX = e.offsetX
+            downY = e.offsetY
+            draw()
+          } else if (hoverChanged) {
+            draw()
+          }
+        })
+        el.addEventListener('pointerup', e => {
+          panning = false
+          if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
+          if (Math.hypot(e.offsetX - downX, e.offsetY - downY) < 4) {
+            const hit = pickEdge(edges, e.offsetX, e.offsetY, view.panX, view.panY, view.zoom)
+            picked = hit ? edges.indexOf(hit) : -1
+          }
+          draw()
+        })
+        el.addEventListener('pointerleave', () => {
+          if (hovered !== -1) {
+            hovered = -1
+            draw()
+          }
+        })
+      }
+
+      attach(canvas)
+      attach(svg)
+
+      document.getElementById('reset').addEventListener('click', () => {
+        view.panX = 0
+        view.panY = 0
+        view.zoom = 1
+        picked = -1
+        draw()
+      })
+
+      try {
+        await renderer.init()
+        gpuOk = true
+      } catch (err) {
+        gpuError.textContent = `WebGPU panel disabled: ${err.message}`
+      }
+
+      draw()
+    </script>
+  </body>
+</html>

@@ -23,6 +23,12 @@ interface GPUDevice {
   createShaderModule(descriptor: { code: string }): unknown
   createRenderPipeline(descriptor: unknown): GPURenderPipeline
   createBuffer(descriptor: { size: number; usage: number }): GPUBuffer
+  createTexture(descriptor: {
+    size: readonly number[]
+    format: string
+    sampleCount: number
+    usage: number
+  }): GPUTexture
   createBindGroup(descriptor: unknown): unknown
 }
 
@@ -56,7 +62,9 @@ interface GPURenderEncoder {
 }
 
 interface GPUTexture {
+  readonly size: readonly number[]
   createView(): unknown
+  destroy(): void
 }
 
 interface GPUCanvasContext {
@@ -75,4 +83,10 @@ declare const GPUBufferUsage: {
   COPY_DST: number
   UNIFORM: number
   STORAGE: number
+}
+
+declare const GPUTextureUsage: {
+  RENDER_ATTACHMENT: number
+  COPY_SRC: number
+  COPY_DST: number
 }
