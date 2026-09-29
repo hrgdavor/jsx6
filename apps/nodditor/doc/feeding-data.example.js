@@ -163,10 +163,7 @@ const legacyFill = (editor, p, make) => {
     error = err.message
   }
   console.error = orig
-  ok(
-    error !== null && error.includes('already connected'),
-    `the raw forEach throws on the duplicate entry (${error})`,
-  )
+  ok(error !== null && error.includes('already connected'), `the raw forEach throws on the duplicate entry (${error})`)
   ed.destroy()
 }
 
@@ -255,14 +252,10 @@ const legacyFill = (editor, p, make) => {
   ]
   const out = fillPage(ed, p, { make: makeBlock })
   console.error = orig
-  ok(
-    out.connections.attached === 2,
-    `the good edges still attach past the corrupt one (${out.connections.attached})`,
-  )
+  ok(out.connections.attached === 2, `the good edges still attach past the corrupt one (${out.connections.attached})`)
   ok(out.connections.skipped === 1, `the corrupt entry is skipped, not fatal (${out.connections.skipped})`)
   ok(
-    errors.some(e => e.includes('does not exist in block "1"')) &&
-      errors.some(e => e.includes('discovered there')),
+    errors.some(e => e.includes('does not exist in block "1"')) && errors.some(e => e.includes('discovered there')),
     'the report names the block and the connectors it does have',
   )
   ed.destroy()

@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@jsx6/line-render demo</title>
+    <style>
+      body { margin: 0; font-family: system-ui, sans-serif; background: #111; color: #ddd; }
+      canvas { display: block; margin: 16px; cursor: crosshair; }
+      .hint { padding: 0 16px; opacity: .7; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <p class="hint">
+      wheel = zoom at cursor · drag = pan · hover = highlight · click = pick
+      (picked edge logged to the console)
+    </p>
+    <canvas id="canvas" width="900" height="600"></canvas>
+    <script type="module">
+      import { LineRenderer, pickEdge } from '../src/renderer.js'
+
+      const canvas = document.getElementById('canvas')
+      const renderer = new LineRenderer(canvas)
+
+      const edges = [
+        {
+          x0: 351.95, y0: 148.96,
+          cx0: 411.95, cy0: 148.96,
+          cx1: 179.95, cy1: 498.96,
+          x1: 239.95, y1: 498.96,
+          color: [0.2, 0.7, 1.0, 1.0],
+          width: 4,
+        },
+        {
+          x0: 120, y0: 80,
+          cx0: 320, cy0: 80,
+          cx1: 160, cy1: 380,
+          x1: 420, y1: 380,
+          color: [0.6, 0.9, 0.3, 1.0],
+          width: 4,
+        },
+      ]
+
+      await renderer.init()
+
+      let hovered = null
+
+      function draw() {
+        const visible = edges.map(e => (e === hovered ? { ...e, color: [1, 1, 1, 1], width: e.width + 2 } : e))
+        renderer.render(visible)
+      }
+
+      function hover(x, y) {
+        const hit = pickEdge(edges, x, y, renderer.panX, renderer.panY, renderer.zoom)
+        if (hit !== hovered) {
+          hovered = hit
+          draw()
+        }
+      }
+
+      // zoom at the cursor
+      canvas.addEventListener('wheel', e => {
+        e.preventDefault()
+        const factor = e.deltaY < 0 ? 1.1 : 0.9
+        const mx = e.offsetX
+        const my = e.offsetY
+        renderer.panX = mx - (mx - renderer.panX) * factor
+        renderer.panY = my - (my - renderer.panY) * factor
+        renderer.zoom *= factor
+        hover(mx, my)
+        draw()
+      })
+
+      // pan + click-to-pick
+      let panning = false
+      let downX = 0
+      let downY = 0
+      canvas.addEventListener('pointerdown', e => {
+        panning = true
+        downX = e.offsetX
+        downY = e.offsetY
+        canvas.setPointerCapture(e.pointerId)
+      })
+      canvas.addEventListener('pointermove', e => {
+        if (panning) {
+          renderer.panX += e.offsetX - downX
+          renderer.panY += e.offsetY - downY
+          downX = e.offsetX
+          downY = e.offsetY
+          draw()
+        }
+        hover(e.offsetX, e.offsetY)
+      })
+      canvas.addEventListener('pointerup', e => {
+        panning = false
+        if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
+        const moved = Math.hypot(e.offsetX - downX, e.offsetY - downY)
+        if (moved < 4) {
+          const hit = pickEdge(edges, e.offsetX, e.offsetY, renderer.panX, renderer.panY, renderer.zoom)
+          if (hit) console.log('line picked', hit)
+        }
+      })
+
+      draw()
+    </script>
+  </body>
+</html>

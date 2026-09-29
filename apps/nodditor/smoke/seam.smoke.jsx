@@ -299,15 +299,9 @@ const expected = [
   'setVisible',
   'toDomNode',
 ].sort()
-ok(
-  contract.join(',') === expected.join(','),
-  `SEAM-3 contract is exactly the ${expected.length} documented names`,
-)
+ok(contract.join(',') === expected.join(','), `SEAM-3 contract is exactly the ${expected.length} documented names`)
 const notCallable = contract.filter(n => typeof defaults[n] !== 'function')
-ok(
-  notCallable.length === 0,
-  `SEAM-3 every contract name is callable${notCallable.length ? `: ${notCallable}` : ''}`,
-)
+ok(notCallable.length === 0, `SEAM-3 every contract name is callable${notCallable.length ? `: ${notCallable}` : ''}`)
 
 // ---------- the replacement backend ----------
 const calls = []
@@ -395,10 +389,7 @@ const replacement = {
       const node = asNode(c)
       if (node?.nodeType !== undefined) p.insertBefore(node, before ? asNode(before) : null)
       else
-        p.insertBefore(
-          document.createTextNode(typeof c === 'object' ? '' : String(c)),
-          before ? asNode(before) : null,
-        )
+        p.insertBefore(document.createTextNode(typeof c === 'object' ? '' : String(c)), before ? asNode(before) : null)
     }
     return child
   }),
@@ -503,10 +494,7 @@ const mergedKeys = Object.keys(backend.current)
 const missing = contract.filter(k => !mergedKeys.includes(k))
 const extra = mergedKeys.filter(k => !contract.includes(k)).sort()
 ok(missing.length === 0, `SEAM-4 the merge keeps every contract key (${missing.join(',') || 'none missing'})`)
-ok(
-  extra.length === 0,
-  `SEAM-4 no replacement-only key leaks into the contract (${extra.join(',') || 'none'})`,
-)
+ok(extra.length === 0, `SEAM-4 no replacement-only key leaks into the contract (${extra.join(',') || 'none'})`)
 
 // ---------- SEAM-5..8: a real editor on the replacement (imported AFTER setRuntime) ----------
 const { NodeEditor } = await import('../src/NodeEditor.jsx')

@@ -1,0 +1,78 @@
+/**
+ * Minimal WebGPU typings for the subset of the API used by this library.
+ * (Full typings live in `@webgpu/types`; this keeps the package dependency-free.)
+ *
+ * Global ambient declarations: they merge into lib.dom's `Navigator` and
+ * `HTMLCanvasElement`.
+ */
+interface Navigator {
+  gpu?: WebGPU
+}
+
+interface WebGPU {
+  getPreferredCanvasFormat(): string
+  requestAdapter(): Promise<GPUAdapter>
+}
+
+interface GPUAdapter {
+  requestDevice(): Promise<GPUDevice>
+}
+
+interface GPUDevice {
+  queue: GPUQueue
+  createShaderModule(descriptor: { code: string }): unknown
+  createRenderPipeline(descriptor: unknown): GPURenderPipeline
+  createBuffer(descriptor: { size: number; usage: number }): GPUBuffer
+  createBindGroup(descriptor: unknown): unknown
+}
+
+interface GPUBuffer {
+  destroy(): void
+}
+
+interface GPURenderPipeline {
+  getBindGroupLayout(index: number): unknown
+}
+
+interface GPUQueue {
+  writeBuffer(buffer: GPUBuffer, offset: number, data: ArrayBufferView): void
+  submit(commandBuffers: unknown[]): void
+}
+
+interface GPURenderPassEncoder {
+  setPipeline(pipeline: unknown): void
+  setBindGroup(index: number, bindGroup: unknown): void
+  draw(vertexCount: number, instanceCount: number): void
+  end(): void
+}
+
+interface GPUCanvasCommandBuffer {
+  end(): void
+}
+
+interface GPURenderEncoder {
+  beginRenderPass(descriptor: unknown): GPURenderPassEncoder
+  finish(): GPUCanvasCommandBuffer
+}
+
+interface GPUTexture {
+  createView(): unknown
+}
+
+interface GPUCanvasContext {
+  configure(descriptor: unknown): void
+  getCurrentTexture(): GPUTexture
+}
+
+interface HTMLCanvasElement {
+  getContext(contextId: 'webgpu'): GPUCanvasContext | null
+}
+
+declare const GPUBufferUsage: {
+  MAP_READ: number
+  MAP_WRITE: number
+  COPY_SRC: number
+  COPY_DST: number
+  UNIFORM: number
+  STORAGE: number
+}

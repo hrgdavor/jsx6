@@ -63,9 +63,11 @@ test('add: registers block data and the DOM element', () => {
   expect(editor.getBlockData('a1')).toBe(block)
   expect(block.id).toBe('a1')
   expect(block.type).toBe('Switch')
-  // pos is applied through `_setPos` (transform), not through top/left
+  // pos is applied through `_setPos` as the `--ne-x`/`--ne-y` custom properties; `.ne-block` in
+  // static/nodditor.css turns them into the block transform
   expect(block.pos).toEqual([30, 40])
-  expect(block.el.style.transform).toBe('translate(30px, 40px)')
+  expect(block.el.style.getPropertyValue('--ne-x')).toBe('30px')
+  expect(block.el.style.getPropertyValue('--ne-y')).toBe('40px')
   expect(block.el.getAttribute('nid')).toBe('a1')
   expect(block.el.neBlock).toBe(block)
   expect(block.el.parentNode).toBe(editor.contentArea)

@@ -79,8 +79,7 @@ import { updateObserver } from './updateObserver.js'
  * only a safety net for environments without it.
  * @param {Function} fn
  */
-const microtask = fn =>
-  typeof queueMicrotask === 'function' ? queueMicrotask(fn) : Promise.resolve().then(fn)
+const microtask = fn => (typeof queueMicrotask === 'function' ? queueMicrotask(fn) : Promise.resolve().then(fn))
 
 /**
  *
@@ -462,9 +461,7 @@ export class NodeEditor extends JsxW {
     // capture the connected lines BEFORE firing `ne-remove`: the listener
     // clears the line endpoints (p.con -> null), so a filter afterwards would
     // match nothing
-    let lines = this.lines.filter(
-      line => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull,
-    )
+    let lines = this.lines.filter(line => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull)
     this.fireCustom(con.el, 'ne-remove', { ...con })
     lines.forEach(l => this.removeLine(l))
     con.el.removeObserve?.()
@@ -1462,8 +1459,7 @@ export class NodeEditor extends JsxW {
     let ser = JSON.stringify(state)
     if (this._histLast) {
       if (ser == this._histLast.ser) return
-      let merge =
-        kind == this._histKind && (kind == 'zoom' || kind == 'nudge') && Date.now() - this._histTs < 750
+      let merge = kind == this._histKind && (kind == 'zoom' || kind == 'nudge') && Date.now() - this._histTs < 750
       if (!merge) {
         this.undoStack.push(this._histLast)
         if (this.undoStack.length > 100) this.undoStack.shift()

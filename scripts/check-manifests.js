@@ -235,7 +235,14 @@ function tarballFiles(dir) {
   }
   try {
     const parsed = JSON.parse(readFileSync(out, 'utf8'))
-    const files = parsed?.[0]?.files?.map(f => f.path.replace(/^package\//, '')) || []
+    // npm >= 7 prints an object keyed by the package name; older npm printed a one-element
+    // array. Accept both.
+    const listing = Array.isArray(parsed)
+      ? parsed[0]
+      : parsed && typeof parsed === 'object'
+        ? Object.values(parsed)[0]
+        : undefined
+    const files = listing?.files?.map(f => f.path.replace(/^package\//, '')) || []
     return { files, status: res.status, error: stderr }
   } catch (err) {
     return { files: null, status: res.status, error: stderr || err.message }

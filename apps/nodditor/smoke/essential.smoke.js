@@ -228,10 +228,7 @@ ok(
   const ab2 = document.createElement('div')
   asyncHost.add(ab1, '1', { type: 'Bot' })
   asyncHost.add(ab2, '2', { type: 'Bot' })
-  ok(
-    asyncHost.getConnectors('1').size === 0,
-    'AUDIT-1h blocks start with no connectors (ports arrive with the data)',
-  )
+  ok(asyncHost.getConnectors('1').size === 0, 'AUDIT-1h blocks start with no connectors (ports arrive with the data)')
 
   await sleep(20)
   renderPorts(ab1, [
@@ -243,10 +240,7 @@ ok(
     ['i2', 'in'],
   ])
   await sleep(20)
-  ok(
-    asyncHost.inspectConnectors().length === 4,
-    'AUDIT-1h inspectConnectors() finds the asynchronously rendered ports',
-  )
+  ok(asyncHost.inspectConnectors().length === 4, 'AUDIT-1h inspectConnectors() finds the asynchronously rendered ports')
 
   const lineData = [
     ['1/onTimeout', '2/i1'],
@@ -335,10 +329,7 @@ ok(
     )
     const lateEl = menuBlock.connectorMap.get('onTimeout')?.el
     handler([{ target: lateEl, intersectionRatio: 0 }]) // browser: hidden/collapsed row
-    ok(
-      menuBlock.connectorMap.has('onTimeout'),
-      'AUDIT-1g a hidden row does not delete its connector from the map',
-    )
+    ok(menuBlock.connectorMap.has('onTimeout'), 'AUDIT-1g a hidden row does not delete its connector from the map')
     ok(
       lateEl.getAttribute('ne-nodrag') === 'ne-nodrag',
       'AUDIT-1g the port keeps its ne-nodrag marker (still a connector, not a drag handle)',
@@ -393,10 +384,7 @@ ok(
   second.setAttribute('ne-connect', 'out')
   dupEl.append(first, second)
   const dupBlock = named.add(dupEl, 'D', { type: 'T' })
-  ok(
-    dupBlock.connectorMap.size === 1,
-    `AUDIT-1f a duplicate ncid yields ONE connector (${dupBlock.connectorMap.size})`,
-  )
+  ok(dupBlock.connectorMap.size === 1, `AUDIT-1f a duplicate ncid yields ONE connector (${dupBlock.connectorMap.size})`)
   ok(second.getAttribute('ne-nodrag') === null, 'AUDIT-1f the duplicate port did not become a connector')
   const report = named.explainConnectors('D')
   ok(
@@ -588,9 +576,7 @@ const used = contract.filter(name => (counts.get(name) || 0) > 0)
 const unused = contract.filter(name => !(counts.get(name) || 0))
 
 console.log('\n=== essential surface: what a real VANILLA session calls (of the backend contract) ===')
-console.log(
-  `contract: ${contract.length} names — used in this session: ${used.length}, unused: ${unused.length}\n`,
-)
+console.log(`contract: ${contract.length} names — used in this session: ${used.length}, unused: ${unused.length}\n`)
 for (const name of used.sort((a, b) => (counts.get(b) || 0) - (counts.get(a) || 0))) {
   console.log(`  ${name.padEnd(22)} ${String(counts.get(name)).padStart(5)}`)
 }

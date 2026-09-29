@@ -1,0 +1,59 @@
+{
+  "name": "@jsx6/line-render",
+  "version": "1.0.0",
+  "type": "module",
+  "sideEffects": false,
+  "description": "Rendering and hit-testing for cubic Bezier (M/C) lines: WebGPU renderer with zoom-independent stroke thickness and fast screen-space picking",
+  "main": "index.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "cjs/index.js",
+  "module": "./index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./cjs/index.js",
+      "default": "./index.js",
+      "import": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "dist",
+    "src",
+    "esm",
+    "cjs"
+  ],
+  "scripts": {
+    "tsc": "tsc",
+    "build": "esbuild index.js --outdir=esm --bundle --sourcemap --minify --format=esm",
+    "build-cjs": "esbuild index.js --outdir=cjs --bundle --sourcemap --minify --format=cjs",
+    "test": "bun test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrgdavor/jsx6.git"
+  },
+  "keywords": [
+    "WebGPU",
+    "bezier",
+    "renderer",
+    "hit-testing",
+    "picking"
+  ],
+  "author": "Davor hrg",
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/hrgdavor/jsx6/blob/master/LICENSE.md"
+    }
+  ],
+  "bugs": {
+    "url": "https://hrgdavor/jsx6/issues"
+  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/libs/line-render/README.md",
+  "devDependencies": {
+    "esbuild": "catalog:",
+    "typescript": "catalog:"
+  }
+}

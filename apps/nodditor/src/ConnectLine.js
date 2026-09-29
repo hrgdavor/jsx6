@@ -12,12 +12,7 @@ import { makeLine } from './svgUtil.js'
 export class ConnectLine {
   constructor({ strength = 60 } = {}) {
     this.strength = strength
-    this.el = backend.current.hSvg(
-      'g',
-      {},
-      (this.line1 = makeLine(strength)),
-      (this.line2 = makeLine(strength)),
-    )
+    this.el = backend.current.hSvg('g', {}, (this.line1 = makeLine(strength)), (this.line2 = makeLine(strength)))
     // Lines carry NO accessibility markup and are NOT focusable: `role="img"` + `tabindex="0"` made
     // the browser draw a focus outline around the whole `g` (the gray box around a selected line),
     // and the endpoint `aria-label` duplicated what the stroke colour already shows. Selection is

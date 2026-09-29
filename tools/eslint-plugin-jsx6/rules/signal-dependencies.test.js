@@ -8,7 +8,7 @@
  */
 import { test, expect } from 'bun:test'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { closeSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -19,7 +19,9 @@ const RULE_CODE = 'jsx6(signal-dependencies)'
 
 /**
  * Run the local Oxlint CLI (via the Bun runtime, like the gate) over one fixture and return the
- * parsed `-f json` report.
+ * parsed `-f json` report. stdout/stderr are captured through files, the same way
+ * `scripts/check-manifests.js` does it: piped child stdio is not available in every environment
+ * the gate has to run in.
  */
 function lint(code, label) {
   const dir = mkdtempSync(join(ROOT, '.tmp', 'oxlint-signal-'))
@@ -30,12 +32,24 @@ function lint(code, label) {
     )
     const fixture = join(dir, 'probe.js')
     writeFileSync(fixture, code + '\n')
+    const outFile = join(dir, 'stdout.json')
+    const errFile = join(dir, 'stderr.txt')
+    const fd = openSync(outFile, 'w')
+    const errFd = openSync(errFile, 'w')
     const result = spawnSync(process.execPath, [OXLINT_CLI, fixture, '-f', 'json'], {
       cwd: ROOT,
-      encoding: 'utf8',
+      stdio: ['ignore', fd, errFd],
     })
-    expect(result.status, `oxlint exited ${result.status} for ${label}: ${result.stderr}`).toBe(0)
-    return JSON.parse(result.stdout)
+    closeSync(fd)
+    closeSync(errFd)
+    let stderr = ''
+    try {
+      stderr = readFileSync(errFile, 'utf8').trim()
+    } catch {
+      /* ignore */
+    }
+    expect(result.status, `oxlint exited ${result.status} for ${label}: ${stderr}`).toBe(0)
+    return JSON.parse(readFileSync(outFile, 'utf8'))
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }

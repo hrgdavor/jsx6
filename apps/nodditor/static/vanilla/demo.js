@@ -104,8 +104,7 @@ export function startVanillaDemo(host, { persist = true, onStatus } = {}) {
 
   const menu = document.createElement('div')
   menu.className = 'ne-menu'
-  menu.style.cssText =
-    'display:flex;gap:2px;padding:3px;border:solid 1px #bbb;background:#fff;border-radius:6px'
+  menu.style.cssText = 'display:flex;gap:2px;padding:3px;border:solid 1px #bbb;background:#fff;border-radius:6px'
   const menuButton = (label, title, onClick) => {
     const b = document.createElement('button')
     b.type = 'button'

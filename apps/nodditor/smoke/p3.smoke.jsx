@@ -130,10 +130,7 @@ await tick(0)
 ok(ed.getConnector('1/o9') != null, 'P3-1 a connector added to the DOM is discovered automatically')
 ok(ed.getConnector('1/o9').root === bd1, 'P3-1 the new connector belongs to its block')
 ok(bd1.structDirty === false && bd1.resizeSet.has(extra), 'P3-1 the rescan installed the new resizeSet')
-ok(
-  countNcidReads(() => ed.recheckConnectors(bd1)) === 0,
-  'P3-1 the block is memoized again after that rescan',
-)
+ok(countNcidReads(() => ed.recheckConnectors(bd1)) === 0, 'P3-1 the block is memoized again after that rescan')
 const perBlockNow = bd1.connectorMap.size
 
 // ---------- P3-2: batched ne-move ----------
@@ -162,10 +159,7 @@ ok(
 )
 ok(batch.stamp === con11.movedStamp, 'P3-2 the live connector is stamped (O(1) membership for listeners)')
 ok(legacyConEvents === 0, 'P3-2 the per-element event is replaced by the batch')
-ok(
-  line.p1.pos[0] === 1000 && endpointBefore !== line.p1.pos[0],
-  'P3-2 the attached line followed its endpoint',
-)
+ok(line.p1.pos[0] === 1000 && endpointBefore !== line.p1.pos[0], 'P3-2 the attached line followed its endpoint')
 
 // a single connector's own resize: one event with exactly that connector
 reset()
@@ -270,10 +264,7 @@ const groupLeft =
   (Math.max(bx.pos[0] + 100, bd2.pos[0] + 100) - Math.min(bx.pos[0], bd2.pos[0])) / 2 -
   50
 ok(!groupMenu.hasAttribute('hidden'), 'P3-4 fireMoveDone re-shows the menu')
-ok(
-  menuX() === groupLeft + 'px',
-  `P3-4 fireMoveDone repositions synchronously (left=${menuX()}, want ${groupLeft}px)`,
-)
+ok(menuX() === groupLeft + 'px', `P3-4 fireMoveDone repositions synchronously (left=${menuX()}, want ${groupLeft}px)`)
 ok(measures === 3, 'P3-4 the repositioning reused the cached box (no extra measure)')
 
 // no inline style manipulation: the menu carries only CSS custom properties

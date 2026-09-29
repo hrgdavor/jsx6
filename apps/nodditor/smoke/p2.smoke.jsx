@@ -120,10 +120,7 @@ if (marqueeBox) {
     `P2-1 the marquee has a visible border from the stylesheet (${mcs.borderTopWidth})`,
   )
   const blockZ = Number(getComputedStyle(ed.getBlockData('1').el).zIndex) || 0
-  ok(
-    Number(mcs.zIndex) > blockZ,
-    `P2-1 the marquee stacks above the blocks it selects (${mcs.zIndex} > ${blockZ})`,
-  )
+  ok(Number(mcs.zIndex) > blockZ, `P2-1 the marquee stacks above the blocks it selects (${mcs.zIndex} > ${blockZ})`)
 }
 pev(ca, 'pointerup', { clientX: 160, clientY: 160 })
 ok(!ca.querySelector('.ne-marquee'), 'P2-1 marquee removed on release')
@@ -242,8 +239,7 @@ ok(cmBlock.defaultPrevented, 'P2-6 contextmenu prevented (no browser menu)')
 ok(sel3() === '1', 'P2-6 right-click selects the block under the cursor')
 ok(ed3.currentMenu === menu3 && !menu3.hasAttribute('hidden'), 'P2-6 menu shown for right-click')
 ok(
-  menu3.style.getPropertyValue('--ne-menu-x') === '123px' &&
-    menu3.style.getPropertyValue('--ne-menu-y') === '45px',
+  menu3.style.getPropertyValue('--ne-menu-x') === '123px' && menu3.style.getPropertyValue('--ne-menu-y') === '45px',
   'P2-6 menu positioned at the cursor',
 )
 // keep a multi-selection when right-clicking inside it
@@ -267,10 +263,7 @@ ok(sel3() === '' && !ed3.selectedLine, 'P2-6 right-click on empty canvas deselec
 
 // roles, labels, live region
 const bA = ed3.getBlockData('1')
-ok(
-  bA.el.getAttribute('role') === 'group' && bA.el.getAttribute('tabindex') === '0',
-  'P2-7 blocks are tabbable groups',
-)
+ok(bA.el.getAttribute('role') === 'group' && bA.el.getAttribute('tabindex') === '0', 'P2-7 blocks are tabbable groups')
 ed3.selectBlocks([bA, ed3.getBlockData('2')])
 ok(/Switch 1/.test(bA.el.getAttribute('aria-label')), 'P2-7 block aria-label has type + id')
 // The accessible NAME must be stable: it used to grow a " selected" suffix on selection, which meant
@@ -338,10 +331,7 @@ key(el1, 'ArrowDown')
 ok(ed3.getPos('1')[1] === y0 + 10, 'P2-7 ArrowDown works after keyboard-only selection')
 const lines1 = ed3.lines.length
 key(el1, 'Delete')
-ok(
-  ed3.getBlockData('1') == null && ed3.lines.length === lines1 - 1,
-  'P2-7 Delete removes the selected block + line',
-)
+ok(ed3.getBlockData('1') == null && ed3.lines.length === lines1 - 1, 'P2-7 Delete removes the selected block + line')
 ok(
   ed3.undo() && ed3.getBlockData('1') != null && ed3.lines.length === lines1,
   'P2-7 undo restores the keyboard-deleted block',
