@@ -47,6 +47,12 @@ const edge = {
 - `edgeToPath(edge)` — edge → SVG `d` string
 - `makeConnector(p1, p2, strength)` — the nodditor connector formula
   (horizontal tangents, strength clamped to half the point distance)
+- `lineEdge(x0, y0, x1, y1, opts)` — a straight segment as a degenerate cubic
+  Bezier (control points at 1/3 and 2/3 along the segment)
+- `circleEdges(cx, cy, r, segments = 4, opts)` — a circle OUTLINE as
+  `segments` cubic Bezier arcs (default 4)
+- `polygonEdges(points, opts)` — a polygon OUTLINE as one degenerate cubic
+  per side, closed by default (`close: false` for an open polyline)
 - `sampleCubic(edge, t)` / `sampleTangent(edge, t)` — point / derivative at `t`
 - `distToSegment(px, py, x0, y0, x1, y1)` — point-to-segment distance
 - `edgeDistance(edge, x, y, samples = 24)` — point-to-curve distance (sampled)
@@ -73,6 +79,69 @@ const edge = {
 
 The viewport convention is `screenPos = worldPos * zoom + pan`, the same
 convention nodditor uses for its pan/zoom.
+
+## Other shapes (lines, circles, polygons)
+
+The renderer is a batch of cubic Bezier strokes, and every 2D outline is a
+chain of such strokes — so straight lines, circle outlines and polygon
+outlines need **no shader, buffer, or draw-call changes**; they are just
+`Edge` lists from `src/shapes.js`:
+
+- `lineEdge(x0, y0, x1, y1, opts)` — a straight segment as a *degenerate*
+  cubic Bezier (control points at 1/3 and 2/3 of the segment). The strip
+  becomes an exact rectangle and `pickEdge` reduces to an exact segment
+  distance.
+- `circleEdges(cx, cy, r, segments = 4, opts)` — a circle **outline** as
+  `segments` cubic Bezier arcs with the standard Bezier-circle control offset
+  `kappa = (4/3) * tan(pi / (2 * segments))` (0.55228475... for 4 arcs); a
+  four-arc circle has a maximum radial error under one part in a thousand of
+  the radius ([Wikipedia, "Bezier curve"](https://en.wikipedia.org/wiki/Bezier_curve)).
+  Adjacent arcs share their endpoints **and** their tangents, so the triangle
+  strips meet cleanly at the seams — no visible gap or overlap.
+- `polygonEdges(points, opts)` — a polygon **outline** as one degenerate cubic
+  per side, closed by default.
+
+Corner caveat: each strip ends in a flat cap perpendicular to its own
+tangent, so a polygon corner is a small notch rather than a miter or round
+join. Invisible at connector-like widths; visible on wide strokes. Circle
+outlines never show it (no corners). **Filled** shapes are not supported —
+the pipeline is stroke-only; use SVG or PixiJS (see the migration section)
+for fills.
+
+## Why one instanced draw call — and what it constrains
+
+Everything above renders through the same single `renderer.render(edges)`: one
+flat `Float32Array` (16 floats per edge, 64-byte stride), one GPU buffer, and
+one [`pass.draw(vertexCount, instanceCount)`](https://developer.mozilla.org/en-US/docs/Web/API/GPURenderPassEncoder/draw)
+in which each instance reads its edge via `@builtin(instance_index)`
+([spec: `GPURenderCommandsMixin.draw()`](https://www.w3.org/TR/webgpu/#dom-gpurendercommandsmixin-draw)).
+That is the point of instancing: the per-shape variation (geometry, color,
+width, `worldWidth`) is *data, not pipelines* — mixing straight lines,
+beziers, circles and polygons costs zero extra draw calls, zero extra
+pipelines, and zero extra bind groups.
+
+The fixed 16-float stride is what makes this work: `packEdges` writes one
+plain contiguous array and the WGSL `array<Edge>` has the exact matching
+layout — the `vec2f` pairs at bytes 0..32, `color: vec4f` at 32..48,
+`width`/`worldWidth`/pad at 48..64 ([WGSL memory layout](https://github.com/sotrh/learn-wgpu/blob/master/docs/showcase/alignment/README.md),
+[WebGPU spec](https://www.w3.org/TR/webgpu/)). Adding a per-shape field
+(e.g. a join type) would change the stride of *every* edge and re-couple
+`packEdges` with the shader — the layout is deliberately minimal, which is
+why the shapes are expressed in Bezier space on the CPU side instead of being
+new GPU primitives.
+
+What the single-pass design constrains (the "combining/ordering" problem):
+
+- **Array order = z-order.** There is no depth test: edges blend in array
+  order, so how the caller concatenates shape batches fixes the visual
+  stacking. Reordering is cheap (array order only), but you cannot interleave
+  per-shape draw calls or per-shape blend modes.
+- **One `segmentsPerCurve` for the whole batch.** A straight line wastes
+  samples on it and a large circle wants more — one uniform value serves all
+  shapes in the batch (the default 32 is already sub-pixel for all of them).
+- **One buffer, one `writeBuffer` per frame.** The whole scene is one
+  contiguous upload; per-shape buffers would mean per-shape draw calls and
+  per-frame buffer churn — exactly the cost the batch exists to avoid.
 
 ## Migrating to PixiJS 8
 
@@ -106,9 +175,10 @@ is in `docs/compare.html`.
 | ---------------------------------------------------------------------------------------------- | ----------------------: | --------------------: |
 | **line-render** (whole package, bundled)                                                       | **10.4 KB**             | **4.0 KB**            |
 | PixiJS 8.21.0 full dist — the `dist/pixi.min.mjs` the compare page actually loads from the CDN | 810 KB                  | 229 KB                |
-| **Aggressive deep imports** — only the `Application`, `Container`, `Graphics` class modules (the exact trio the compare page uses) | 421 KB | 123 KB |
+| **Aggressive deep imports** — `Application`, `Container`, `Graphics` (3 the compare page uses) | 421 KB                  | 123 KB                |
+| Two.js                                                                                         | 180 KB                  | 50 KB                 |
 
-**Bottom line:** PixiJS 8 is ~30× line-render even at its leanest: ~123 KB vs ~4 KB min+gz for this lib.
+**Bottom line:** PixiJS 8 is ~30× line-render even at its leanest: ~123 KB vs ~4 KB min+gz for this lib, and Two.js might be also a good choice as fully featured but smaller and more focused.
 
 
 ## Demo

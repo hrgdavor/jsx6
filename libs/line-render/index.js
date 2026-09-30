@@ -16,6 +16,11 @@
  * viewport maps onto one container transform, so a project can grow into
  * PixiJS without rework — see `src/pixi.js` and the README section
  * "Migrating to PixiJS 8".
+ *
+ * Straight lines, circle outlines and polygon outlines are supported too, as
+ * lists of degenerate / circular Bezier edges (`lineEdge`, `circleEdges`,
+ * `polygonEdges`) — they render through the same single instanced draw call,
+ * unchanged shader and buffer. See `src/shapes.js`.
  */
 export { LineRenderer } from './src/renderer.js'
 export { BLIT_SHADER, LINE_SHADER } from './src/shader.js'
@@ -30,4 +35,5 @@ export {
   worldToScreen,
 } from './src/curve.js'
 export { edgeToPath, makeConnector, parseLinePath } from './src/path.js'
+export { circleEdges, lineEdge, polygonEdges } from './src/shapes.js'
 export { drawEdgesPixi, pixiStroke, toPixiColor } from './src/pixi.js'

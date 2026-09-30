@@ -1,15 +1,18 @@
 import { expect, test } from 'bun:test'
 
 import {
+  circleEdges,
   distToSegment,
   drawEdgesPixi,
   edgeDistance,
   edgeToPath,
+  lineEdge,
   makeConnector,
   packEdges,
   parseLinePath,
   pickEdge,
   pixiStroke,
+  polygonEdges,
   sampleCubic,
   sampleTangent,
   screenToWorld,
@@ -243,4 +246,98 @@ test('drawEdgesPixi applies the shared viewport and one Graphics per edge', () =
   expect(calls[3]).toEqual(['stroke'])
   expect(calls[4]).toEqual(['setStrokeStyle', { width: 4 / 3, color: 0xff0000, alpha: 1 }])
   expect(calls[7]).toEqual(['stroke'])
+})
+
+test('lineEdge is a degenerate cubic: exact midpoint and constant tangent', () => {
+  const e = lineEdge(2, 1, 8, 7) // direction (6, 6)
+  expectVec(sampleCubic(e, 0.5), 5, 4)
+  expectVec(sampleTangent(e, 0), 6, 6)
+  expectVec(sampleTangent(e, 1), 6, 6)
+})
+
+test('circleEdges close the loop: shared endpoints and near-constant radius', () => {
+  const c = circleEdges(0, 0, 1, 4)
+  expect(c.length).toBe(4)
+  expect(c[0].x0).toBe(1)
+  expect(c[0].y0).toBe(0)
+  for (let i = 0; i < 4; i++) {
+    const a = c[i]
+    const b = c[(i + 1) % 4]
+    // floating-point trig: seams match to well under a ulp, not bit-exactly
+    expect(Math.abs(a.x1 - b.x0)).toBeLessThan(1e-14)
+    expect(Math.abs(a.y1 - b.y0)).toBeLessThan(1e-14)
+  }
+  // every sampled point stays within ~0.03% of the radius
+  for (const edge of c) {
+    for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+      const [x, y] = sampleCubic(edge, t)
+      expect(Math.abs(Math.hypot(x, y) - 1)).toBeLessThan(5e-4)
+    }
+  }
+})
+
+test('circleEdges rejects invalid segment counts', () => {
+  expect(() => circleEdges(0, 0, 1, 0)).toThrow()
+  expect(() => circleEdges(0, 0, 1, 2.5)).toThrow()
+})
+
+test('polygonEdges chains degenerate cubics and closes by default', () => {
+  const sq = polygonEdges([
+    [0, 0],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+  ])
+  expect(sq.length).toBe(4)
+  // the first side is exactly the bottom edge, midpoint at (0.5, 0)
+  expectVec(sampleCubic(sq[0], 0.5), 0.5, 0)
+  // the last side runs back to the first point
+  expect(sq[3].x1).toBe(sq[0].x0)
+  expect(sq[3].y1).toBe(sq[0].y0)
+  // every side's control points are collinear with the side
+  for (const e of sq) {
+    const cross = (e.cx0 - e.x0) * (e.y1 - e.y0) - (e.cy0 - e.y0) * (e.x1 - e.x0)
+    expect(cross).toBe(0)
+  }
+})
+
+test('mixed shapes share one batch: packing, picking, and ordering', () => {
+  const lineE = lineEdge(0, 0, 10, 0, { color: [1, 0, 0, 1], width: 2 })
+  const circle = circleEdges(0, 0, 5, 4, { color: [0, 0, 1, 1], width: 2 })
+  const square = polygonEdges(
+    [
+      [2, 2],
+      [3, 2],
+      [3, 3],
+      [2, 3],
+    ],
+    { color: [0, 1, 0, 1], width: 2 },
+  )
+  const all = [lineE, ...circle, ...square]
+  // one flat buffer for the whole mixed batch
+  expect(packEdges(all).length).toBe(all.length * 16)
+
+  const pick = (wx, wy) => {
+    const [sx, sy] = worldToScreen(wx, wy, 0, 0, 1)
+    return pickEdge(all, sx, sy, 0, 0, 1, 24, 0) // radiusPx 0 -> exact stroke pick
+  }
+  // a point on the MIDDLE of the first arc (unambiguous: no seam, no ties)
+  const mid = sampleCubic(circle[0], 0.5)
+  expect(pick(mid[0], mid[1])).toBe(circle[0])
+  expect(pick(3, 2.5)).toBe(square[1]) // right side of the square
+  expect(pick(2.5, -1)).toBe(lineE) // 1 world from the line = its rendered half width
+  expect(pick(-2, 0)).toBeNull() // off every stroke
+})
+
+test('shape helpers pass worldWidth: false through to the buffer', () => {
+  expect(packEdges([lineEdge(0, 0, 1, 0, { worldWidth: false })])[13]).toBe(0)
+  expect(packEdges([circleEdges(0, 0, 1, 4, { worldWidth: false })[0]])[13]).toBe(0)
+  expect(
+    packEdges([
+      polygonEdges([
+        [0, 0],
+        [1, 0],
+      ])[0],
+    ])[13],
+  ).toBe(1)
 })
