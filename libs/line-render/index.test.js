@@ -4,6 +4,8 @@ import {
   circleEdges,
   distToSegment,
   drawEdgesPixi,
+  drawEdgesTwo,
+  edgeAnchors,
   edgeDistance,
   edgeToPath,
   lineEdge,
@@ -17,6 +19,8 @@ import {
   sampleTangent,
   screenToWorld,
   toPixiColor,
+  toTwoColor,
+  twoStroke,
   worldToScreen,
 } from './index.js'
 
@@ -246,6 +250,123 @@ test('drawEdgesPixi applies the shared viewport and one Graphics per edge', () =
   expect(calls[3]).toEqual(['stroke'])
   expect(calls[4]).toEqual(['setStrokeStyle', { width: 4 / 3, color: 0xff0000, alpha: 1 }])
   expect(calls[7]).toEqual(['stroke'])
+})
+
+/** Minimal stand-in for the Two.js namespace: records Anchor and Path construction. */
+function mockTwo() {
+  const anchors = []
+  const paths = []
+  class Anchor {
+    constructor(x, y, ax, ay, bx, by, command) {
+      this.x = x
+      this.y = y
+      this.ax = ax
+      this.ay = ay
+      this.bx = bx
+      this.by = by
+      this.command = command
+      anchors.push(this)
+    }
+  }
+  class Path {
+    constructor(vertices, closed, curved, manual) {
+      this.vertices = vertices
+      this.closed = closed
+      this.curved = curved
+      this.manual = manual
+      this.fill = '#fff'
+      this.stroke = '#000'
+      this.linewidth = 1
+      this.opacity = 1
+      this.strokeAttenuation = true
+      paths.push(this)
+    }
+  }
+  const Commands = { move: 'M', line: 'L', curve: 'C', arc: 'A', close: 'Z' }
+  return { Two: { Anchor, Path, Types: { svg: 'SVGRenderer' }, Commands }, anchors, paths }
+}
+
+test('toTwoColor converts 0..1 RGBA to a #RRGGBB string', () => {
+  expect(toTwoColor([1, 0, 0, 1])).toBe('#ff0000')
+  expect(toTwoColor([0, 0, 0, 0.5])).toBe('#000000')
+  expect(toTwoColor([0.2, 0.7, 1, 1])).toBe('#33b3ff')
+})
+
+test('twoStroke keeps world-unit width, flags screen-pixel width for Two.js', () => {
+  expect(twoStroke(line)).toEqual({
+    color: '#ff0000',
+    width: 4,
+    opacity: 1,
+    strokeAttenuation: true,
+  })
+  // worldWidth false -> Two.js compensates internally (strokeAttenuation: false)
+  expect(twoStroke({ ...line, worldWidth: false })).toEqual({
+    color: '#ff0000',
+    width: 4,
+    opacity: 1,
+    strokeAttenuation: false,
+  })
+})
+
+test('edgeAnchors maps the edge to relative-handle anchors', () => {
+  const { Two } = mockTwo()
+  const [a0, a1] = edgeAnchors(line, Two)
+  // start anchor: outgoing control relative to the point
+  expect(a0.x).toBe(0)
+  expect(a0.y).toBe(0)
+  expect(a0.ax).toBe(0)
+  expect(a0.ay).toBe(0)
+  expect(a0.bx).toBeCloseTo(1 / 3) // cx0 - x0
+  expect(a0.by).toBe(0)
+  expect(a0.command).toBeUndefined() // default 'move'
+  // end anchor: incoming control relative to the point, command Two.Commands.curve ('C')
+  expect(a1.x).toBe(1)
+  expect(a1.y).toBe(0)
+  expect(a1.ax).toBeCloseTo(2 / 3 - 1) // cx1 - x1
+  expect(a1.ay).toBe(0)
+  expect(a1.bx).toBe(0)
+  expect(a1.by).toBe(0)
+  expect(a1.command).toBe('C')
+})
+
+test('drawEdgesTwo applies the shared viewport and one Path per edge', () => {
+  const { Two, anchors } = mockTwo()
+  const group = {
+    position: { x: -1, y: -1 },
+    scale: -1,
+    children: [],
+    add(c) {
+      group.children.push(c)
+    },
+    remove(arr) {
+      group.children = group.children.filter(c => !arr.includes(c))
+    },
+  }
+  const edges = [line, { ...line, x0: 7, y0: 8, worldWidth: false }]
+  drawEdgesTwo(group, edges, { panX: 10, panY: -4, zoom: 2 }, Two)
+
+  expect(group.position.x).toBe(10)
+  expect(group.position.y).toBe(-4)
+  expect(group.scale).toBe(2)
+  expect(group.children.length).toBe(2)
+  expect(anchors.length).toBe(4) // two anchors per edge
+
+  const [p0, p1] = group.children
+  expect(p0.fill).toBe('none') // stroke only, never a fill
+  expect(p0.stroke).toBe('#ff0000')
+  expect(p0.linewidth).toBe(4)
+  expect(p0.opacity).toBe(1)
+  expect(p0.strokeAttenuation).toBe(true) // world-unit width scales with zoom
+  expect(p0.closed).toBe(false)
+  expect(p0.curved).toBe(false)
+  expect(p0.manual).toBe(true) // manual: Two keeps the given anchors verbatim
+  expect(p0.vertices[0]).toBe(anchors[0])
+  expect(p0.vertices[1]).toBe(anchors[1])
+  expect(p1.strokeAttenuation).toBe(false) // screen-pixel width, Two compensates
+
+  // re-draw replaces the children, never accumulates
+  drawEdgesTwo(group, edges, { panX: 1, panY: 1, zoom: 1 }, Two)
+  expect(group.children.length).toBe(2)
 })
 
 test('lineEdge is a degenerate cubic: exact midpoint and constant tangent', () => {

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@jsx6/line-render — WebGPU vs PixiJS 8 vs native SVG</title>
+    <title>@jsx6/line-render — WebGPU vs Two.js vs PixiJS 8 vs native SVG</title>
     <style>
       :root {
         color-scheme: dark
@@ -15,7 +15,7 @@
         border-radius: 4px; padding: 4px 10px; cursor: pointer
       }
       .opt { display: inline-flex; gap: 6px; align-items: center; cursor: pointer }
-      .panels { display: flex; gap: 8px; padding: 0 16px; user-select: none; flex-wrap: wrap }
+      .panels { display: grid; grid-template-columns: repeat(2, 440px); gap: 8px; padding: 0 16px; user-select: none }
       .panel { position: relative }
       .panel canvas, .panel svg { display: block; cursor: crosshair; background: #0d0d14; touch-action: none }
       .label {
@@ -31,9 +31,9 @@
   <body>
     <div class="bar">
       <span>
-        <b>WebGPU</b> (<code>@jsx6/line-render</code>) · <b>PixiJS 8</b> · <b>native SVG</b> —
+        <b>WebGPU</b> (<code>@jsx6/line-render</code>) · <b>Two.js</b> · <b>PixiJS 8</b> · <b>native SVG</b> —
         identical edges, identical world-space grid, one shared pan/zoom. If the implementations
-        are right, all three panels overlap pixel for pixel.
+        are right, all four panels overlap pixel for pixel.
       </span>
       <button id="reset">reset view</button>
       <label class="opt">
@@ -55,6 +55,10 @@
         <canvas id="gpu" width="440" height="330"></canvas>
       </div>
       <div class="panel">
+        <span class="label">Two.js — scene-graph <code>Two.Path</code> strokes</span>
+        <div id="two-host"></div>
+      </div>
+      <div class="panel">
         <span class="label">PixiJS 8 — WebGL <code>Graphics</code> stroke paths</span>
         <div id="pixi-host"></div>
       </div>
@@ -68,21 +72,36 @@
     <div id="gpu-error"></div>
     <pre class="paths" id="paths"></pre>
     <p class="note">
-      All three panels draw the same cubic Bezier edges under the same viewport (<code>screen = world * zoom + pan</code>).
-      The GPU side samples each curve at 32 points and extrudes the width along the tangent normal; the PixiJS side
-      draws one <code>Graphics</code> stroke path per edge inside a container at <code>x = panX, y = panY, scale = zoom</code>.
-      By default the width is in world units, so the thickness scales with zoom in all three panels. The two checkboxes
-      toggle the lines and the grid between world-unit width and zoom-independent screen-pixel width (the SVG side
-      mirrors the switch with <code>vector-effect="non-scaling-stroke"</code>; PixiJS has no non-scaling stroke, so the
-      bridge divides the width by zoom). "exact pick" switches hover/click between the default 8 screen-pixel tolerance
-      (easy to pick thin lines in a graph) and picking only exactly on the stroke. Hover/click uses the shared pure
-      <code>pickEdge</code> in all three panels — the same function a PixiJS migration keeps unchanged.
+      All four panels draw the same cubic Bezier edges under the same viewport (<code>screen = world * zoom + pan</code>).
+      The GPU side samples each curve at 32 points and extrudes the width along the tangent normal; the Two.js side draws
+      one <code>Two.Path</code> per edge inside a <code>Two.Group</code> at <code>position = pan, scale = zoom</code>; the
+      PixiJS side draws one <code>Graphics</code> stroke path per edge inside a container at
+      <code>x = panX, y = panY, scale = zoom</code>. By default the width is in world units, so the thickness scales with
+      zoom in all four panels. The two checkboxes toggle the lines and the grid between world-unit width and
+      zoom-independent screen-pixel width (the SVG side mirrors the switch with
+      <code>vector-effect="non-scaling-stroke"</code>; Two.js uses its native <code>strokeAttenuation: false</code>;
+      PixiJS has no non-scaling stroke, so the bridge divides the width by zoom). "exact pick" switches hover/click
+      between the default 8 screen-pixel tolerance (easy to pick thin lines in a graph) and picking only exactly on the
+      stroke. Hover/click uses the shared pure <code>pickEdge</code> in all four panels — the same function a Two.js or
+      PixiJS migration keeps unchanged. The third-party panels span the size spectrum: Two.js is the medium-size
+      full-featured direction (~200 KB min / ~50 KB gz, between this ~10.6 KB library and PixiJS 8's ~829 KB min),
+      native SVG costs zero JS.
       Wheel = zoom at cursor · drag = pan · hover = highlight · click = pick (reported in the readout).
     </p>
     <script type="module">
-      import { LineRenderer, drawEdgesPixi, edgeDistance, pickEdge, screenToWorld } from '../index.js'
+      import {
+        LineRenderer,
+        drawEdgesPixi,
+        drawEdgesTwo,
+        edgeDistance,
+        pickEdge,
+        screenToWorld,
+      } from '../index.js'
       // PixiJS 8 (latest stable) — same edges, drawn as Graphics stroke paths in a scaled container
       import { Application, Container, Graphics } from 'https://cdn.jsdelivr.net/npm/pixi.js@8.21.0/dist/pixi.min.mjs'
+      // Two.js (the medium-size full-featured direction) — same edges, drawn as Two.Path
+      // strokes in a scaled Group, SVG backend so the panel is a real <svg> element
+      import Two from 'https://cdn.jsdelivr.net/npm/two.js@0.8.24/build/two.module.js'
 
       const W = 440
       const H = 330
@@ -126,6 +145,21 @@
           gpuError.textContent = `PixiJS panel disabled: ${err.message}`
         })
 
+      // --- Two.js side: one Group carrying the shared viewport, one Two.Path
+      // per edge (drawn by the shared batch in draw()), SVG backend ---
+      let twoOk = false
+      let two = null
+      const twoGroup = new Two.Group()
+      try {
+        two = new Two({ width: W, height: H, type: Two.Types.svg })
+        document.getElementById('two-host').appendChild(two.renderer.domElement)
+        two.add(twoGroup)
+        attach(two.renderer.domElement)
+        twoOk = true
+      } catch (err) {
+        gpuError.textContent = `Two.js panel disabled: ${err.message}`
+      }
+
       // World-space edges — the exact data structure the renderer packs into the GPU buffer
       const edges = [
         {
@@ -158,7 +192,7 @@
         `rgba(${Math.round(c[0] * 255)}, ${Math.round(c[1] * 255)}, ${Math.round(c[2] * 255)}, ${c[3]})`
 
       pathsEl.textContent =
-        'All three panels draw exactly these cubic curves:\n' +
+        'All four panels draw exactly these cubic curves:\n' +
         edges.map((e, i) => `edge ${i}: M ${e.x0} ${e.y0} C ${e.cx0} ${e.cy0} ${e.cx1} ${e.cy1} ${e.x1} ${e.y1}`).join('\n')
 
       // A straight line expressed as a colinear cubic Bezier, so the grid rides in the same
@@ -237,8 +271,8 @@
       let gpuOk = false
 
       function draw() {
-        // One shared batch: the same edge objects feed all three renderers,
-        // so the three panels can only differ in rendering, not in data.
+        // One shared batch: the same edge objects feed all four renderers,
+        // so the panels can only differ in rendering, not in data.
         const batch = []
         for (const [a, b, c, d] of gridLines())
           batch.push(straightEdge(a, b, c, d, 1, gridScaleBox.checked))
@@ -253,6 +287,10 @@
         if (gpuOk) {
           renderer.setViewport(view.panX, view.panY, view.zoom)
           renderer.render(batch)
+        }
+        if (twoOk) {
+          drawEdgesTwo(twoGroup, batch, view, Two)
+          two.render() // Two only repaints on demand (no rAF loop when not playing)
         }
         if (pixiOk) drawEdgesPixi(layer, batch, view, Graphics)
         paintSvg()

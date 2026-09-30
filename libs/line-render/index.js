@@ -17,6 +17,11 @@
  * PixiJS without rework — see `src/pixi.js` and the README section
  * "Migrating to PixiJS 8".
  *
+ * The same mapping works on Two.js, the medium-size full-featured 2D
+ * direction (~200 KB minified / ~50 KB gzip, between this ~10.6 KB library
+ * and PixiJS's ~829 KB): one `Two.Path` per edge, one `Two.Group` viewport —
+ * see `src/two.js` and the README section "Migrating to Two.js".
+ *
  * Straight lines, circle outlines and polygon outlines are supported too, as
  * lists of degenerate / circular Bezier edges (`lineEdge`, `circleEdges`,
  * `polygonEdges`) — they render through the same single instanced draw call,
@@ -37,3 +42,4 @@ export {
 export { edgeToPath, makeConnector, parseLinePath } from './src/path.js'
 export { circleEdges, lineEdge, polygonEdges } from './src/shapes.js'
 export { drawEdgesPixi, pixiStroke, toPixiColor } from './src/pixi.js'
+export { drawEdgesTwo, edgeAnchors, toTwoColor, twoStroke } from './src/two.js'

@@ -167,18 +167,57 @@ the `Graphics` class is passed in by the caller — so the package stays
 dependency-free and unit-testable; an app adds `pixi.js` itself only when it
 actually migrates.
 
-A complete, runnable side-by-side — WebGPU, PixiJS 8, and native SVG drawing the
-same edges, the same grid, under one shared pan/zoom and one shared picker —
-is in `docs/compare.html`.
+## Migrating to Two.js
+
+[Two.js](https://github.com/jonobr1/two.js) is the **medium-size full-featured
+2D direction**: a complete 2D scene graph (groups, shapes, animation, and
+SVG / Canvas 2D / WebGL backends) at ~205 KB minified / ~50 KB gzip —
+between this ~10 KB library and PixiJS 8's ~810 KB full dist. It is the right
+choice when a project needs a real scene graph (transforms, animation, mixed
+content) without the WebGL weight of PixiJS.
+
+The edge model maps 1:1, the same way as PixiJS:
+
+| line-render                                   | Two.js                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| edge `{ x0, y0, cx0, cy0, cx1, cy1, x1, y1 }` | `new Two.Path([a0, a1], false, false, true)` — closed `false`, curved `false`, manual `true` (**required**: without manual, Two's automatic `plot()` step rewrites every anchor command to a straight line and the edges collapse to chords) — with `a0 = new Two.Anchor(x0, y0, 0, 0, cx0 - x0, cy0 - y0)` and `a1 = new Two.Anchor(x1, y1, cx1 - x1, cy1 - y1, 0, 0, Two.Commands.curve)`; Two's anchors carry relative handles, and its SVG renderer emits exactly `M x0 y0 C cx0 cy0 cx1 cy1 x1 y1` |
+| `color: [r, g, b, a]` (0..1)                  | `stroke: toTwoColor(edge.color)` (CSS `#RRGGBB`) + `opacity: edge.color[3]`, `fill: 'none'` |
+| `width` in world units (default)              | `linewidth = edge.width` — the Group scale turns it into `width * zoom` screen px (Two's default stroke attenuation), exactly like the WebGPU/SVG rendering |
+| `worldWidth: false` (screen pixels)           | `linewidth = edge.width`, `strokeAttenuation: false` — Two.js divides by the world scale internally; its native non-scaling stroke, no manual `÷ zoom` (unlike PixiJS) |
+| viewport `screen = world * zoom + pan`        | `group.position.x = panX; group.position.y = panY; group.scale = zoom`             |
+| `renderer.render(edges)`                      | `drawEdgesTwo(group, edges, view, Two)` — one `Two.Path` per edge, then `two.render()` (Two only repaints on demand when not playing) |
+| `pickEdge` / `edgeDistance` / `screenToWorld` | **unchanged** — they are pure functions of (edges, viewport), so hover/click behavior carries over with zero rework |
+
+The bridge lives in `src/two.js` and is exported from the package root
+(`toTwoColor`, `twoStroke`, `edgeAnchors`, `drawEdgesTwo`). It has **no
+two.js import** — the `Two` namespace is passed in by the caller — so the
+package stays dependency-free and unit-testable; an app adds `two.js` itself
+only when it actually migrates.
+
+npm naming gotcha: the real package is **`two.js`** (jonobr1). The bare `two`
+on npm is an unrelated package — install `two.js`, or load
+`https://cdn.jsdelivr.net/npm/two.js@0.8.24/build/two.min.js` (UMD, global
+`Two`) / `.../build/two.module.js` (ESM default export).
+
+A complete, runnable side-by-side — WebGPU, Two.js, PixiJS 8, and native SVG
+drawing the same edges, the same grid, under one shared pan/zoom and one
+shared picker — is in `docs/compare.html`.
 
 | Build                                                                                          | Minified                | Min + gzip            |
 | ---------------------------------------------------------------------------------------------- | ----------------------: | --------------------: |
 | **line-render** (whole package, bundled)                                                       | **10.4 KB**             | **4.0 KB**            |
 | PixiJS 8.21.0 full dist — the `dist/pixi.min.mjs` the compare page actually loads from the CDN | 810 KB                  | 229 KB                |
 | **Aggressive deep imports** — `Application`, `Container`, `Graphics` (3 the compare page uses) | 421 KB                  | 123 KB                |
-| Two.js                                                                                         | 180 KB                  | 50 KB                 |
+| Two.js 0.8.24 — `build/two.min.js` from the npm tarball                                        | 205 KB                  | 50 KB                 |
 
-**Bottom line:** PixiJS 8 is ~30× line-render even at its leanest: ~123 KB vs ~4 KB min+gz for this lib, and Two.js might be also a good choice as fully featured but smaller and more focused.
+**Bottom line:** the bundle-size spectrum runs **line-render (10.4 KB min /
+4.0 KB gz) < Two.js (205 KB min / 50 KB gz) < PixiJS 8 (810 KB full / 421 KB
+deep-import min; ~123 KB gz for the three classes the compare page uses)**.
+Two.js is the medium-size full-featured 2D direction — a real scene graph with
+SVG/Canvas/WebGL backends and a native non-scaling stroke — at ~20× line-render
+and ~4× smaller than PixiJS 8 at its leanest. Raw connector drawing stays on
+the 10 KB lib; a full-featured 2D scene without WebGL weight goes to Two.js;
+a WebGL scene with filters, particles, and text goes to PixiJS.
 
 
 ## Demo
@@ -195,16 +234,17 @@ then open in a WebGPU-capable browser:
 - `http://127.0.0.1:4000/docs/index.html` — the WebGPU canvas alone: wheel = zoom
   at the cursor, drag = pan, hover = highlight, click = pick.
 - `http://127.0.0.1:4000/docs/compare.html` — side-by-side verification: the
-  WebGPU canvas, a PixiJS 8 canvas, and a native SVG rendering of the exact same
-  edges and grid under one shared pan/zoom and one shared picker. If the
-  implementations are correct, the three panels overlap pixel for pixel at any
-  zoom. Checkboxes: "supersampling ×2" opts into the higher-quality antialiasing
-  path (the plain 4x MSAA path is the default); "lines scale with zoom" and
-  "grid scales with zoom" (both on by default) switch the stroke width between
-  world units (scales with zoom) and zoom-independent screen pixels — the SVG
-  panel mirrors the switch with `vector-effect="non-scaling-stroke"`, and the
-  PixiJS panel keeps the same world-unit / `width / zoom` semantics from
-  `src/pixi.js`.
+  WebGPU canvas, a Two.js SVG, a PixiJS 8 canvas, and a native SVG rendering of
+  the exact same edges and grid under one shared pan/zoom and one shared
+  picker. If the implementations are correct, the four panels overlap pixel for
+  pixel at any zoom. Checkboxes: "supersampling ×2" opts into the
+  higher-quality antialiasing path (the plain 4x MSAA path is the default);
+  "lines scale with zoom" and "grid scales with zoom" (both on by default)
+  switch the stroke width between world units (scales with zoom) and
+  zoom-independent screen pixels — the SVG panel mirrors the switch with
+  `vector-effect="non-scaling-stroke"`, the Two.js panel with its native
+  `strokeAttenuation: false`, and the PixiJS panel keeps the same world-unit /
+  `width / zoom` semantics from `src/pixi.js`.
 
 ## Notes
 
