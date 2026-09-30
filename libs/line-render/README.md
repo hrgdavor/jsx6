@@ -3,6 +3,12 @@
 Rendering and hit-testing for cubic Bezier (`M x y C ...`) lines — the connector
 shape used by `apps/nodditor`.
 
+
+
+![comparison](doc/images/compare.png)
+
+
+
 It exists so a node editor can draw its connectors on a fast canvas layer
 instead of (or in addition to) SVG:
 
@@ -69,6 +75,37 @@ const edge = {
 The viewport convention is `screenPos = worldPos * zoom + pan`, the same
 convention nodditor uses for its pan/zoom.
 
+## Migrating to PixiJS 8
+
+
+
+
+
+This library is a focused implementation for one use case — not a fence around
+it. When a project grows past it (filters, blend modes, particles, text,
+sprites, or a WebGL-instead-of-WebGPU stack), the path to
+[PixiJS 8](https://pixijs.com/) is a 1:1 mapping, not a rewrite:
+
+| line-render | PixiJS 8 |
+| --- | --- |
+| edge `{ x0, y0, cx0, cy0, cx1, cy1, x1, y1 }` | `g.moveTo(x0, y0).bezierCurveTo(cx0, cy0, cx1, cy1, x1, y1).stroke()` — the final `.stroke()` commits the path; in PixiJS 8, `moveTo`/`bezierCurveTo` only *build* the path, and without `.stroke()` the `Graphics` draws nothing |
+| `color: [r, g, b, a]` (0..1) | `color: toPixiColor(edge.color)` (0xRRGGBB) + `alpha: edge.color[3]` |
+| `width` in world units (default) | stroke width in local units — PixiJS strokes scale with the container scale, so thickness grows with zoom, exactly like the WebGPU/SVG rendering |
+| `worldWidth: false` (screen pixels) | stroke width `edge.width / zoom` (PixiJS has no `non-scaling-stroke`) |
+| viewport `screen = world * zoom + pan` | `layer.x = panX; layer.y = panY; layer.scale.set(zoom)` |
+| `renderer.render(edges)` | `drawEdgesPixi(layer, edges, view, Graphics)` — one `Graphics` per edge |
+| `pickEdge` / `edgeDistance` / `screenToWorld` | **unchanged** — they are pure functions of (edges, viewport), so hover/click behavior carries over with zero rework |
+
+The bridge lives in `src/pixi.js` and is exported from the package root
+(`toPixiColor`, `pixiStroke`, `drawEdgesPixi`). It has **no pixi.js import** —
+the `Graphics` class is passed in by the caller — so the package stays
+dependency-free and unit-testable; an app adds `pixi.js` itself only when it
+actually migrates.
+
+A complete, runnable side-by-side — WebGPU, PixiJS 8, and native SVG drawing the
+same edges, the same grid, under one shared pan/zoom and one shared picker —
+is in `docs/compare.html`.
+
 ## Demo
 
 Serve the PACKAGE ROOT (not `docs/`), because the demo pages import `../index.js`,
@@ -82,15 +119,17 @@ then open in a WebGPU-capable browser:
 
 - `http://127.0.0.1:4000/docs/index.html` — the WebGPU canvas alone: wheel = zoom
   at the cursor, drag = pan, hover = highlight, click = pick.
-- `http://127.0.0.1:4000/docs/compare.html` — side-by-side verification: the WebGPU
-  canvas next to a native SVG rendering of the exact same edges and grid under one
-  shared pan/zoom. If the implementation is correct, the two panels overlap pixel
-  for pixel at any zoom. Checkboxes: "supersampling ×2" opts into the
-  higher-quality antialiasing path (the plain 4x MSAA path is the default);
-  "lines scale with zoom" and "grid scales with zoom" (both on by default)
-  switch the stroke width between world units (scales with zoom) and
-  zoom-independent screen pixels — the SVG panel mirrors the same switch with
-  `vector-effect="non-scaling-stroke"`.
+- `http://127.0.0.1:4000/docs/compare.html` — side-by-side verification: the
+  WebGPU canvas, a PixiJS 8 canvas, and a native SVG rendering of the exact same
+  edges and grid under one shared pan/zoom and one shared picker. If the
+  implementations are correct, the three panels overlap pixel for pixel at any
+  zoom. Checkboxes: "supersampling ×2" opts into the higher-quality antialiasing
+  path (the plain 4x MSAA path is the default); "lines scale with zoom" and
+  "grid scales with zoom" (both on by default) switch the stroke width between
+  world units (scales with zoom) and zoom-independent screen pixels — the SVG
+  panel mirrors the switch with `vector-effect="non-scaling-stroke"`, and the
+  PixiJS panel keeps the same world-unit / `width / zoom` semantics from
+  `src/pixi.js`.
 
 ## Notes
 

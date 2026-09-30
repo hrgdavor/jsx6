@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@jsx6/line-render — WebGPU vs native SVG</title>
+    <title>@jsx6/line-render — WebGPU vs PixiJS 8 vs native SVG</title>
     <style>
       :root {
         color-scheme: dark
@@ -15,7 +15,7 @@
         border-radius: 4px; padding: 4px 10px; cursor: pointer
       }
       .opt { display: inline-flex; gap: 6px; align-items: center; cursor: pointer }
-      .panels { display: flex; gap: 8px; padding: 0 16px; user-select: none }
+      .panels { display: flex; gap: 8px; padding: 0 16px; user-select: none; flex-wrap: wrap }
       .panel { position: relative }
       .panel canvas, .panel svg { display: block; cursor: crosshair; background: #0d0d14; touch-action: none }
       .label {
@@ -31,9 +31,9 @@
   <body>
     <div class="bar">
       <span>
-        <b>WebGPU</b> (<code>@jsx6/line-render</code>) vs <b>native SVG</b> — identical edges,
-        identical world-space grid, one shared pan/zoom. If the implementation is right, the two
-        panels overlap pixel for pixel.
+        <b>WebGPU</b> (<code>@jsx6/line-render</code>) · <b>PixiJS 8</b> · <b>native SVG</b> —
+        identical edges, identical world-space grid, one shared pan/zoom. If the implementations
+        are right, all three panels overlap pixel for pixel.
       </span>
       <button id="reset">reset view</button>
       <label class="opt">
@@ -52,11 +52,15 @@
     <div class="panels">
       <div class="panel">
         <span class="label">WebGPU — one instanced triangle-strip draw</span>
-        <canvas id="gpu" width="720" height="540"></canvas>
+        <canvas id="gpu" width="440" height="330"></canvas>
+      </div>
+      <div class="panel">
+        <span class="label">PixiJS 8 — WebGL <code>Graphics</code> stroke paths</span>
+        <div id="pixi-host"></div>
       </div>
       <div class="panel">
         <span class="label">SVG — browser-native &lt;path&gt;</span>
-        <svg id="svg" width="720" height="540" viewBox="0 0 720 540"
+        <svg id="svg" width="440" height="330" viewBox="0 0 440 330"
           aria-label="Native SVG rendering of the same edges"></svg>
       </div>
     </div>
@@ -64,20 +68,24 @@
     <div id="gpu-error"></div>
     <pre class="paths" id="paths"></pre>
     <p class="note">
-      Both panels draw the same cubic Bezier edges under the same viewport (<code>screen = world * zoom + pan</code>).
-      The GPU side samples each curve at 32 points and extrudes the width along the tangent normal; by default
-      the width is in world units, so the thickness scales with zoom. The two checkboxes toggle the lines and
-      the grid between world-unit width and zoom-independent screen-pixel width (the SVG side mirrors the same
-      switch with <code>vector-effect="non-scaling-stroke"</code>). "exact pick" switches hover/click between
-      the default 8 screen-pixel tolerance (easy to pick thin lines in a graph) and picking only exactly on
-      the stroke. Wheel = zoom at cursor · drag = pan · hover = highlight · click = pick (reported in the
-      readout).
+      All three panels draw the same cubic Bezier edges under the same viewport (<code>screen = world * zoom + pan</code>).
+      The GPU side samples each curve at 32 points and extrudes the width along the tangent normal; the PixiJS side
+      draws one <code>Graphics</code> stroke path per edge inside a container at <code>x = panX, y = panY, scale = zoom</code>.
+      By default the width is in world units, so the thickness scales with zoom in all three panels. The two checkboxes
+      toggle the lines and the grid between world-unit width and zoom-independent screen-pixel width (the SVG side
+      mirrors the switch with <code>vector-effect="non-scaling-stroke"</code>; PixiJS has no non-scaling stroke, so the
+      bridge divides the width by zoom). "exact pick" switches hover/click between the default 8 screen-pixel tolerance
+      (easy to pick thin lines in a graph) and picking only exactly on the stroke. Hover/click uses the shared pure
+      <code>pickEdge</code> in all three panels — the same function a PixiJS migration keeps unchanged.
+      Wheel = zoom at cursor · drag = pan · hover = highlight · click = pick (reported in the readout).
     </p>
     <script type="module">
-      import { LineRenderer, edgeDistance, pickEdge, screenToWorld } from '../index.js'
+      import { LineRenderer, drawEdgesPixi, edgeDistance, pickEdge, screenToWorld } from '../index.js'
+      // PixiJS 8 (latest stable) — same edges, drawn as Graphics stroke paths in a scaled container
+      import { Application, Container, Graphics } from 'https://cdn.jsdelivr.net/npm/pixi.js@8.21.0/dist/pixi.min.mjs'
 
-      const W = 720
-      const H = 540
+      const W = 440
+      const H = 330
       const GRID_STEP = 50
       const GRID_COLOR = '#262b38'
       const SVGNS = 'http://www.w3.org/2000/svg'
@@ -99,6 +107,24 @@
         clear: [0.05, 0.05, 0.08, 1],
         // supersample stays 1 (plain 4x MSAA) until the user opts in
       })
+
+      // --- PixiJS 8 side: one container carrying the shared viewport, one
+      // Graphics stroke path per edge (drawn by the shared batch in draw()) ---
+      let pixiOk = false
+      const layer = new Container()
+      const app = new Application()
+      app
+        .init({ width: W, height: H, antialias: true })
+        .then(() => {
+          document.getElementById('pixi-host').appendChild(app.canvas)
+          app.stage.addChild(layer)
+          attach(app.canvas)
+          pixiOk = true
+          draw()
+        })
+        .catch(err => {
+          gpuError.textContent = `PixiJS panel disabled: ${err.message}`
+        })
 
       // World-space edges — the exact data structure the renderer packs into the GPU buffer
       const edges = [
@@ -132,7 +158,7 @@
         `rgba(${Math.round(c[0] * 255)}, ${Math.round(c[1] * 255)}, ${Math.round(c[2] * 255)}, ${c[3]})`
 
       pathsEl.textContent =
-        'Both panels draw exactly these cubic curves:\n' +
+        'All three panels draw exactly these cubic curves:\n' +
         edges.map((e, i) => `edge ${i}: M ${e.x0} ${e.y0} C ${e.cx0} ${e.cy0} ${e.cx1} ${e.cy1} ${e.x1} ${e.y1}`).join('\n')
 
       // A straight line expressed as a colinear cubic Bezier, so the grid rides in the same
@@ -211,21 +237,24 @@
       let gpuOk = false
 
       function draw() {
+        // One shared batch: the same edge objects feed all three renderers,
+        // so the three panels can only differ in rendering, not in data.
+        const batch = []
+        for (const [a, b, c, d] of gridLines())
+          batch.push(straightEdge(a, b, c, d, 1, gridScaleBox.checked))
+        for (let i = 0; i < edges.length; i++) {
+          const e = edges[i]
+          batch.push(
+            i === hovered
+              ? { ...e, color: [1, 1, 1, 1], width: e.width + 2, worldWidth: linesScaleBox.checked }
+              : { ...e, worldWidth: linesScaleBox.checked },
+          )
+        }
         if (gpuOk) {
-          const batch = []
-          for (const [a, b, c, d] of gridLines())
-            batch.push(straightEdge(a, b, c, d, 1, gridScaleBox.checked))
-          for (let i = 0; i < edges.length; i++) {
-            const e = edges[i]
-            batch.push(
-              i === hovered
-                ? { ...e, color: [1, 1, 1, 1], width: e.width + 2, worldWidth: linesScaleBox.checked }
-                : { ...e, worldWidth: linesScaleBox.checked },
-            )
-          }
           renderer.setViewport(view.panX, view.panY, view.zoom)
           renderer.render(batch)
         }
+        if (pixiOk) drawEdgesPixi(layer, batch, view, Graphics)
         paintSvg()
         updateReadout()
       }

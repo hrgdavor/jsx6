@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "sideEffects": false,
-  "description": "Rendering and hit-testing for cubic Bezier (M/C) lines: WebGPU renderer with zoom-independent stroke thickness and fast screen-space picking",
+  "description": "Rendering and hit-testing for cubic Bezier (M/C) lines: WebGPU renderer with world-unit stroke thickness (zoom-scaled by default), fast screen-space picking, and a PixiJS 8 bridge for frictionless migration",
   "main": "index.js",
   "types": "dist/index.d.ts",
   "unpkg": "cjs/index.js",
@@ -38,7 +38,8 @@
     "bezier",
     "renderer",
     "hit-testing",
-    "picking"
+    "picking",
+    "pixi.js"
   ],
   "author": "Davor hrg",
   "license": "MIT",

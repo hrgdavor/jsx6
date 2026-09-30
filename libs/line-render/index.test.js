@@ -2,15 +2,18 @@ import { expect, test } from 'bun:test'
 
 import {
   distToSegment,
+  drawEdgesPixi,
   edgeDistance,
   edgeToPath,
   makeConnector,
   packEdges,
   parseLinePath,
   pickEdge,
+  pixiStroke,
   sampleCubic,
   sampleTangent,
   screenToWorld,
+  toPixiColor,
   worldToScreen,
 } from './index.js'
 
@@ -180,4 +183,64 @@ test('makeConnector uses the nodditor strength formula', () => {
   expect(makeConnector([0, 0], [100, 50], 40)).toBe('M0 0 C40 0 60 50 100 50')
   // strength clamped to half the point distance
   expect(makeConnector([0, 0], [10, 0], 999)).toBe('M0 0 C5 0 5 0 10 0')
+})
+
+test('toPixiColor converts 0..1 RGBA to 0xRRGGBB', () => {
+  expect(toPixiColor([1, 0, 0, 1])).toBe(0xff0000)
+  expect(toPixiColor([0, 0, 0, 0.5])).toBe(0x000000)
+  expect(toPixiColor([0.2, 0.7, 1, 1])).toBe(0x33b3ff)
+})
+
+test('pixiStroke keeps world-unit width, divides screen-pixel width by zoom', () => {
+  expect(pixiStroke(line, 2)).toEqual({ width: 4, color: 0xff0000, alpha: 1 })
+  expect(pixiStroke({ ...line, worldWidth: false }, 2).width).toBe(2)
+})
+
+test('drawEdgesPixi applies the shared viewport and one Graphics per edge', () => {
+  const calls = []
+  class Graphics {
+    setStrokeStyle(s) {
+      calls.push(['setStrokeStyle', s])
+    }
+    moveTo(x, y) {
+      calls.push(['moveTo', x, y])
+    }
+    bezierCurveTo(a, b, c, d, e, f) {
+      calls.push(['bezier', a, b, c, d, e, f])
+    }
+    stroke() {
+      calls.push(['stroke'])
+    }
+  }
+  const layer = {
+    x: -1,
+    y: -1,
+    zoom: -1,
+    children: [],
+    scale: {
+      set(z) {
+        layer.zoom = z
+      },
+    },
+    removeChildren() {
+      layer.children = []
+    },
+    addChild(c) {
+      layer.children.push(c)
+    },
+  }
+  const edges = [line, { ...line, x0: 7, y0: 8, worldWidth: false }]
+  drawEdgesPixi(layer, edges, { panX: 10, panY: -4, zoom: 3 }, Graphics)
+
+  expect(layer.x).toBe(10)
+  expect(layer.y).toBe(-4)
+  expect(layer.zoom).toBe(3)
+  expect(layer.children.length).toBe(2)
+  expect(calls[0]).toEqual(['setStrokeStyle', { width: 4, color: 0xff0000, alpha: 1 }])
+  expect(calls[1]).toEqual(['moveTo', 0, 0])
+  expect(calls[2]).toEqual(['bezier', 1 / 3, 0, 2 / 3, 0, 1, 0])
+  // the path must be committed — without .stroke() PixiJS draws nothing
+  expect(calls[3]).toEqual(['stroke'])
+  expect(calls[4]).toEqual(['setStrokeStyle', { width: 4 / 3, color: 0xff0000, alpha: 1 }])
+  expect(calls[7]).toEqual(['stroke'])
 })
