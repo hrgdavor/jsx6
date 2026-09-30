@@ -1,5 +1,5 @@
 import { packEdges } from './curve.js'
-import { LINE_SHADER } from './shader.js'
+import { LINE_SHADER, BLIT_SHADER } from './shader.js'
 
 /** One edge = 16 floats in the GPU buffer (see `packEdges`). */
 const FLOATS_PER_EDGE = 16
@@ -8,8 +8,9 @@ const FLOATS_PER_EDGE = 16
  * WebGPU renderer for a batch of cubic Bezier edges.
  *
  * The viewport is `pan + zoom` (`screenPos = worldPos * zoom + pan`) and the
- * shader extrudes each stroke in screen pixels, so the line thickness stays
- * constant while zooming. All edges are drawn in ONE instanced draw call;
+ * shader extrudes each stroke in world units by default (thickness scales
+ * with zoom); an edge with `worldWidth: false` keeps a zoom-independent,
+ * screen-pixel width. All edges are drawn in ONE instanced draw call;
  * the GPU buffers are created once and grown only when the batch gets
  * bigger, so a frame costs two `writeBuffer` calls and no buffer churn.
  *
@@ -48,21 +49,46 @@ export class LineRenderer {
   msaaW
   /** @type {number} */
   msaaH
+  /** @type {number} */
+  supersample
+  /** @type {any} */
+  blitPipeline
+  /** @type {any} */
+  blitSampler
+  /** @type {any} */
+  blitBindGroup
+  /** @type {any} */
+  ssTexture
+  /** @type {number} */
+  ssW
+  /** @type {number} */
+  ssH
 
   /**
    * @param {HTMLCanvasElement} canvas
-   * @param {{segmentsPerCurve?: number, clear?: number[]}} [opts]
+   * @param {{segmentsPerCurve?: number, clear?: number[], supersample?: number}} [opts]
+   *   `supersample` (default 1) renders the scene into an offscreen buffer at
+   *   `supersample` times the canvas resolution (with 4x MSAA) and
+   *   linear-downscales it, which gives antialiasing close to the browser's
+   *   SVG rasterizer at a cost of `supersample^2` pixels.
    */
-  constructor(canvas, { segmentsPerCurve = 32, clear = [0.05, 0.05, 0.08, 1] } = {}) {
+  constructor(canvas, { segmentsPerCurve = 32, clear = [0.05, 0.05, 0.08, 1], supersample = 1 } = {}) {
+    if (!(Number.isInteger(supersample) && supersample >= 1)) {
+      throw new Error('supersample must be a positive integer')
+    }
     this.canvas = canvas
     this.panX = 0
     this.panY = 0
     this.zoom = 1
     this.segmentsPerCurve = segmentsPerCurve
     this.clear = clear
+    this.supersample = supersample
     this.device = null
     this.ctx = null
     this.pipeline = null
+    this.blitPipeline = null
+    this.blitSampler = null
+    this.blitBindGroup = null
     this.uniformBuffer = null
     this.edgeBuffer = null
     this.edgeCap = 0
@@ -70,6 +96,9 @@ export class LineRenderer {
     this.msaaTexture = null
     this.msaaW = 0
     this.msaaH = 0
+    this.ssTexture = null
+    this.ssW = 0
+    this.ssH = 0
   }
 
   /**
@@ -104,6 +133,24 @@ export class LineRenderer {
       size: 32,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     })
+    // Fullscreen-triangle pipeline that linear-downscales the supersampled
+    // buffer into the canvas (copyTextureToTexture cannot filter, so a
+    // shader blit is used instead). Always created: the cost is one
+    // pipeline + one sampler, and supersample can be switched at runtime.
+    const blitModule = this.device.createShaderModule({ code: BLIT_SHADER })
+    this.blitPipeline = this.device.createRenderPipeline({
+      layout: 'auto',
+      vertex: { module: blitModule, entryPoint: 'vs' },
+      fragment: { module: blitModule, entryPoint: 'fs', targets: [{ format }] },
+      primitive: { topology: 'triangle-list' },
+    })
+    this.blitSampler = this.device.createSampler({
+      addressModeU: 'clamp-to-edge',
+      addressModeV: 'clamp-to-edge',
+      magFilter: 'linear',
+      minFilter: 'linear',
+      mipFilterMode: 'none',
+    })
     return this
   }
 
@@ -121,6 +168,20 @@ export class LineRenderer {
   }
 
   /**
+   * Set the supersample factor (1 = plain 4x MSAA path, >1 = supersampled
+   * + linear downscale). The offscreen textures are recreated on the next
+   * `render()` call; no re-initialization is needed.
+   *
+   * @param {number} ss
+   */
+  setSupersample(ss) {
+    if (!(Number.isInteger(ss) && ss >= 1)) {
+      throw new Error('supersample must be a positive integer')
+    }
+    this.supersample = ss
+  }
+
+  /**
    * Clear the canvas and draw all edges in one instanced draw call.
    *
    * @param {import('./curve.js').Edge[]} edges
@@ -130,13 +191,16 @@ export class LineRenderer {
       throw new Error('LineRenderer.init() must be called before render()')
     }
     const format = this.format
+    const ss = this.supersample
+    const w = this.canvas.width * ss
+    const h = this.canvas.height * ss
     const encoder = this.device.createCommandEncoder()
     // MSAA: the pass renders into an offscreen 4-sample texture (the color
-    // attachment) and resolves it into the (1-sample) canvas texture via
+    // attachment) and resolves it into a (1-sample) texture via
     // `resolveTarget` — per the spec the attachment must be multisampled
-    // and the resolve target single-sampled
-    const w = this.canvas.width
-    const h = this.canvas.height
+    // and the resolve target single-sampled. With supersample > 1 the
+    // resolve target is an intermediate buffer that is linearly downscaled
+    // into the canvas by a second pass.
     if (!this.msaaTexture || this.msaaW !== w || this.msaaH !== h) {
       if (this.msaaTexture) this.msaaTexture.destroy()
       this.msaaTexture = this.device.createTexture({
@@ -148,6 +212,39 @@ export class LineRenderer {
       this.msaaW = w
       this.msaaH = h
     }
+    let resolveTarget
+    if (ss > 1) {
+      if (!this.ssTexture || this.ssW !== w || this.ssH !== h) {
+        if (this.ssTexture) this.ssTexture.destroy()
+        this.ssTexture = this.device.createTexture({
+          size: [w, h],
+          format,
+          sampleCount: 1,
+          // Rendered into as the MSAA resolve target, then sampled by the
+          // blit shader — hence RENDER_ATTACHMENT | TEXTURE_BINDING.
+          usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+        })
+        this.ssW = w
+        this.ssH = h
+        this.blitBindGroup = this.device.createBindGroup({
+          layout: this.blitPipeline.getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: this.ssTexture.createView() },
+            { binding: 1, resource: this.blitSampler },
+          ],
+        })
+      }
+      resolveTarget = this.ssTexture
+    } else {
+      if (this.ssTexture) {
+        this.ssTexture.destroy()
+        this.ssTexture = null
+        this.ssW = 0
+        this.ssH = 0
+        this.blitBindGroup = null
+      }
+      resolveTarget = this.ctx.getCurrentTexture()
+    }
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
@@ -155,7 +252,7 @@ export class LineRenderer {
           loadOp: 'clear',
           clearValue: this.clear,
           storeOp: 'store',
-          resolveTarget: this.ctx.getCurrentTexture().createView(),
+          resolveTarget: resolveTarget.createView(),
         },
       ],
     })
@@ -196,6 +293,23 @@ export class LineRenderer {
       pass.draw((this.segmentsPerCurve + 1) * 2, edges.length)
     }
     pass.end()
+    if (ss > 1) {
+      // Linear-downscale the supersampled buffer into the canvas.
+      const blitPass = encoder.beginRenderPass({
+        colorAttachments: [
+          {
+            view: this.ctx.getCurrentTexture().createView(),
+            loadOp: 'clear',
+            clearValue: this.clear,
+            storeOp: 'store',
+          },
+        ],
+      })
+      blitPass.setPipeline(this.blitPipeline)
+      blitPass.setBindGroup(0, this.blitBindGroup)
+      blitPass.draw(3)
+      blitPass.end()
+    }
     this.device.queue.submit([encoder.finish()])
   }
 
@@ -205,6 +319,11 @@ export class LineRenderer {
       this.msaaTexture.destroy()
       this.msaaTexture = null
     }
+    if (this.ssTexture) {
+      this.ssTexture.destroy()
+      this.ssTexture = null
+    }
+    this.blitBindGroup = null
     if (this.edgeBuffer) {
       this.edgeBuffer.destroy()
       this.edgeBuffer = null

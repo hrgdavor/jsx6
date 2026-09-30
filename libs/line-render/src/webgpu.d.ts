@@ -30,6 +30,8 @@ interface GPUDevice {
     usage: number
   }): GPUTexture
   createBindGroup(descriptor: unknown): unknown
+  createSampler(descriptor: unknown): unknown
+  createCommandEncoder(): GPURenderEncoder
 }
 
 interface GPUBuffer {
@@ -87,6 +89,7 @@ declare const GPUBufferUsage: {
 
 declare const GPUTextureUsage: {
   RENDER_ATTACHMENT: number
+  TEXTURE_BINDING: number
   COPY_SRC: number
   COPY_DST: number
 }

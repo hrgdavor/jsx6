@@ -94,12 +94,31 @@ test('pickEdge misses clicks far from any curve', () => {
   expect(pickEdge([line], 100, 100, 0, 0, 2)).toBeNull()
 })
 
-test('pickEdge threshold is zoom-independent (screen pixels)', () => {
-  // width 4 -> pick radius (4/2 + 5) = 7 screen px at ANY zoom
+test('pickEdge pick band scales with zoom for the default world-width edge', () => {
+  // width 4 in world units -> 80 screen px wide at zoom 20 -> threshold max(40, 5)/20 = 2 world
   const [sxNear, syNear] = worldToScreen(0.5, 0.2, 0, 0, 20)
-  expect(pickEdge([line], sxNear, syNear, 0, 0, 20)).toBe(line) // 4 screen px from the line
+  expect(pickEdge([line], sxNear, syNear, 0, 0, 20)).toBe(line) // 0.2 world from the line
+  const [sxFar, syFar] = worldToScreen(0.5, 3, 0, 0, 20)
+  expect(pickEdge([line], sxFar, syFar, 0, 0, 20)).toBeNull() // 3 world from the line
+})
+
+test('pickEdge threshold is zoom-independent when worldWidth is false', () => {
+  // width 4 in SCREEN pixels -> threshold max(4/2, 5)/20 = 0.25 world at ANY zoom
+  const linePx = { ...line, worldWidth: false }
+  const [sxNear, syNear] = worldToScreen(0.5, 0.2, 0, 0, 20)
+  expect(pickEdge([linePx], sxNear, syNear, 0, 0, 20)).toBe(linePx) // 4 screen px from the line
   const [sxFar, syFar] = worldToScreen(0.5, 0.5, 0, 0, 20)
-  expect(pickEdge([line], sxFar, syFar, 0, 0, 20)).toBeNull() // 10 screen px from the line
+  expect(pickEdge([linePx], sxFar, syFar, 0, 0, 20)).toBeNull() // 10 screen px from the line
+})
+
+test('pickEdge with radiusPx 0 picks only exactly on the stroke', () => {
+  // worldWidth false, width 4 screen px -> exact threshold = 2 screen px = 1 world at zoom 2
+  const linePx = { ...line, worldWidth: false }
+  const [sxOn, syOn] = worldToScreen(0.5, 0.2, 0, 0, 2) // 0.4 screen px from the line
+  expect(pickEdge([linePx], sxOn, syOn, 0, 0, 2, 24, 0)).toBe(linePx)
+  const [sxOff, syOff] = worldToScreen(0.5, 1.5, 0, 0, 2) // 3 screen px from the line
+  expect(pickEdge([linePx], sxOff, syOff, 0, 0, 2, 24, 0)).toBeNull() // outside the exact stroke
+  expect(pickEdge([linePx], sxOff, syOff, 0, 0, 2, 24, 8)).toBe(linePx) // generous radius picks it
 })
 
 test('pickEdge finds the closest of several candidates', () => {
@@ -125,7 +144,7 @@ test('packEdges writes the 16-float GPU layout', () => {
   expect(packed[10]).toBe(0)
   expect(packed[11]).toBe(1)
   expect(packed[12]).toBe(4)
-  expect(packed[13]).toBe(0)
+  expect(packed[13]).toBe(1) // worldWidth defaults to true (WGSL float index 13)
   expect(packed[14]).toBe(0)
   expect(packed[15]).toBe(0)
   expect(packed[16]).toBe(7)

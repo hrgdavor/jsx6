@@ -6,8 +6,9 @@ shape used by `apps/nodditor`.
 It exists so a node editor can draw its connectors on a fast canvas layer
 instead of (or in addition to) SVG:
 
-- **adaptive line thickness on zoom** — strokes are extruded in *screen pixels*
-  (not world units), so a `width: 4` line stays 4px wide at any zoom;
+- **world-unit stroke width by default** — a `width: 4` edge is 4 world units
+  wide, so the rendered thickness scales with zoom; set `worldWidth: false` on
+  an edge to keep the legacy zoom-independent, screen-pixel width instead;
 - **batch rendering** — all edges in ONE instanced WebGPU draw call
   (one triangle strip per curve, sampled in the vertex shader);
 - **fast hit detection** — a pure-JS screen-space picker that converts the
@@ -30,7 +31,8 @@ const edge = {
   cx1: 179.95, cy1: 498.96,
   x1: 239.95, y1: 498.96,
   color: [0.2, 0.7, 1.0, 1.0], // RGBA, 0..1
-  width: 4, // SCREEN pixels, zoom-independent
+  width: 4, // WORLD units by default (scales with zoom)
+  worldWidth: false, // optional — omit for the default world-unit width
 }
 ```
 
@@ -44,14 +46,23 @@ const edge = {
 - `distToSegment(px, py, x0, y0, x1, y1)` — point-to-segment distance
 - `edgeDistance(edge, x, y, samples = 24)` — point-to-curve distance (sampled)
 - `pickEdge(edges, screenX, screenY, panX, panY, zoom, samples, radiusPx)` —
-  the edge under a screen point, or `null`; the closest candidate wins
+  the edge under a screen point, or `null`; the closest candidate wins. The
+  per-edge pick radius is the LARGER of the edge's rendered half-width and
+  `radiusPx` screen pixels: `radiusPx = 0` → exact (only on the stroke); any
+  larger value adds a thickness-independent tolerance (easy picking of thin
+  lines in a graph)
 - `screenToWorld(...)` / `worldToScreen(...)` — viewport transforms
 - `packEdges(edges)` — the 16-float-per-edge layout for the GPU buffer
 - `LINE_SHADER` — the WGSL source
-- `LineRenderer` — the WebGPU renderer:
-  - `new LineRenderer(canvas, { segmentsPerCurve = 32, clear })`
+- `BLIT_SHADER` — the WGSL source for the linear-downscale blit
+- `LineRenderer` — the WebGPU renderer (always 4x MSAA; supersampling is
+  OPT-IN and costs `supersample^2` pixels):
+  - `new LineRenderer(canvas, { segmentsPerCurve = 32, clear, supersample = 1 })`
   - `await renderer.init()`
   - `renderer.setViewport(panX, panY, zoom)` (or set `panX`/`panY`/`zoom` directly)
+  - `renderer.setSupersample(n)` — opt into higher-quality antialiasing
+    (render at `n`x resolution with 4x MSAA, linear-downscale); default 1
+    keeps the plain 4x MSAA path
   - `renderer.render(edges)` — clears and draws all edges in one draw call
   - `renderer.dispose()`
 
@@ -74,7 +85,12 @@ then open in a WebGPU-capable browser:
 - `http://127.0.0.1:4000/docs/compare.html` — side-by-side verification: the WebGPU
   canvas next to a native SVG rendering of the exact same edges and grid under one
   shared pan/zoom. If the implementation is correct, the two panels overlap pixel
-  for pixel at any zoom.
+  for pixel at any zoom. Checkboxes: "supersampling ×2" opts into the
+  higher-quality antialiasing path (the plain 4x MSAA path is the default);
+  "lines scale with zoom" and "grid scales with zoom" (both on by default)
+  switch the stroke width between world units (scales with zoom) and
+  zoom-independent screen pixels — the SVG panel mirrors the same switch with
+  `vector-effect="non-scaling-stroke"`.
 
 ## Notes
 
@@ -86,3 +102,6 @@ then open in a WebGPU-capable browser:
   `find`).
 - GPU buffers are created once and grown as the batch grows; a frame costs two
   `writeBuffer` calls and no buffer allocation.
+- `docs/webgpu-pitfalls.md` — the MSAA/supersampling caveats and every
+  initialization error hit along the way (uniform fetch layout, MSAA resolve
+  direction, WGSL builtin names, required `layout`, `TEXTURE_BINDING`, ...).

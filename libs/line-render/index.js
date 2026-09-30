@@ -11,7 +11,7 @@
  * `LineRenderer` needs a WebGPU-capable browser.
  */
 export { LineRenderer } from './src/renderer.js'
-export { LINE_SHADER } from './src/shader.js'
+export { BLIT_SHADER, LINE_SHADER } from './src/shader.js'
 export {
   distToSegment,
   edgeDistance,

@@ -20,7 +20,10 @@
  * @property {number} x1 - end point x
  * @property {number} y1 - end point y
  * @property {number[]} color - RGBA, 0..1
- * @property {number} width - stroke width in SCREEN pixels (zoom-independent)
+ * @property {number} width - stroke width; WORLD units by default (scales with
+ *   zoom), SCREEN pixels when `worldWidth` is false
+ * @property {boolean} [worldWidth] - when true (the default), `width` is in world
+ *   units and scales with zoom; when false, `width` is zoom-independent screen pixels
  */
 
 /**
@@ -137,9 +140,14 @@ export function worldToScreen(worldX, worldY, panX = 0, panY = 0, zoom = 1) {
  *
  * The click is converted to world space; each curve is sampled and the distance
  * from the point to the sampled polyline is compared against a threshold defined
- * in SCREEN pixels — `width / 2 + radiusPx` — converted to world space by
- * `1 / zoom`. The pick area therefore tracks the rendered, zoom-independent
- * stroke width, so picking stays accurate while panning and zooming.
+ * in SCREEN pixels — the larger of `halfWidthPx` and `radiusPx` — converted to
+ * world space by `1 / zoom`. `halfWidthPx` is the edge's rendered half width in
+ * screen pixels: `width / 2` when `worldWidth` is false, `width * zoom / 2` for
+ * the default world-unit width. So `radiusPx = 0` gives an EXACT pick (only on
+ * the rendered stroke), while any `radiusPx > 0` adds a thickness-independent
+ * tolerance — easier picking of thin lines in a graph. The pick area tracks the
+ * rendered stroke width in either mode, so picking stays accurate while panning
+ * and zooming.
  *
  * When several edges are within the threshold, the closest one wins (ties
  * resolve to the earlier edge in the array).
@@ -151,7 +159,9 @@ export function worldToScreen(worldX, worldY, panX = 0, panY = 0, zoom = 1) {
  * @param {number} [panY]
  * @param {number} [zoom] - must be > 0
  * @param {number} [samples]
- * @param {number} [radiusPx] - pick radius beyond half the stroke, in screen pixels
+ * @param {number} [radiusPx = 5] - minimum pick radius in screen pixels; the
+ *   per-edge pick radius is the LARGER of the edge's rendered half-width and
+ *   `radiusPx` (`radiusPx = 0` → exact pick, only on the stroke)
  * @returns {Edge|null}
  */
 export function pickEdge(edges, screenX, screenY, panX = 0, panY = 0, zoom = 1, samples = 24, radiusPx = 5) {
@@ -160,7 +170,8 @@ export function pickEdge(edges, screenX, screenY, panX = 0, panY = 0, zoom = 1, 
   let best = null
   let bestDist = Infinity
   for (const edge of edges) {
-    const threshold = (edge.width / 2 + radiusPx) / zoom
+    const halfWidthPx = edge.worldWidth === false ? edge.width / 2 : (edge.width * zoom) / 2
+    const threshold = Math.max(halfWidthPx, radiusPx) / zoom
     const d = edgeDistance(edge, wx, wy, samples)
     if (d <= threshold && d < bestDist) {
       best = edge
@@ -171,8 +182,11 @@ export function pickEdge(edges, screenX, screenY, panX = 0, panY = 0, zoom = 1, 
 }
 
 /**
- * Pack edges into the 16-float-per-edge layout the WGSL shader expects:
- * `x0 y0 cx0 cy0 cx1 cy1 x1 y1 r g b a width 0 0 0`.
+ * Pack edges into the 16-float-per-edge layout the WGSL shader expects
+ * (float index in brackets): x0 y0 cx0 cy0 cx1 cy1 x1 y1 r g b a width (12)
+ * worldWidth (13) pad (14, 15). `worldWidth` sits at float 13 because the
+ * WGSL struct lays `width` and `worldWidth` back-to-back after the 16-aligned
+ * `color` (bytes 48..52, 52..56); the 64-byte stride is unchanged.
  *
  * @param {Edge[]} edges
  * @returns {Float32Array}
@@ -196,7 +210,8 @@ export function packEdges(edges) {
     out[o + 10] = c[2]
     out[o + 11] = c[3]
     out[o + 12] = e.width
-    // o + 13..15 stay zero (pad)
+    out[o + 13] = e.worldWidth === false ? 0 : 1
+    // o + 14 and o + 15 stay zero (pad)
   }
   return out
 }

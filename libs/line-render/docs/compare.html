@@ -14,6 +14,7 @@
         font: inherit; background: #222; color: #ddd; border: 1px solid #444;
         border-radius: 4px; padding: 4px 10px; cursor: pointer
       }
+      .opt { display: inline-flex; gap: 6px; align-items: center; cursor: pointer }
       .panels { display: flex; gap: 8px; padding: 0 16px; user-select: none }
       .panel { position: relative }
       .panel canvas, .panel svg { display: block; cursor: crosshair; background: #0d0d14; touch-action: none }
@@ -35,6 +36,18 @@
         panels overlap pixel for pixel.
       </span>
       <button id="reset">reset view</button>
+      <label class="opt">
+        <input type="checkbox" id="ss" /> supersampling ×2 (opt-in, costs 4x the pixels)
+      </label>
+      <label class="opt">
+        <input type="checkbox" id="lines-scale" checked /> lines scale with zoom
+      </label>
+      <label class="opt">
+        <input type="checkbox" id="grid-scale" checked /> grid scales with zoom
+      </label>
+      <label class="opt">
+        <input type="checkbox" id="exact-pick" /> exact pick (only on the line)
+      </label>
     </div>
     <div class="panels">
       <div class="panel">
@@ -52,10 +65,13 @@
     <pre class="paths" id="paths"></pre>
     <p class="note">
       Both panels draw the same cubic Bezier edges under the same viewport (<code>screen = world * zoom + pan</code>).
-      The GPU side samples each curve at 32 points and extrudes a fixed screen-pixel width along the tangent
-      normal; the SVG side is the browser's own Bezier rasterizer with <code>vector-effect="non-scaling-stroke"</code>
-      so its stroke width stays in screen pixels too. Wheel = zoom at cursor · drag = pan · hover = highlight ·
-      click = pick (reported in the readout).
+      The GPU side samples each curve at 32 points and extrudes the width along the tangent normal; by default
+      the width is in world units, so the thickness scales with zoom. The two checkboxes toggle the lines and
+      the grid between world-unit width and zoom-independent screen-pixel width (the SVG side mirrors the same
+      switch with <code>vector-effect="non-scaling-stroke"</code>). "exact pick" switches hover/click between
+      the default 8 screen-pixel tolerance (easy to pick thin lines in a graph) and picking only exactly on
+      the stroke. Wheel = zoom at cursor · drag = pan · hover = highlight · click = pick (reported in the
+      readout).
     </p>
     <script type="module">
       import { LineRenderer, edgeDistance, pickEdge, screenToWorld } from '../index.js'
@@ -71,7 +87,18 @@
       const readout = document.getElementById('readout')
       const gpuError = document.getElementById('gpu-error')
       const pathsEl = document.getElementById('paths')
-      const renderer = new LineRenderer(canvas, { segmentsPerCurve: 32, clear: [0.05, 0.05, 0.08, 1] })
+      const ssBox = document.getElementById('ss')
+      const linesScaleBox = document.getElementById('lines-scale')
+      const gridScaleBox = document.getElementById('grid-scale')
+      const exactPickBox = document.getElementById('exact-pick')
+      // Generous pick radius by default (easy picking of thin lines in a graph);
+      // 0 → exact, only the rendered stroke width
+      const pickRadiusPx = () => (exactPickBox.checked ? 0 : 8)
+      const renderer = new LineRenderer(canvas, {
+        segmentsPerCurve: 32,
+        clear: [0.05, 0.05, 0.08, 1],
+        // supersample stays 1 (plain 4x MSAA) until the user opts in
+      })
 
       // World-space edges — the exact data structure the renderer packs into the GPU buffer
       const edges = [
@@ -110,7 +137,7 @@
 
       // A straight line expressed as a colinear cubic Bezier, so the grid rides in the same
       // GPU buffer as the real edges (the renderer only knows how to draw cubics)
-      function straightEdge(x0, y0, x1, y1, width) {
+      function straightEdge(x0, y0, x1, y1, width, worldWidth = true) {
         return {
           x0,
           y0,
@@ -122,6 +149,7 @@
           y1,
           color: [0.149, 0.169, 0.22, 1],
           width,
+          worldWidth,
         }
       }
 
@@ -164,7 +192,7 @@
           el.setAttribute('y2', d)
           el.setAttribute('stroke', GRID_COLOR)
           el.setAttribute('stroke-width', 1)
-          el.setAttribute('vector-effect', 'non-scaling-stroke')
+          if (!gridScaleBox.checked) el.setAttribute('vector-effect', 'non-scaling-stroke')
           fragment.appendChild(el)
         }
         while (gridG.firstChild) gridG.firstChild.remove()
@@ -174,6 +202,8 @@
           const hov = i === hovered
           paths[i].setAttribute('stroke', hov ? 'rgb(255, 255, 255)' : rgba(e.color))
           paths[i].setAttribute('stroke-width', hov ? e.width + 2 : e.width)
+          if (linesScaleBox.checked) paths[i].removeAttribute('vector-effect')
+          else paths[i].setAttribute('vector-effect', 'non-scaling-stroke')
         }
       }
 
@@ -183,10 +213,15 @@
       function draw() {
         if (gpuOk) {
           const batch = []
-          for (const [a, b, c, d] of gridLines()) batch.push(straightEdge(a, b, c, d, 1))
+          for (const [a, b, c, d] of gridLines())
+            batch.push(straightEdge(a, b, c, d, 1, gridScaleBox.checked))
           for (let i = 0; i < edges.length; i++) {
             const e = edges[i]
-            batch.push(i === hovered ? { ...e, color: [1, 1, 1, 1], width: e.width + 2 } : e)
+            batch.push(
+              i === hovered
+                ? { ...e, color: [1, 1, 1, 1], width: e.width + 2, worldWidth: linesScaleBox.checked }
+                : { ...e, worldWidth: linesScaleBox.checked },
+            )
           }
           renderer.setViewport(view.panX, view.panY, view.zoom)
           renderer.render(batch)
@@ -219,7 +254,7 @@
       }
 
       function updateHover(mx, my) {
-        const hit = pickEdge(edges, mx, my, view.panX, view.panY, view.zoom)
+        const hit = pickEdge(edges, mx, my, view.panX, view.panY, view.zoom, 24, pickRadiusPx())
         const idx = hit ? edges.indexOf(hit) : -1
         if (idx === hovered) return false
         hovered = idx
@@ -230,7 +265,8 @@
         el.addEventListener('wheel', e => {
           e.preventDefault()
           zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? 1.1 : 0.9)
-          if (updateHover(e.offsetX, e.offsetY)) draw()
+          updateHover(e.offsetX, e.offsetY)
+          draw()
         }, { passive: false })
         el.addEventListener('pointerdown', e => {
           panning = true
@@ -256,7 +292,7 @@
           panning = false
           if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId)
           if (Math.hypot(e.offsetX - downX, e.offsetY - downY) < 4) {
-            const hit = pickEdge(edges, e.offsetX, e.offsetY, view.panX, view.panY, view.zoom)
+            const hit = pickEdge(edges, e.offsetX, e.offsetY, view.panX, view.panY, view.zoom, 24, pickRadiusPx())
             picked = hit ? edges.indexOf(hit) : -1
           }
           draw()
@@ -277,6 +313,20 @@
         view.panY = 0
         view.zoom = 1
         picked = -1
+        draw()
+      })
+
+      ssBox.addEventListener('change', () => {
+        if (gpuOk) {
+          renderer.setSupersample(ssBox.checked ? 2 : 1)
+          draw()
+        }
+      })
+      for (const box of [linesScaleBox, gridScaleBox]) {
+        box.addEventListener('change', draw)
+      }
+      exactPickBox.addEventListener('change', () => {
+        updateHover(cursorX, cursorY)
         draw()
       })
 
