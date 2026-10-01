@@ -402,7 +402,9 @@ editor.setLineLayer(layer) // swap the active layer
 `setLineLayer` takes every line off the old layer **before** disposing it (on the SVG layer that
 detaches the line `<g>`s, so the replacement layer must not draw them a second time), then
 re-adds the lines on the new layer and replays the current selection and view state
-(`onViewport(zoom)`, `onResize(w, h)`). Swapping to the same layer, or after `destroy()`, is a no-op.
+(`onViewport(zoom)`, `onResize(w, h)`). Swapping to the same layer, or after `destroy()`, is a no-op — with one exception: passing the layer
+that is already installed gives it the chance to come back from its own `dispose()` (see the
+`revive()` row below), so a layer a host disposed in place does not stay installed-but-dead.
 
 A layer implements:
 
@@ -410,13 +412,14 @@ A layer implements:
 | --- | --- |
 | `kind` | `'svg'` or `'canvas'` |
 | `el` | the layer element (the `svgLayer` for SVG, the canvas for the WebGPU layer) |
-| `add(line)` / `remove(line)` | put a `ConnectLine` on / off the layer |
+| `add(line)` / `remove(line)` | put a `ConnectLine` on / off the layer (`add` is idempotent) |
 | `setStates(line, selected, fromSel, toSel)` | selection state for one line |
 | `pick(clientX, clientY)` → line or `null` | line hit test (client coordinates) |
 | `onViewport(zoom)` | zoom changed (pan is 0 — the canvas scales from its top-left corner) |
 | `onResize(cssW, cssH)` | canvas area changed |
-| `ready` (canvas layers) | promise that resolves when the renderer is usable; rejects when WebGPU is unavailable/the renderer cannot start, or if the layer is disposed while it is still initialising (never left pending) |
-| `dispose()` | tear the layer down |
+| `ready` (canvas layers) | promise that resolves when the renderer is usable; rejects when WebGPU is unavailable/the renderer cannot start, or if the layer is disposed while it is still initialising (never left pending). It is a fresh promise per life, so a revived layer has a new one |
+| `dispose()` | release everything the layer owns; it may be terminal or not, depending on the layer |
+| `revive()` (optional) | undo `dispose()` and make the layer usable again. The SVG layer owns nothing, so it needs none; the canvas layer releases its GPU session + canvas element and comes back through this. The editor calls it for you: `onViewport`/`onResize` (the re-install path) revive first, and `setLineLayer(activeLayer)` revives explicitly |
 
 The editor calls these on every relevant event — `addConnector`/`removeLine`, `selectBlocks` /
 `selectConnector`, the zoom setter, and the resize observer — so a custom layer is all that a host
@@ -455,6 +458,26 @@ keeps working there too, and the loss raised by the layer's own `dispose()` is n
 Selection colours mirror the CSS rule order
 (to-selected > from-selected > selected > base black), and the pick radius mirrors the SVG hit
 path (4 px, like half of the 8 px transparent hit stroke).
+
+Disposal is not the end of a canvas layer: `dispose()` releases the GPU session, the editor-level
+listeners, the pixel-ratio watch and the canvas element, and `revive()` puts all of it back on a
+**new** GPU session — with a **new** `ready`, because the `ready` of the disposed life has already
+rejected with an `AbortError` when it was still pending. A host can therefore keep its canvas layer
+and hand it back instead of building another one:
+
+```js
+editor.setLineLayer(createSvgLineLayer(editor)) // disposes the canvas layer (its GPU is released)
+// ... later
+editor.setLineLayer(canvasLayer) // revives it: fresh GPU session, lines re-registered, drawings back
+```
+
+The editor drives this itself: the install path calls `onViewport`/`onResize` first and those
+revive, and `setLineLayer(layer)` with the layer that is **already installed** revives it explicitly
+(so a host that disposed the active layer does not leave a dead one in place). `layer.disposed` says
+whether a layer needs reviving, and the whole lifecycle is guarded by a generation counter — a GPU
+startup or an rAF frame belonging to a disposed life can neither draw into the revived layer nor
+publish a renderer over it, and the stale GPU session is released instead of leaking. `revive()`
+does nothing on a destroyed editor, where nothing would ever release the new session.
 
 Geometry: the canvas element covers the editor box in CSS pixels and its backing store is
 `editor box × devicePixelRatio`; the renderer viewport is `zoom × dpr` with pan `(0, 0)` (the editor

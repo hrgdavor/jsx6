@@ -41,6 +41,7 @@ with `bun run check --no-format`.
 | 8 | Demo: `onLost` → SVG fallback, `isSupported()` toggle probe | [index.jsx](../apps/nodditor/src/index.jsx#L131) |
 | 9 | `LineRenderer` fake-WebGPU tests (was zero coverage), nodditor layer tests | [index.test.js](../libs/line-render/index.test.js#L507), [lineLayer.test.jsx](../apps/nodditor/test/lineLayer.test.jsx) |
 | 10 | Docs: API list, "Device ownership and sharing" recipe, CHANGELOG entries | [libs README](../libs/line-render/README.md#L112), [nodditor README](../apps/nodditor/README.md#L425) |
+| 11 | [1.1](#11-dispose-is-terminal--decide-and-document)(b) revivable canvas layer: `revive()`, `layer.disposed`, idempotent `add`, generation-guarded GPU startup/rAF, `setLineLayer` revival | [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js#L463), [NodeEditor.jsx](../apps/nodditor/src/NodeEditor.jsx#L1601), [lineLayer.js](../apps/nodditor/src/lineLayer.js#L10), tests in [lineLayer.test.jsx](../apps/nodditor/test/lineLayer.test.jsx#L499) |
 
 ---
 
@@ -48,27 +49,38 @@ with `bun run check --no-format`.
 
 ### 1.1 `dispose()` is terminal — decide and document
 
+**Landed — option (b), revivable.** `dispose()` now releases the GPU session, listeners,
+pixel-ratio watch and canvas element while keeping the layer object alive; `revive()` restores all
+of it on a fresh GPU session and a fresh `ready`, the editor revives on the install path
+(`onViewport`/`onResize`) and explicitly for `setLineLayer(activeLayer)`, and a generation counter
+keeps a stale GPU startup or rAF frame from publishing over the new life. See
+[canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js#L463) and the `revive()` row of the
+[LineLayer contract](../apps/nodditor/README.md#L409). The text below is the original analysis.
+
 **What.** A disposed canvas layer can never be installed again: `dispose()` sets `disposed = true`
 and a second call is a no-op, so `layer.dispose()` → `editor.setLineLayer(layer)` leaves a dead
 layer installed (blank canvas, no drawing, `pick()` still answering from a stale edge list).
 
 **Where.** [canvasLineLayer.js:108](../apps/nodditor/src/canvasLineLayer.js#L108) (`disposed`),
-[`dispose()`](../apps/nodditor/src/canvasLineLayer.js#L365).
+[`dispose()`](../apps/nodditor/src/canvasLineLayer.js#L435).
 
-**Approach — pick one, do not leave it implicit:**
+**Approach — the two options that were on the table:**
 
 - **(a) Document it (S).** One row in the `LineLayer` contract table in the nodditor README
   ("`dispose()` is terminal — a layer is not reusable after it; build a new one") plus a sentence in
   the factory JSDoc. Zero behaviour change; the demo already builds a fresh layer per toggle.
-- **(b) Make it revivable (M).** Rename the flag to `destroyed` and add `revive()` (or make
-  `dispose()` release the renderer/listeners but keep the object re-addable). This needs a per-call
-  generation counter so a rAF/`ready` continuation from the *old* life cannot resurrect state.
+- **(b) Make it revivable (M).** `dispose()` releases the renderer/listeners/canvas but keeps the
+  object re-addable, with a per-life generation counter so a rAF/`ready`/GPU-startup continuation from
+  the *old* life cannot resurrect state or publish over the new one. **← implemented** (see the
+  status note above; the "stale edges / stale `ready`" footguns this option was warned about are what
+  the counter and the fresh-promise-per-life design exist to prevent — a disposed life's `ready`
+  rejects, the next life gets a new promise, and `dispose()` still clears the edge list).
 
-**Recommendation:** (a). The layer is cheap to rebuild, and (b) buys a footgun (stale edges, stale
-`ready` promise) for no use case in this repo.
-
-**Tests:** (a) none beyond a doc assertion; (b) a test that a revived layer draws again and that the
-old `ready`/rAF does not interfere.
+**Tests landed:** `revive()` on a live layer is a no-op (same `ready`, no second GPU session); a
+disposed layer is revived by re-installing it (canvas back in place, second session, drawing, picking,
+lines re-registered); `setLineLayer` on the active disposed layer revives in place; a GPU startup from
+a disposed life releases its device and never publishes (the revived session is the one that draws);
+`revive()` does nothing on a destroyed editor; `add()` is idempotent.
 
 ---
 
@@ -509,7 +521,7 @@ Each batch is one reviewable change set (tests + docs inside it).
 
 | Batch | Contents | Why together | Effort |
 | ----- | -------- | ------------ | ------ |
-| **A** | [6.1](#61-real-layer-parity-test--browser-check) browser check → policy, + parity test + demo edge; [5.4](#54-document-the-pick-semantics), [6.2](#62-pickedge-doc-the-worldwidth-default), [6.3](#63-migration-tables-parselinepath-is-the-only-bridge-that-grows), [1.1](#11-dispose-is-terminal--decide-and-document)(a) | Small, closes out the landed work honestly, needs no code decisions | S |
+| **A** | [6.1](#61-real-layer-parity-test--browser-check) browser check → policy, + parity test + demo edge; [5.4](#54-document-the-pick-semantics), [6.2](#62-pickedge-doc-the-worldwidth-default), [6.3](#63-migration-tables-parselinepath-is-the-only-bridge-that-grows) | Small, closes out the landed work honestly, needs no code decisions ([1.1](#11-dispose-is-terminal--decide-and-document)(b) already landed) | S |
 | **B** | [3.1](#31-pickedge-aabb-prefilter-allocation-free-distance-early-exit) picker, then [2.1](#21-numeric-edge-as-the-source-of-truth) + [3.3](#33-edgeline-mutation) | The picker prefilter is what makes per-move picking affordable; the numeric edge removes the parse that feeds it | M |
 | **C** | [5.1](#51-one-theme-for-both-layers-css-custom-properties) theme vars, [5.2](#52-install-helper--honest-loadlinerender-failure) install helper, [5.3](#53-pass-the-renderer-options-through) options pass-through | Integration ergonomics; C's theme work depends on nothing, the rest benefits from B | M |
 | **D** | [2.2](#22-directions-belongs-in-the-connector-formula) directions + [2.3](#23-formula-parity-test) parity test, [5.5](#55-lazy-line-element) lazy element | Connector-model change; land it when vertical ports are actually needed, not before | M |
@@ -523,7 +535,8 @@ Each batch is one reviewable change set (tests + docs inside it).
 1. **The `worldWidth` policy.** Is "constant 2 CSS px" the target for the canvas layer, and what does
    `non-scaling-stroke` actually do under the ancestor `transform: scale()` in Chrome? The landed fix
    makes the flag work; it does not prove the intent. Batch A's browser check resolves this.
-2. **Terminal vs revivable `dispose()`** ([1.1](#11-dispose-is-terminal--decide-and-document)).
+2. ~~Terminal vs revivable `dispose()`~~ — **decided: revivable** (option (b)), see
+   [1.1](#11-dispose-is-terminal--decide-and-document).
 3. **Optional-dependency version guard.** `makeCanvasLineLayer` now calls
    `LineRenderer.isSupported()`/`create()` unguarded, so an older installed `@jsx6/line-render` breaks
    it (it already needed the `worldWidth` fix anyway). Choose: bump the declared dependency, add a

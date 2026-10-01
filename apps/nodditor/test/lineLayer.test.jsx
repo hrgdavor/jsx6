@@ -496,6 +496,154 @@ test('canvas layer: a device pixel ratio change resizes the backing store and th
   }
 })
 
+// ---------- disposal and revival ----------
+
+test('canvas layer: revive on a live layer is a no-op', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+  const firstReady = layer.ready
+  const frames = fx.rendered.length
+
+  layer.revive()
+  expect(layer.disposed).toBe(false)
+  expect(layer.ready).toBe(firstReady) // same life, same promise
+  expect(fx.created.length).toBe(1) // and no second GPU session
+  await waitFrame()
+  expect(fx.rendered.length).toBe(frames) // nothing was rescheduled
+  layer.dispose()
+})
+
+test('canvas layer: a disposed layer is revived by re-installing it', async () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+  const firstReady = layer.ready
+
+  // swap to SVG: `setLineLayer` disposes the canvas layer on the way out
+  editor.setLineLayer(createSvgLineLayer(editor))
+  expect(layer.disposed).toBe(true)
+  expect(layer.el.parentNode).toBeNull()
+  // the ready of a life that never settled is aborted; this one had RESOLVED, so it
+  // stays resolved — only the next life gets a new promise (asserted below)
+  await expect(firstReady).resolves.toBeUndefined()
+
+  // hand the SAME layer back: `onViewport` revives it
+  editor.setLineLayer(layer)
+  expect(layer.disposed).toBe(false)
+  expect(layer.ready).not.toBe(firstReady) // a fresh life gets a fresh promise
+  await layer.ready
+  await waitFrame()
+
+  // back where it belongs, on a NEW GPU session, drawing against the live lines
+  const kids = [...editor.childNodes]
+  expect(kids.indexOf(layer.el)).toBeLessThan(kids.indexOf(editor.contentArea))
+  expect(fx.created.length).toBe(2)
+  expect(fx.renderers.at(-1).id).toBe(2)
+  expect(fx.rendered.at(-1).length).toBe(1)
+  // revive registered the editor's lines itself (the editor re-adds them too, idempotently)
+  expect(line.pathListeners.length).toBe(1)
+  const [px, py] = curveMidpoint(line)
+  expect(layer.pick(px, py)).toBe(line)
+})
+
+test('canvas layer: setLineLayer on the ACTIVE disposed layer revives it in place', async () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+
+  // a host that disposes the layer the editor is still using
+  layer.dispose()
+  expect(layer.disposed).toBe(true)
+  expect(layer.el.parentNode).toBeNull()
+
+  editor.setLineLayer(layer) // same-layer call: revive instead of a silent no-op
+  expect(layer.disposed).toBe(false)
+  await layer.ready
+  await waitFrame()
+  expect(fx.created.length).toBe(2)
+  expect(fx.rendered.at(-1).length).toBe(1)
+  // the editor did NOT re-add the lines on this path, so revive must have
+  expect(line.pathListeners.length).toBe(1)
+  // ... and re-adding them anyway must not double-subscribe
+  layer.add(line)
+  layer.add(line)
+  expect(line.pathListeners.length).toBe(1)
+
+  const [px, py] = curveMidpoint(line)
+  expect(layer.pick(px, py)).toBe(line)
+})
+
+test('canvas layer: a GPU startup from a disposed life never publishes over the new one', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  /** @type {Array<() => void>} one resolver per `init()` call */
+  const gates = []
+  const fx = fakeLr({ initGate: () => new Promise(resolve => gates.push(resolve)) })
+  const layer = makeCanvasLineLayer(editor, fx) // life 0 — waits on gates[0]
+  editor.setLineLayer(layer)
+  const firstReady = layer.ready
+  expect(gates.length).toBe(1)
+
+  layer.dispose() // disposed while the GPU was still starting
+  await expect(firstReady).rejects.toThrow(/disposed/)
+  layer.revive() // life 2 — waits on gates[1]
+  expect(gates.length).toBe(2)
+
+  // the OLD startup finishes: it must release its device and never publish
+  gates[0]()
+  await waitFrame()
+  expect(fx.disposedCount).toBe(1)
+  expect(fx.rendered.length).toBe(0)
+  expect(layer.disposed).toBe(false) // and must not disturb the current life
+
+  // the current startup finishes: THIS one draws
+  gates[1]()
+  await layer.ready
+  await waitFrame()
+  expect(fx.created.length).toBe(2)
+  expect(fx.renderers.at(-1).id).toBe(2)
+  expect(fx.rendered.length).toBeGreaterThan(0)
+
+  // ... and a frame from the old life cannot draw either (the counter is checked)
+  expect(fx.renderers.filter(r => r.id === 1).length).toBe(0)
+  layer.dispose()
+  expect(fx.disposedCount).toBe(2) // the live session is releasable
+})
+
+test('canvas layer: revive does nothing on a destroyed editor', async () => {
+  addTwoBlocks()
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  await layer.ready
+
+  layer.dispose()
+  editor.destroy()
+  layer.revive()
+
+  // reviving here would acquire a GPU session that nothing can ever release
+  expect(layer.disposed).toBe(true)
+  expect(layer.el.parentNode).toBeNull()
+  expect(fx.created.length).toBe(1)
+})
+
 // ---------- setLineLayer ----------
 
 test('setLineLayer: swapping back to SVG restores the <g> lines and their states', async () => {

@@ -100,6 +100,19 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
   adapter/device request and `dispose()` (including the one `setLineLayer` does on a swap)
   no longer destroys a device it does not own. A device lost by its owner is reported to
   every layer drawing on it.
+- A canvas line layer is no longer dead after `dispose()`: `revive()` brings the same layer
+  back — same canvas element, re-armed listeners and pixel-ratio watch, the editor's lines
+  re-registered, and a fresh GPU session with a fresh `ready` (the disposed life's `ready`
+  rejects with an `AbortError`, as before). The editor does it for you: the install path
+  revives through `onViewport`/`onResize`, and `setLineLayer(layer)` with the layer that is
+  already installed revives it explicitly instead of silently no-op'ing — so a host that
+  disposed its active layer no longer ends up with an installed-but-dead one, and a host
+  that caches its canvas layer can hand it back rather than build another. `layer.disposed`
+  reports whether a layer needs reviving. A generation counter guards the lifecycle: a GPU
+  startup or an rAF frame belonging to a disposed life cannot publish over (or draw into)
+  the revived one, and the stale session is released instead of leaking. Reviving is refused
+  on a destroyed editor. The `LineLayer` contract gained the optional `revive()`, and `add()`
+  is now idempotent so a re-install cannot double-subscribe a line.
 - Fixed (canvas line layer): the parsed connectors now really opt out of the world-unit
   stroke width. `makeCanvasLineLayer` passes `worldWidth: false` (2 CSS px at any zoom, the
   policy the SVG layer expresses with `vector-effect: non-scaling-stroke`), but

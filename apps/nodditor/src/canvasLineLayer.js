@@ -406,7 +406,7 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
       zoom = z
       // the editor calls this FIRST when it installs a layer, so a disposed layer
       // comes back here (see `revive`)
-      revive()
+      layer.revive()
       if (renderer) renderer.setViewport(0, 0, zoom * dpr())
       scheduleRender()
     },
@@ -419,7 +419,7 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
       // fires; treat that as "no size yet" rather than NaN.
       cssW = w || 0
       cssH = h || 0
-      revive()
+      layer.revive()
       applySize()
     },
     /**
