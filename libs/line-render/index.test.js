@@ -9,6 +9,7 @@ import {
   edgeDistance,
   edgeToPath,
   lineEdge,
+  LineRenderer,
   makeConnector,
   packEdges,
   parseLinePath,
@@ -179,6 +180,32 @@ test('parseLinePath parses nodditor connector paths', () => {
 test('parseLinePath rejects non-M/C input', () => {
   expect(() => parseLinePath('M0 0 L1 1')).toThrow()
   expect(() => parseLinePath('not a path')).toThrow()
+})
+
+test('parseLinePath carries worldWidth: false through to the packed buffer', () => {
+  const d = 'M0 0 C10 0 20 10 30 10'
+  const px = parseLinePath(d, { width: 2, worldWidth: false })
+  expect(px.worldWidth).toBe(false)
+  expect(packEdges([px])[13]).toBe(0)
+  // omitting the flag is the world-unit default — it is only recorded when false
+  expect('worldWidth' in parseLinePath(d)).toBe(false)
+  expect(packEdges([parseLinePath(d, { worldWidth: true })])[13]).toBe(1)
+})
+
+test('packEdges reuses a scratch buffer and only writes the live prefix', () => {
+  const scratch = new Float32Array(48)
+  const two = [line, { ...line, x0: 7, y0: 8 }]
+  const packed = packEdges(two, scratch)
+  expect(packed).toBe(scratch) // reused, not reallocated
+  expect(packed[16]).toBe(7)
+  expect(packed[17]).toBe(8)
+  // too small for the batch: an exactly sized array is allocated instead
+  const small = new Float32Array(16)
+  const fresh = packEdges(two, small)
+  expect(fresh).not.toBe(small)
+  expect(fresh.length).toBe(32)
+  expect(fresh[16]).toBe(7)
+  expect(packEdges([], scratch).length).toBe(0)
 })
 
 test('edgeToPath round-trips parseLinePath', () => {
@@ -461,4 +488,373 @@ test('shape helpers pass worldWidth: false through to the buffer', () => {
       ])[0],
     ])[13],
   ).toBe(1)
+})
+
+// ---------- LineRenderer, against a fake WebGPU device ----------
+//
+// There is no GPU (and no happy-dom) in this package's test run, so the renderer
+// is driven through a recorded fake: the members it touches are stubbed, and the
+// assertions are about the bookkeeping a real device cannot show anyway — the
+// upload size of a frame, the lifetime of a buffer/bind group, and teardown.
+
+/**
+ * A fake `navigator.gpu` + canvas that records what `LineRenderer` asks for.
+ *
+ * `makeDevice()` hands out another device (several renderers can share one, which
+ * is what the borrowed-device tests do) and `lose(info)` resolves the `lost`
+ * promise every fake device shares (as `destroy()` does too).
+ */
+function fakeGpu() {
+  let resolveLost
+  const lost = new Promise(resolve => (resolveLost = resolve))
+  const calls = {
+    adapters: 0,
+    devices: 0,
+    bindGroups: 0,
+    buffers: [],
+    writes: [],
+    draws: [],
+    destroyed: [],
+    unconfigured: 0,
+  }
+  const makeDevice = () => {
+    calls.devices++
+    const device = {
+      queue: {
+        writeBuffer(buffer, offset, data) {
+          calls.writes.push({ buffer, offset, data })
+        },
+        submit() {},
+      },
+      lost,
+      destroy() {
+        calls.destroyed.push(device)
+        resolveLost({ reason: 'destroyed', message: 'destroyed' })
+      },
+      createShaderModule: () => ({}),
+      createRenderPipeline: () => ({ getBindGroupLayout: () => ({}) }),
+      createBuffer: descriptor => {
+        const buffer = { descriptor, destroy() {} }
+        calls.buffers.push(buffer)
+        return buffer
+      },
+      createTexture: () => ({ createView: () => ({}), destroy() {} }),
+      createBindGroup: () => {
+        calls.bindGroups++
+        return {}
+      },
+      createSampler: () => ({}),
+      createCommandEncoder: () => ({
+        beginRenderPass: () => ({
+          setPipeline() {},
+          setBindGroup() {},
+          draw(vertexCount, instanceCount) {
+            calls.draws.push([vertexCount, instanceCount])
+          },
+          end() {},
+        }),
+        finish: () => ({}),
+      }),
+    }
+    return device
+  }
+  const canvas = {
+    width: 200,
+    height: 100,
+    getContext: () => ({
+      configure() {},
+      unconfigure() {
+        calls.unconfigured++
+      },
+      getCurrentTexture: () => ({ createView: () => ({}) }),
+    }),
+  }
+  const gpu = {
+    getPreferredCanvasFormat: () => 'bgra8unorm',
+    async requestAdapter() {
+      calls.adapters++
+      return { requestDevice: async () => makeDevice() }
+    },
+  }
+  return { gpu, canvas, calls, makeDevice, lose: info => resolveLost(info) }
+}
+
+/** The WebGPU usage bit flags (spec values) as `globalThis` members for the fake run. */
+const GPU_USAGE_GLOBALS = {
+  GPUBufferUsage: {
+    MAP_READ: 1,
+    MAP_WRITE: 2,
+    COPY_SRC: 4,
+    COPY_DST: 8,
+    INDEX: 16,
+    VERTEX: 32,
+    UNIFORM: 64,
+    STORAGE: 128,
+    INDIRECT: 256,
+    QUERY_RESOLVE: 512,
+  },
+  GPUTextureUsage: {
+    COPY_SRC: 1,
+    COPY_DST: 2,
+    TEXTURE_BINDING: 4,
+    STORAGE_BINDING: 8,
+    RENDER_ATTACHMENT: 16,
+  },
+}
+
+/** Run `fn` with `globalThis[name]` replaced for the duration, then restore. */
+async function withGlobals(values, fn) {
+  const saved = Object.entries(values).map(([name, value]) => [
+    name,
+    Object.getOwnPropertyDescriptor(globalThis, name),
+    value,
+  ])
+  for (const [name, , value] of saved)
+    Object.defineProperty(globalThis, name, { value, configurable: true, writable: true })
+  try {
+    return await fn()
+  } finally {
+    for (const [name, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor)
+      else delete globalThis[name]
+    }
+  }
+}
+
+/** Run `fn` with `navigator.gpu` (and the usage flags) replaced by a fake device. */
+async function withFakeGpu(fn) {
+  const fake = fakeGpu()
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis.navigator, 'gpu')
+  Object.defineProperty(globalThis.navigator, 'gpu', { value: fake.gpu, configurable: true, writable: true })
+  try {
+    await withGlobals(GPU_USAGE_GLOBALS, () => fn(fake))
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis.navigator, 'gpu', descriptor)
+    else delete globalThis.navigator.gpu
+  }
+}
+
+/** Let the queued `device.lost` callback run. */
+const tick = () => new Promise(resolve => setTimeout(resolve, 0))
+
+test('LineRenderer reuses one bind group and one pack scratch across frames', async () => {
+  await withFakeGpu(async fake => {
+    const renderer = new LineRenderer(fake.canvas, {})
+    await renderer.init()
+    const two = [line, { ...line, x0: 7, y0: 8 }]
+
+    renderer.render(two)
+    renderer.render(two)
+    expect(fake.calls.bindGroups).toBe(1) // created once, then cached
+    expect(fake.calls.draws).toEqual([
+      [66, 2],
+      [66, 2],
+    ]) // (segmentsPerCurve + 1) * 2, instances
+
+    // outgrow the edge buffer (it is allocated in 256-float steps): the buffer is
+    // replaced, which invalidates the cached bind group
+    const many = Array.from({ length: 17 }, (_, i) => ({ ...line, x0: i }))
+    renderer.render(many)
+    expect(fake.calls.bindGroups).toBe(2)
+    const grown = fake.calls.writes.filter(w => w.buffer === renderer.edgeBuffer).at(-1)
+    expect(grown.data.length).toBe(17 * 16)
+
+    // shrinking reuses the bigger scratch but uploads only the live prefix
+    renderer.render([line])
+    const shrunk = fake.calls.writes.filter(w => w.buffer === renderer.edgeBuffer).at(-1)
+    expect(shrunk.data.length).toBe(16)
+    expect(shrunk.data[0]).toBe(0)
+
+    renderer.dispose()
+  })
+})
+
+test('LineRenderer.dispose releases the device without reporting it as a loss', async () => {
+  await withFakeGpu(async fake => {
+    const lost = []
+    const renderer = new LineRenderer(fake.canvas, { onLost: info => lost.push(info) })
+    await renderer.init()
+    renderer.render([line])
+
+    renderer.dispose()
+    await tick()
+    expect(fake.calls.unconfigured).toBe(1)
+    expect(fake.calls.destroyed.length).toBe(1)
+    expect(lost).toEqual([]) // our own teardown is not a device loss
+    expect(renderer.lost).toBe(false)
+
+    expect(() => renderer.render([line])).toThrow(/init\(\) must be called/)
+    expect(() => renderer.dispose()).not.toThrow() // idempotent
+  })
+})
+
+test('LineRenderer reports an external device loss once and refuses to draw', async () => {
+  await withFakeGpu(async fake => {
+    const lost = []
+    const renderer = new LineRenderer(fake.canvas, { onLost: info => lost.push(info) })
+    await renderer.init()
+    renderer.render([line])
+
+    fake.lose({ reason: 'unknown', message: 'gpu reset' })
+    await tick()
+    expect(lost).toEqual([{ reason: 'unknown', message: 'gpu reset' }])
+    expect(renderer.lost).toBe(true)
+    expect(() => renderer.render([line])).toThrow(/device was lost/)
+  })
+})
+
+test('LineRenderer.init fails clearly without WebGPU', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis.navigator, 'gpu')
+  Object.defineProperty(globalThis.navigator, 'gpu', { value: undefined, configurable: true, writable: true })
+  try {
+    const renderer = new LineRenderer({ width: 1, height: 1 }, {})
+    await expect(renderer.init()).rejects.toThrow(/WebGPU is not available/)
+    expect(() => renderer.dispose()).not.toThrow()
+  } finally {
+    Object.defineProperty(globalThis.navigator, 'gpu', {
+      value: original?.value,
+      configurable: true,
+      writable: true,
+    })
+  }
+})
+
+// ---------- the host-facing capability helpers ----------
+
+test('LineRenderer.isSupported probes navigator.gpu synchronously', async () => {
+  await withFakeGpu(async () => {
+    expect(LineRenderer.isSupported()).toBe(true)
+  })
+  // `withFakeGpu` restores the real (bun) `navigator.gpu`, which does not exist
+  expect(LineRenderer.isSupported()).toBe(false)
+})
+
+test('LineRenderer.create resolves with a ready renderer', async () => {
+  await withFakeGpu(async fake => {
+    const renderer = await LineRenderer.create(fake.canvas, { clear: [0, 0, 0, 0] })
+    expect(renderer).toBeInstanceOf(LineRenderer)
+    expect(renderer.clear).toEqual([0, 0, 0, 0])
+    renderer.render([line])
+    expect(fake.calls.draws).toEqual([[66, 1]])
+    renderer.dispose()
+  })
+})
+
+test('LineRenderer.create resolves with null (and warns) when the GPU is unavailable', async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis.navigator, 'gpu')
+  Object.defineProperty(globalThis.navigator, 'gpu', { value: undefined, configurable: true, writable: true })
+  const warnings = []
+  const realWarn = console.warn
+  console.warn = msg => warnings.push(String(msg))
+  try {
+    const renderer = await LineRenderer.create({ width: 1, height: 1 })
+    expect(renderer).toBeNull()
+    expect(warnings.length).toBe(1)
+    expect(warnings[0]).toMatch(/LineRenderer\.create\(\): WebGPU is not available/)
+  } finally {
+    console.warn = realWarn
+    Object.defineProperty(globalThis.navigator, 'gpu', {
+      value: descriptor?.value,
+      configurable: true,
+      writable: true,
+    })
+  }
+})
+
+test('LineRenderer.create still throws on a usage error and releases what it acquired', async () => {
+  await withFakeGpu(async fake => {
+    // a bad option is a programming error, not a missing GPU: it must not be
+    // reported as "no renderer available"
+    await expect(LineRenderer.create(fake.canvas, { supersample: 0 })).rejects.toThrow(/positive integer/)
+    expect(fake.calls.adapters).toBe(0)
+  })
+})
+
+// ---------- device sharing (the borrowed `device` option) ----------
+
+test('a borrowed device is used without requesting an adapter and survives dispose', async () => {
+  await withFakeGpu(async fake => {
+    const shared = fake.makeDevice()
+    const renderer = new LineRenderer(fake.canvas, { device: shared })
+    expect(renderer.device).toBe(shared) // readable before init
+    expect(renderer.ownsDevice).toBe(false)
+
+    await renderer.init()
+    expect(fake.calls.adapters).toBe(0) // no requestAdapter()
+    expect(fake.calls.devices).toBe(1) // only the device the test made
+    renderer.render([line])
+
+    renderer.dispose()
+    await tick()
+    expect(fake.calls.unconfigured).toBe(1) // the CONTEXT is still released
+    expect(fake.calls.destroyed).toEqual([]) // ... but the device is the caller's
+    expect(shared.destroy).toBeFunction()
+  })
+})
+
+test('one device behind two renderers: one request, both draw, one dispose is not fatal', async () => {
+  await withFakeGpu(async fake => {
+    const shared = fake.makeDevice()
+    const canvasB = { ...fake.canvas, getContext: fake.canvas.getContext }
+    const a = await LineRenderer.create(fake.canvas, { device: shared })
+    const b = await LineRenderer.create(canvasB, { device: shared })
+    expect(fake.calls.adapters).toBe(0)
+    expect(fake.calls.devices).toBe(1)
+
+    a.render([line])
+    b.render([line, { ...line, x0: 3 }])
+    expect(fake.calls.draws).toEqual([
+      [66, 1],
+      [66, 2],
+    ])
+
+    // disposing one renderer releases only its own context and buffers
+    a.dispose()
+    expect(fake.calls.unconfigured).toBe(1)
+    expect(fake.calls.destroyed).toEqual([])
+    b.render([line]) // the survivor keeps drawing on the shared device
+    b.dispose()
+    expect(fake.calls.unconfigured).toBe(2)
+  })
+})
+
+test('destroying a shared device is reported as a loss to every borrower', async () => {
+  await withFakeGpu(async fake => {
+    const shared = fake.makeDevice()
+    const lost = []
+    const renderer = await LineRenderer.create(fake.canvas, {
+      device: shared,
+      onLost: info => lost.push(info),
+    })
+    // the owner (not this renderer) destroys the device
+    shared.destroy()
+    await tick()
+    expect(lost).toEqual([{ reason: 'destroyed', message: 'destroyed' }])
+    expect(renderer.lost).toBe(true)
+    expect(() => renderer.render([line])).toThrow(/device was lost/)
+    renderer.dispose() // must not destroy it a second time
+    expect(fake.calls.destroyed.length).toBe(1)
+  })
+})
+
+test('a borrowed device works even when navigator.gpu is gone (format fallback)', async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis.navigator, 'gpu')
+  Object.defineProperty(globalThis.navigator, 'gpu', { value: undefined, configurable: true, writable: true })
+  try {
+    const fake = fakeGpu()
+    await withGlobals(GPU_USAGE_GLOBALS, async () => {
+      const renderer = new LineRenderer(fake.canvas, { device: fake.makeDevice() })
+      await renderer.init()
+      expect(renderer.format).toBe('bgra8unorm')
+      renderer.render([line])
+      expect(fake.calls.draws).toEqual([[66, 1]])
+      renderer.dispose()
+    })
+  } finally {
+    Object.defineProperty(globalThis.navigator, 'gpu', {
+      value: descriptor?.value,
+      configurable: true,
+      writable: true,
+    })
+  }
 })

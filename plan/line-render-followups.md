@@ -1,0 +1,555 @@
+# line-render + nodditor — remaining suggestions (implementation plan)
+
+**Status: open work.** This plan covers every suggestion from the `@jsx6/line-render` /
+`@jsx6/nodditor` review that has **not** been implemented yet. The items that did land are listed
+in [§0](#0-what-already-landed) so nothing below re-does them and the starting tree is unambiguous.
+
+**Read first (fresh agent):**
+
+1. [libs/line-render/README.md](../libs/line-render/README.md) — especially "Device ownership and
+   sharing" and the `LineRenderer` API list; the library's identity is "everything is a cubic
+   Bézier, one instanced draw call, 64-byte stride".
+2. [apps/nodditor/README.md](../apps/nodditor/README.md) §"Line layer" — the layer contract and the
+   WebGPU canvas layer.
+3. [libs/line-render/src/curve.js](../libs/line-render/src/curve.js) (picking, packing),
+   [src/renderer.js](../libs/line-render/src/renderer.js) (GPU lifetime),
+   [src/shader.js](../libs/line-render/src/shader.js) (the vertex/fragment stages),
+   [apps/nodditor/src/canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) (the seam).
+4. [libs/line-render/docs/webgpu-pitfalls.md](../libs/line-render/docs/webgpu-pitfalls.md) — the
+   catalogue of bugs that were found by hand; item [§6.1](#61-real-layer-parity-test--browser-check)
+   exists to make that catalogue unnecessary.
+
+**House rules that apply to every batch below:** `bun test` per package / `bun run test` at the
+root discovers them; `bun run check:fast` = tests + `tsc --noEmit`; `bun run check` = the full gate.
+`oxfmt` refuses to format `*.md` (ignored) and **fails with `spawn EPERM` on 6 HTML files in a
+sandboxed shell** — that step needs an unrestricted shell, everything else of the gate runs fine
+with `bun run check --no-format`.
+
+---
+
+## 0. What already landed
+
+| # | Suggestion | Where it landed |
+| - | ---------- | --------------- |
+| 1 | `parseLinePath` silently dropped `worldWidth` (canvas lines scaled with zoom) | [path.js](../libs/line-render/src/path.js#L24), test in [index.test.js](../libs/line-render/index.test.js#L185) |
+| 2 | Sampler typo `mipFilterMode` → `mipmapFilter` | [renderer.js](../libs/line-render/src/renderer.js#L273) |
+| 3 | `packEdges(edges, out)` scratch reuse (no per-frame `Float32Array`) | [curve.js](../libs/line-render/src/curve.js#L204) |
+| 4 | Cached edge bind group (was one `createBindGroup` per frame) | [renderer.js](../libs/line-render/src/renderer.js#L423) |
+| 5 | Device-lost hook + full `dispose()` teardown (`unconfigure`, `device.destroy()`, idempotent) | [renderer.js](../libs/line-render/src/renderer.js#L472) |
+| 6 | Capability helpers: `isSupported()`, `create()`, borrowed `opts.device` (`ownsDevice`) | [renderer.js](../libs/line-render/src/renderer.js#L170) |
+| 7 | Canvas layer: dispose race, `ready` settles (`AbortError`), `onLost`, DPR watch, device forwarding, uses `isSupported`/`create` | [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) |
+| 8 | Demo: `onLost` → SVG fallback, `isSupported()` toggle probe | [index.jsx](../apps/nodditor/src/index.jsx#L131) |
+| 9 | `LineRenderer` fake-WebGPU tests (was zero coverage), nodditor layer tests | [index.test.js](../libs/line-render/index.test.js#L507), [lineLayer.test.jsx](../apps/nodditor/test/lineLayer.test.jsx) |
+| 10 | Docs: API list, "Device ownership and sharing" recipe, CHANGELOG entries | [libs README](../libs/line-render/README.md#L112), [nodditor README](../apps/nodditor/README.md#L425) |
+
+---
+
+## 1. Lifecycle leftover
+
+### 1.1 `dispose()` is terminal — decide and document
+
+**What.** A disposed canvas layer can never be installed again: `dispose()` sets `disposed = true`
+and a second call is a no-op, so `layer.dispose()` → `editor.setLineLayer(layer)` leaves a dead
+layer installed (blank canvas, no drawing, `pick()` still answering from a stale edge list).
+
+**Where.** [canvasLineLayer.js:108](../apps/nodditor/src/canvasLineLayer.js#L108) (`disposed`),
+[`dispose()`](../apps/nodditor/src/canvasLineLayer.js#L365).
+
+**Approach — pick one, do not leave it implicit:**
+
+- **(a) Document it (S).** One row in the `LineLayer` contract table in the nodditor README
+  ("`dispose()` is terminal — a layer is not reusable after it; build a new one") plus a sentence in
+  the factory JSDoc. Zero behaviour change; the demo already builds a fresh layer per toggle.
+- **(b) Make it revivable (M).** Rename the flag to `destroyed` and add `revive()` (or make
+  `dispose()` release the renderer/listeners but keep the object re-addable). This needs a per-call
+  generation counter so a rAF/`ready` continuation from the *old* life cannot resurrect state.
+
+**Recommendation:** (a). The layer is cheap to rebuild, and (b) buys a footgun (stale edges, stale
+`ready` promise) for no use case in this repo.
+
+**Tests:** (a) none beyond a doc assertion; (b) a test that a revived layer draws again and that the
+old `ready`/rAF does not interfere.
+
+---
+
+## 2. Connector model (both packages)
+
+### 2.1 Numeric edge as the source of truth
+
+**What.** The canvas layer reconstructs geometry by regex-parsing the SVG `d` string that
+`ConnectLine.updatePath()` just formatted: `makeLineConnector(...)` → `d` → `parseLinePath(d)` →
+`Edge`. The round-trip through text is the per-frame cost in
+[`buildEdges`](../apps/nodditor/src/canvasLineLayer.js#L142) and the reason `pick`/hover need to
+re-parse at all.
+
+**Where.** [makeLineConnector.js](../apps/nodditor/src/makeLineConnector.js#L16),
+[ConnectLine.updatePath](../apps/nodditor/src/ConnectLine.js#L137),
+[canvasLineLayer.buildEdges](../apps/nodditor/src/canvasLineLayer.js#L142),
+[path.js](../libs/line-render/src/path.js#L62).
+
+**Approach.**
+
+1. Add `connectorEdge(p1, p2, strength, dir1, dir2)` to `libs/line-render/src/path.js` returning an
+   `Edge` (control points `p1 + strength` / `p2 - strength` along the port direction), and express
+   the existing `makeConnector` as `edgeToPath(connectorEdge(...))` so there is one formula.
+2. In nodditor, `ConnectLine.updatePath()` writes `this.edge = connectorEdge(...)` **and** keeps
+   `this.d = edgeToPath(this.edge)` for the SVG layer (the `d` stays the SVG contract; it is no
+   longer the canvas layer's input).
+3. `buildEdges` copies `{ ...line.edge, color, width, worldWidth: false }` — no regex, no parse per
+   frame — and the `d`-keyed cache suggestion from the review disappears with it.
+
+**Watch out.** `ConnectLine` must keep working **without** `@jsx6/line-render` (optional
+dependency). Either guard the import (`loadLineRender()` already returns `null`) or keep the local
+`makeLineConnector` as the fallback and assert both produce the same `d` (see 2.3).
+
+**Tests.** `ConnectLine.edge` matches `parseLinePath(line.d)` numerically; nodditor layer test that
+`buildEdges` output is unchanged (same numbers) before/after the refactor.
+
+**Effort:** M. **Unlocks:** [3.3](#33-edgeline-mutation), [5.5](#55-lazy-line-element), hover
+highlight.
+
+### 2.2 Directions belong in the connector formula
+
+**What.** `makeLineConnector(strength, p1, box1, box1pos, dir1, p2, box2, box2pos, dir2)` ignores
+everything except the two points and the strength: `ConnectLine.updatePath()` calls it with the
+same dummy `[100, 100], 'R'` / `[0, 0], 'L'`. The tangents are hard-coded horizontal, so the day a
+node grows top/bottom ports, the formula, `makeConnector` and the glyph all need the same change in
+two places.
+
+**Where.** [makeLineConnector.js:16](../apps/nodditor/src/makeLineConnector.js#L16),
+[ConnectLine.js:138](../apps/nodditor/src/ConnectLine.js#L138),
+[path.js makeConnector](../libs/line-render/src/path.js#L62).
+
+**Approach.** Take the port direction (or an explicit unit tangent) per endpoint; clamp `strength`
+exactly as now; keep the `M…C…` output byte-identical for `R`/`L` so nothing else moves. Delete the
+dead `box*`/`dir*` parameters from nodditor's signature in the same change.
+
+**Tests.** Table test: R→L (unchanged), R→R, L→R, vertical T→B/B→T each produce the expected control
+points; the existing nodditor `d` snapshots do not change for the demo graph.
+
+**Effort:** S/M. **Depends on:** nothing (2.1 can follow or precede).
+
+### 2.3 Formula parity test
+
+**What.** `makeConnector` (library) and `makeLineConnector` (nodditor) are the same math written
+twice, and nodditor cannot import the library unconditionally.
+
+**Approach.** A test in `apps/nodditor/test/` that builds both for a table of inputs (including
+degenerate ones: same point, zero distance, clamped strength) and asserts equal strings. If 2.1/2.2
+land first, assert equal `Edge` numbers instead.
+
+**Effort:** S. **Why it matters:** a drift here silently moves every connector when a host toggles
+the line layer — exactly the class of bug `worldWidth` was.
+
+---
+
+## 3. Performance
+
+### 3.1 `pickEdge`: AABB prefilter, allocation-free distance, early exit
+
+**What.** [`pickEdge`](../libs/line-render/src/curve.js#L167) walks every edge and
+[`edgeDistance`](../libs/line-render/src/curve.js#L97) allocates a `[x, y]` array per sample
+(`sampleCubic` returns a fresh array, 25 per edge per pick).
+
+**Measured (prototype, 24 samples, pick radius 4):**
+
+```
+--- 1000 edges ---
+  pickEdge (current):                      0.6440 ms/op
+  pickEdge (AABB + no-alloc + early exit): 0.0054 ms/op     (0 parity mismatches / 2000 random picks)
+--- 5000 edges ---
+  pickEdge (current):                      2.9946 ms/op
+  pickEdge (AABB + no-alloc + early exit): 0.1012 ms/op
+```
+
+The prototype that produced those numbers — keep it in the PR description and in the test:
+
+```js
+// 1. control-hull AABB per edge: the Bézier is contained in the hull of its
+//    control points, so this rejects without sampling
+const box = e => [
+  Math.min(e.x0, e.cx0, e.cx1, e.x1),
+  Math.min(e.y0, e.cy0, e.cy1, e.y1),
+  Math.max(e.x0, e.cx0, e.cx1, e.x1),
+  Math.max(e.y0, e.cy0, e.cy1, e.y1),
+]
+
+// 2. scalar distance, no per-sample arrays, with an early exit
+function edgeDistanceFast(e, px, py, samples, maxD, threshold) {
+  let min = Infinity
+  let x0 = e.x0
+  let y0 = e.y0
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples
+    const u = 1 - t
+    const uu = u * u
+    const tt = t * t
+    const cx = uu * u * e.x0 + 3 * uu * t * e.cx0 + 3 * u * tt * e.cx1 + tt * t * e.x1
+    const cy = uu * u * e.y0 + 3 * uu * t * e.cy0 + 3 * u * tt * e.cy1 + tt * t * e.y1
+    const dx = cx - x0
+    const dy = cy - y0
+    const l2 = dx * dx + dy * dy
+    let s = l2 === 0 ? 0 : ((px - x0) * dx + (py - y0) * dy) / l2
+    s = s < 0 ? 0 : s > 1 ? 1 : s
+    const d = Math.hypot(px - (x0 + s * dx), py - (y0 + s * dy))
+    if (d < min) {
+      min = d
+      // BOTH conditions are required: the sample must be inside the pick band
+      // AND better than the current best. Exiting on `min <= maxD` alone gave
+      // 250 wrong picks in a 2000-pick random sweep.
+      if (min <= threshold && min <= maxD) return min
+    }
+    x0 = cx
+    y0 = cy
+  }
+  return min
+}
+```
+
+and the `pickEdge` loop keeps its signature — reject, then delegate:
+
+```js
+const threshold = Math.max(e.worldWidth === false ? e.width / 2 : (e.width * zoom) / 2, radiusPx) / zoom
+const b = boxed[i]
+if (wx < b[0] - threshold || wx > b[2] + threshold || wy < b[1] - threshold || wy > b[3] + threshold) continue
+const d = edgeDistanceFast(e, wx, wy, samples, bestDist, threshold)
+if (d <= threshold && d < bestDist) {
+  best = e
+  bestDist = d
+}
+```
+
+**Approach.**
+
+1. Add an internal control-point AABB per edge (`min/max` over `p0, c0, c1, p1` — the Bézier is
+   contained in its control hull) and reject before sampling; inflate by the world-space threshold.
+2. Rewrite `edgeDistance` to a scalar loop with no array allocation, and add an optional
+   `(maxDist, threshold)` early exit: stop as soon as the running minimum is both inside the pick
+   band and better than the current best.
+3. Keep the exported signature of `pickEdge`/`edgeDistance` as-is (both are public and used by
+   hosts). If a box cache is wanted, compute boxes lazily in a `WeakMap` keyed by the edge object,
+   or accept an optional prebuilt array — do **not** add a required argument.
+
+**Honest framing for the PR:** picking runs once per click today, so this is not urgent for graphs
+of hundreds; it becomes load-bearing the moment hover highlighting calls it per `pointermove`
+(see [§3.3](#33-edgeline-mutation)) and for 1000+ edges.
+
+**Tests.** Parity test against the current implementation over randomised edges/points (the
+prototype's 2000-pick sweep); explicit tests for the early-exit condition (a far edge must not be
+returned just because a sample is close to `bestDist`); `radiusPx = 0` exactness preserved.
+
+**Effort:** M.
+
+### 3.2 Stop re-parsing `d` per frame
+
+Covered structurally by [2.1](#21-numeric-edge-as-the-source-of-truth). The cheap interim (if 2.1 is
+deferred) is a `Map` keyed by `line.d` inside the canvas layer, invalidated when the layer's
+`states`/line set changes — **only** worth doing if 2.1 slips, because it caches a string that
+should not be the input in the first place.
+
+### 3.3 `edge.line` mutation
+
+**What.** `buildEdges` stamps a pointer back onto the freshly parsed edge
+([canvasLineLayer.js:151](../apps/nodditor/src/canvasLineLayer.js#L151)) and `pick` reads it
+([:390](../apps/nodditor/src/canvasLineLayer.js#L390)). The parse creates objects with one hidden
+class; the stamp immediately changes it, which is a (small) deoptimisation in the hot array.
+
+**Approach.** Once [2.1](#21-numeric-edge-as-the-source-of-truth) makes the edge list a parallel
+array of `ConnectLine`s, keep an index map instead: build `edgeLines[i] = line` alongside `edges[i]`
+and have `pick` return `edgeLines[edges.indexOf(picked)]` (or return the index from a new
+`pickEdgeIndex`). No property mutation, and `pickEdge` stays generic.
+
+**Effort:** S. **Depends on:** 2.1 (otherwise a `WeakMap<Edge, ConnectLine>` is the alternative).
+
+---
+
+## 4. Rendering quality (all inside the existing single-draw design)
+
+The stride is 64 bytes with **two unused pad floats** ([shader.js:24](../libs/line-render/src/shader.js#L24),
+`packEdges` writes 14/15 as zero). Everything in this section either uses that free space or stays on
+the CPU as a Bézier list — neither changes the pipeline count nor the draw-call count.
+
+### 4.1 Per-edge segment count (fixes the documented "one `segmentsPerCurve` for the batch")
+
+**Approach.** Interpret float 13's neighbour — `pad` at index 14 — as `segments` (0 = use the
+uniform). `packEdges` writes `edge.segments ?? 0`; the vertex shader picks
+`select(u.segmentsPerCurve, edge.segments, edge.segments > 0.5)` and clamps `t`. `lineEdge` and
+polygon sides can then render with 2 segments instead of 32. Update the README's "What the
+single-pass design constrains" bullet, which currently states this limitation.
+
+**Tests.** `packEdges` writes the new float; a fake-device test asserting the vertex count
+`(segments + 1) * 2` per instance is *not* available (draw is per-batch) — so assert the packed
+value and the WGSL's arithmetic by inspection; keep the layout test in
+[index.test.js](../libs/line-render/index.test.js#L142) as the stride guard.
+
+**Effort:** M (shader + pack + docs).
+
+### 4.2 Round joins for `polygonEdges`
+
+**What.** Each strip ends in a flat cap, so polygon corners are notches
+([shapes.js:93](../libs/line-render/src/shapes.js#L93)).
+
+**Approach.** `polygonEdges(points, { joins: 'round' })` inserts a small arc `Edge` at every vertex
+(centre = vertex, radius = `width / 2`, swept from the incoming to the outgoing normal) — a
+CPU-side Bézier list, zero GPU changes, consistent with "every outline is a chain of Béziers".
+
+**Tests.** A square with `joins: 'round'` gains 4 edges; each arc's endpoints coincide with the
+side endpoints within epsilon; no arc for collinear vertices.
+
+**Effort:** M.
+
+### 4.3 Dashes
+
+**Approach.** `dashEdges(edge, pattern, opts)` on the CPU: split the cubic at arc-length parameters
+(de Casteljau) into the "on" sub-curves and return them as edges. Keeps the stride, so it works with
+the current shader. Note the caveat in the docs: a dashed curve is many instances (one per dash).
+
+**Effort:** M.
+
+### 4.4 Analytic antialiasing in the fragment shader
+
+**What.** Quality today comes from 4x MSAA only, with `supersample > 1` costing
+`supersample²` pixels ([renderer.js](../libs/line-render/src/renderer.js#L277)).
+
+**Approach.** Pass the local strip coordinate (signed distance from the centreline, in the same
+units as the final screen position) plus the half width to the fragment stage; compute coverage with
+`fwidth` and `smoothstep`, output premultiplied color × coverage. This makes the *default* path
+smooth without extra pixels. Keep MSAA (it still helps the caps) and keep `supersample` as the
+opt-in maximum-quality path.
+
+**Tests.** The compare page ([docs/compare.html](../libs/line-render/docs/compare.html)) is the
+verification instrument: the WebGPU panel must stay pixel-comparable with the SVG panel at several
+zooms, with the checkbox on and off.
+
+**Effort:** L (shader change; the risk is a regression in the alpha/premultiplied compositing that
+`webgpu-pitfalls.md` entry 13 describes).
+
+---
+
+## 5. nodditor integration
+
+### 5.1 One theme for both layers (CSS custom properties)
+
+**What.** The canvas layer hard-codes the four line colours, the 2 px stroke width, the 4 px pick
+radius **and** the CSS rule precedence (to-sel > from-sel > selected > base) —
+[canvasLineLayer.js:6–15](../apps/nodditor/src/canvasLineLayer.js#L6-L15). `static/nodditor.css`
+declares those rules as *fallbacks a host is expected to override*, so in canvas mode a themed host
+silently gets different colours.
+
+**Approach.** Publish the theme as custom properties on the editor (`--ne-line-color`,
+`--ne-line-selected`, `--ne-line-from-sel`, `--ne-line-to-sel`, `--ne-line-width`,
+`--ne-line-pick`) with the current values as defaults in `static/nodditor.css`; read them once in
+`makeCanvasLineLayer` via `getComputedStyle(editor)` and parse the colours to `[r, g, b, a]`.
+Re-read on `onResize`/`onViewport` (or on a `MutationObserver` of the editor's `style`/`class`) if
+live theming matters.
+
+**Tests.** A nodditor test that sets `--ne-line-selected` on the editor and asserts the rendered
+edge colour; default values must produce the existing constants (the current colour test stays
+valid).
+
+**Effort:** M. **Recommended first integration item** — it removes duplicated policy, which is where
+the next divergence bug will come from.
+
+### 5.2 Install helper + honest `loadLineRender` failure
+
+**What.** Every host repeats the demo's ~25 lines: dynamic import, capability probe, build the
+layer, `setLineLayer`, `ready.then/catch`, revert to SVG. And
+[`loadLineRender`](../apps/nodditor/src/canvasLineLayer.js#L26) catches **every** import error and
+reports "not installed" — a genuine throw inside the module is misreported, which is an expensive
+warning to debug.
+
+**Approach.**
+
+1. `loadLineRender()`: distinguish "cannot resolve the specifier" from "the module threw while
+   evaluating" and log the underlying `err` in both cases (`console.warn(msg, err)`); keep returning
+   `null`.
+2. Export `installCanvasLineLayer(editor, opts)` that does probe → `makeCanvasLineLayer` →
+   `setLineLayer` → `ready` handling → SVG fallback on either failure, returning
+   `{ layer, mode, ready }`. Keep `makeCanvasLineLayer` public for hosts that want the parts.
+
+**Tests.** With a fake `lr` that rejects `create`, the helper leaves an SVG layer installed; with
+`isSupported() === false` it never constructs a renderer; the returned `mode` reflects the outcome.
+
+**Effort:** M.
+
+### 5.3 Pass the renderer options through
+
+**What.** `makeCanvasLineLayer(editor, lr, opts)` forwards only `segmentsPerCurve`, `device`,
+`onLost`; `clear` is hard-coded to `[0, 0, 0, 0]` and `supersample` is unreachable, so a host cannot
+opt into the higher-quality AA path from the review's §4.4.
+
+**Approach.** Forward `clear` and `supersample` (and any future quality knob) to
+`LineRenderer.create`. Keep the transparent default. Document in the nodditor README that
+`supersample: 2` costs 4× the pixels.
+
+**Effort:** S.
+
+### 5.4 Document the pick semantics
+
+**What.** Canvas picking is "closest edge within `max(halfWidth, radiusPx)`"; SVG picking is the
+browser's (topmost 8 px hit stroke). The library README documents closest-wins; the nodditor README
+does not, so overlapping lines look like a bug report waiting to happen.
+
+**Approach.** One sentence in the canvas-layer section (plus a pointer to `pickEdge`'s docs). Say
+explicitly that the tolerance is a deliberate difference from the SVG layer.
+
+**Effort:** S.
+
+### 5.5 Lazy line element
+
+**What.** Every `ConnectLine` builds a `<g>` + two `<path>` ([ConnectLine.js:15](../apps/nodditor/src/ConnectLine.js#L15))
+that is never attached to the DOM in canvas mode — 3 nodes per line, all carrying the `d` string the
+canvas layer no longer needs once [2.1](#21-numeric-edge-as-the-source-of-truth) lands.
+
+**Approach.** Create the element lazily on first `lineLayer.add()` **only for layers that attach**
+(`kind === 'svg'`), or keep it but drop the second (transparent hit) path in canvas mode. The state
+classes (`selected` / `ne-*-sel-block`) live on the `<g>` and are only read by CSS, so on the canvas
+layer they can be dropped entirely.
+
+**Effort:** M. **Depends on:** 2.1 (the canvas layer must stop reading `line.d`/`line.el`).
+**Risk:** `NodeEditor` still looks up `this.lines.find(l => l.el == g)` for right-click/Enter — keep
+a null-safe path for canvas mode.
+
+---
+
+## 6. Tests and docs leftovers
+
+### 6.1 Real layer-parity test + browser check
+
+**What.** The landed test asserts the canvas edge carries `worldWidth: false` and `width: 2`; it does
+**not** compare the rendered canvas stroke with what the SVG layer actually paints. And nobody has
+verified in a browser what `vector-effect: non-scaling-stroke` does under
+`.ne-canvas { transform: scale() }` (an HTML ancestor transform) — the intent recorded in the code is
+"constant 2 CSS px", but the oracle is the demo toggle at zoom 4.
+
+**Approach.**
+
+1. **Browser check (do this first; it decides the policy):** serve the demo, toggle to the canvas
+   layer, zoom to 4, compare the canvas lines with the SVG panel. Record the outcome in
+   [apps/nodditor/README.md](../apps/nodditor/README.md) §"Line layer" and/or
+   [docs/webgpu-pitfalls.md](../libs/line-render/docs/webgpu-pitfalls.md).
+2. **Parity test (happy-dom):** assert the canvas layer's `width`/`worldWidth` policy equals the SVG
+   path's computed `stroke-width` + `vector-effect` at zoom 1 and 4 (read the CSS/`getComputedStyle`
+   of `line.line1`). This is the test that would have caught the `worldWidth` bug outright.
+3. **Demo coverage:** [docs/compare.html](../libs/line-render/docs/compare.html) builds its edges by
+   hand (`straightEdge(...)`), which is why `parseLinePath`'s options were never exercised by the
+   demo. Add one panel/edge that goes through `parseLinePath` so the demo covers the parsed path.
+
+**Effort:** S for the test, S for the demo edge, and the browser check is a manual 5-minute step
+(needs an unrestricted shell — Chrome cannot start under the file sandbox: named-pipe IPC is
+blocked).
+
+### 6.2 `pickEdge` doc: the `worldWidth` default
+
+**What.** `parseLinePath` now documents "omitting `worldWidth` means world units"; the `pickEdge`
+bullet in the library README describes `radiusPx`/half-width semantics but not that trap.
+
+**Approach.** Add the one-clause warning next to the `pickEdge` bullet and in the `Edge` typedef
+reference.
+
+**Effort:** S.
+
+### 6.3 Migration tables: `parseLinePath` is the only bridge that grows
+
+**What.** The PixiJS 8 and Two.js tables promise "zero rework" for picking
+([README](../libs/line-render/README.md#L247)). True for the pure functions, but `parseLinePath` is
+the one bridge that must learn every new edge field (exactly the `worldWidth` failure mode).
+
+**Approach.** One sentence under each table: "`pickEdge`/`edgeDistance` are pure and carry over
+untouched; `parseLinePath` is the bridge that has to be taught new edge fields."
+
+**Effort:** S.
+
+---
+
+## 7. Repo hygiene found during the work
+
+### 7.1 The smoke bundles are stale and have no committed builder
+
+`apps/nodditor/smoke/*.bundle.mjs` embed the nodditor sources (including
+`canvasLineLayer.js`) but are **not** produced by any committed script — they were built ad-hoc from
+scratch with the esbuild CLI, roughly:
+
+```sh
+node_modules/esbuild/bin/esbuild <entry.mjs> --bundle --format=esm --platform=node --target=esnext \
+  --jsx=automatic --jsx-import-source=@jsx6 --loader:.js=tsx --loader:.jsx=tsx \
+  --external:@happy-dom/global-registrator --outfile=apps/nodditor/smoke/<name>.bundle.mjs
+```
+
+(the committed bundles also carry `// apps/nodditor/src/<file>` banners, so the original build used a
+small header plugin — reproduce that before diffing, or the regenerated bundles will not match). They
+are not part of `bun run check` either (test discovery only picks up `*.test.*`), so nothing fails
+when they go stale — which is what happened with the landed changes.
+
+**Approach.** Either (a) commit a builder (`apps/nodditor/smoke/build.mjs`) plus a gate step that
+regenerates and diffs them, or (b) delete them from the repo and generate on demand. Recommend (a):
+they are the only end-to-end verification of the app in this repo.
+
+**Effort:** M for (a).
+
+### 7.2 `apps/nodditor/.oxfmtrc.json` is inert
+
+The nested config sets `printWidth: 120` (root uses 110) and adds `smoke/*.bundle.mjs` /
+`doc/*.bundle.mjs` to `ignorePatterns`. The gate's no-argument `oxfmt --check` scan applies the
+**root** config everywhere and reports the tree clean; a directory-mode run
+(`oxfmt --check apps/nodditor/src`) applies the nested one and flags three files that are not
+formatted for it (`ConnectLine.js`, `NodeEditor.jsx`, `canvasLineLayer.js`).
+
+**Approach — pick one:** delete the nested config (one formatting policy for the repo), or make it
+the effective one (then reformat those files and make the gate use it). Do not leave the tree in two
+policies; a contributor who runs `oxfmt apps/nodditor/src` gets a diff the gate will not accept.
+
+**Effort:** S.
+
+---
+
+## 8. Suggested sequencing
+
+Each batch is one reviewable change set (tests + docs inside it).
+
+| Batch | Contents | Why together | Effort |
+| ----- | -------- | ------------ | ------ |
+| **A** | [6.1](#61-real-layer-parity-test--browser-check) browser check → policy, + parity test + demo edge; [5.4](#54-document-the-pick-semantics), [6.2](#62-pickedge-doc-the-worldwidth-default), [6.3](#63-migration-tables-parselinepath-is-the-only-bridge-that-grows), [1.1](#11-dispose-is-terminal--decide-and-document)(a) | Small, closes out the landed work honestly, needs no code decisions | S |
+| **B** | [3.1](#31-pickedge-aabb-prefilter-allocation-free-distance-early-exit) picker, then [2.1](#21-numeric-edge-as-the-source-of-truth) + [3.3](#33-edgeline-mutation) | The picker prefilter is what makes per-move picking affordable; the numeric edge removes the parse that feeds it | M |
+| **C** | [5.1](#51-one-theme-for-both-layers-css-custom-properties) theme vars, [5.2](#52-install-helper--honest-loadlinerender-failure) install helper, [5.3](#53-pass-the-renderer-options-through) options pass-through | Integration ergonomics; C's theme work depends on nothing, the rest benefits from B | M |
+| **D** | [2.2](#22-directions-belongs-in-the-connector-formula) directions + [2.3](#23-formula-parity-test) parity test, [5.5](#55-lazy-line-element) lazy element | Connector-model change; land it when vertical ports are actually needed, not before | M |
+| **E** | [4.1](#41-per-edge-segment-count-fixes-the-documented-one-segmentspercurve-for-the-batch) segments, [4.4](#44-analytic-antialiasing-in-the-fragment-shader) analytic AA, [4.2](#42-round-joins-for-polygonedges) joins, [4.3](#43-dashes) dashes | Standalone shader/quality work, verified against the compare page; do it after A so the page is a trustworthy oracle | M–L |
+| **F** | [7.1](#71-the-smoke-bundles-are-stale-and-have-no-committed-builder) smoke builder, [7.2](#72-appsnodditoroxfmtrcjson-is-inert) formatter policy | Repo hygiene; independent, can be done by anyone at any time | M |
+
+---
+
+## 9. Open decisions (need the maintainer, not an agent)
+
+1. **The `worldWidth` policy.** Is "constant 2 CSS px" the target for the canvas layer, and what does
+   `non-scaling-stroke` actually do under the ancestor `transform: scale()` in Chrome? The landed fix
+   makes the flag work; it does not prove the intent. Batch A's browser check resolves this.
+2. **Terminal vs revivable `dispose()`** ([1.1](#11-dispose-is-terminal--decide-and-document)).
+3. **Optional-dependency version guard.** `makeCanvasLineLayer` now calls
+   `LineRenderer.isSupported()`/`create()` unguarded, so an older installed `@jsx6/line-render` breaks
+   it (it already needed the `worldWidth` fix anyway). Choose: bump the declared dependency, add a
+   `typeof`-guard fallback to `new`+`init()`, or accept the version requirement and document it.
+4. **Should one device be the default for multi-editor hosts?** The borrowed-device API landed, but
+   nodditor does not own a device: each canvas layer still requests its own unless the host passes
+   one. A module-level `getSharedDevice()` helper in nodditor would make sharing the default.
+5. **Hover highlighting.** [3.1](#31-pickedge-aabb-prefilter-allocation-free-distance-early-exit)
+   makes per-`pointermove` picking viable; nothing in the SVG layer highlights on hover today, so
+   this is a new feature decision (and it needs a `--ne-line-hover` variable from
+   [5.1](#51-one-theme-for-both-layers-css-custom-properties)).
+
+---
+
+## 10. Verify (every batch)
+
+```sh
+bun run test                # every package's tests (root discovers them)
+bun run check:fast          # + tsc --noEmit for every lib with a tsconfig
+(cd apps/nodditor && bun x tsc --noEmit -p tsconfig.json)   # the app is not in the gate
+bun run check --no-format   # full gate: declaration emit, oxlint, versions, docs sync, manifests, workspace
+bun x oxfmt                 # format; `--check` needs an unrestricted shell (6 HTML files fail with spawn EPERM)
+```
+
+For anything touching the shader or the canvas layer, the manual check is the demo
+(`cd apps/nodditor && bun start` → `http://127.0.0.1:5111`) with the SVG ↔ canvas toggle at zoom 1, 2
+and 4, plus the library's own compare page — `bun x live-server libs/line-render`, then
+`http://127.0.0.1:4000/docs/compare.html` (the server root must be the PACKAGE root, because the page
+imports `../index.js`).

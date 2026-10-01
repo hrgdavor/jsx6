@@ -89,6 +89,35 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
   draw, the same budget as the `ne-move`/zoom redraw path (no per-event render, no
   per-line canvas, no buffer churn). `buildEdges` includes any line that has a path,
   matching what the SVG layer draws.
+- The canvas layer now uses `@jsx6/line-render`'s host helpers instead of hand-rolling the
+  GPU startup: `LineRenderer.isSupported()` is a synchronous probe, so a browser without
+  WebGPU rejects `ready` immediately without asking for an adapter, and
+  `LineRenderer.create()` resolves with `null` (reporting the cause to the console and
+  releasing what it half-acquired) instead of throwing out of `init()`. `pick` and the
+  `onLost`/dispose behaviour are unchanged.
+- `makeCanvasLineLayer(editor, lr, { device })` accepts a **borrowed `GPUDevice`**, so a
+  host that installs several editors can put them all on ONE device: `init()` skips the
+  adapter/device request and `dispose()` (including the one `setLineLayer` does on a swap)
+  no longer destroys a device it does not own. A device lost by its owner is reported to
+  every layer drawing on it.
+- Fixed (canvas line layer): the parsed connectors now really opt out of the world-unit
+  stroke width. `makeCanvasLineLayer` passes `worldWidth: false` (2 CSS px at any zoom, the
+  policy the SVG layer expresses with `vector-effect: non-scaling-stroke`), but
+  `@jsx6/line-render`'s `parseLinePath` silently dropped the flag, so the canvas edges were
+  built as world-unit ones and their thickness grew with zoom. The library carries the flag
+  through now, and `test/lineLayer.test.jsx` locks the pass-through down.
+- Fixed (canvas line layer): `devicePixelRatio` changes (window moved to another display,
+  browser zoom) re-derive the backing store and the renderer viewport (they were only
+  derived from the editor's `ResizeObserver`, leaving the canvas blurry and the pick scale
+  stale).
+- Fixed (canvas line layer): the GPU lifetime races. `dispose()` while `LineRenderer.init()`
+  is still in flight left an orphaned device and published a renderer that drew into a
+  removed canvas; `ready` also stayed pending forever, so a host awaiting it hung. Now the
+  renderer acquired during a dispose is released, and `ready` settles as an `AbortError`
+  instead of hanging. A device lost after startup (driver reset, GPU process crash) — or a
+  `render()` that throws — stops the redraw loop, releases the renderer and calls the new
+  `onLost` option once, so a host can fall back to the SVG layer; the loss raised by the
+  layer's own `dispose()` is not reported. The demo wires `onLost` to the SVG fallback.
 
 ## 1.0.40
 Thu, 25 Apr 2024 11:46:22 GMT

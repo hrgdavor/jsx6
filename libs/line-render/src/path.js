@@ -12,15 +12,32 @@ const PATH_RE =
  * This is exactly the format `makeLineConnector` in apps/nodditor produces and
  * what a `d` attribute of a connector path holds.
  *
+ * `worldWidth: false` is carried through (screen-pixel width) and left off
+ * otherwise, matching the `Edge` contract and `lineEdge`/`circleEdges`: an
+ * absent flag means the default world-unit width. It used to be dropped, which
+ * silently turned every parsed screen-pixel edge into a zoom-scaled one.
+ *
  * @param {string} d
- * @param {{color?: number[], width?: number}} [opts]
+ * @param {{color?: number[], width?: number, worldWidth?: boolean}} [opts]
  * @returns {import('./curve.js').Edge}
  */
-export function parseLinePath(d, { color = [0.2, 0.7, 1, 1], width = 1 } = {}) {
+export function parseLinePath(d, { color = [0.2, 0.7, 1, 1], width = 1, worldWidth } = {}) {
   const m = PATH_RE.exec(d.trim())
   if (!m) throw new Error(`not a single M/C cubic segment: ${d}`)
   const [x0, y0, cx0, cy0, cx1, cy1, x1, y1] = m.slice(1).map(Number)
-  return { x0, y0, cx0, cy0, cx1, cy1, x1, y1, color, width }
+  return {
+    x0,
+    y0,
+    cx0,
+    cy0,
+    cx1,
+    cy1,
+    x1,
+    y1,
+    color,
+    width,
+    ...(worldWidth === false ? { worldWidth: false } : {}),
+  }
 }
 
 /**

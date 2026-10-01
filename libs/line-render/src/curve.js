@@ -188,30 +188,41 @@ export function pickEdge(edges, screenX, screenY, panX = 0, panY = 0, zoom = 1, 
  * WGSL struct lays `width` and `worldWidth` back-to-back after the 16-aligned
  * `color` (bytes 48..52, 52..56); the 64-byte stride is unchanged.
  *
+ * `out` is an optional scratch buffer to pack into. When it holds at least
+ * `edges.length * 16` floats it is reused and returned, so a render loop can
+ * keep ONE array alive instead of allocating a fresh one per frame; otherwise
+ * an exactly sized array is allocated (an empty batch always returns a fresh
+ * empty array). Only the live prefix is written — a caller that reuses a larger
+ * buffer must hand the GPU just that prefix
+ * (`out.subarray(0, edges.length * 16)`), because `writeBuffer` uploads the
+ * whole view it is given.
+ *
  * @param {Edge[]} edges
+ * @param {Float32Array} [out]
  * @returns {Float32Array}
  */
-export function packEdges(edges) {
-  const out = new Float32Array(edges.length * 16)
+export function packEdges(edges, out) {
+  const needed = edges.length * 16
+  const dest = needed > 0 && out && out.length >= needed ? out : new Float32Array(needed)
   for (let i = 0; i < edges.length; i++) {
     const e = edges[i]
     const o = i * 16
-    out[o] = e.x0
-    out[o + 1] = e.y0
-    out[o + 2] = e.cx0
-    out[o + 3] = e.cy0
-    out[o + 4] = e.cx1
-    out[o + 5] = e.cy1
-    out[o + 6] = e.x1
-    out[o + 7] = e.y1
+    dest[o] = e.x0
+    dest[o + 1] = e.y0
+    dest[o + 2] = e.cx0
+    dest[o + 3] = e.cy0
+    dest[o + 4] = e.cx1
+    dest[o + 5] = e.cy1
+    dest[o + 6] = e.x1
+    dest[o + 7] = e.y1
     const c = e.color
-    out[o + 8] = c[0]
-    out[o + 9] = c[1]
-    out[o + 10] = c[2]
-    out[o + 11] = c[3]
-    out[o + 12] = e.width
-    out[o + 13] = e.worldWidth === false ? 0 : 1
+    dest[o + 8] = c[0]
+    dest[o + 9] = c[1]
+    dest[o + 10] = c[2]
+    dest[o + 11] = c[3]
+    dest[o + 12] = e.width
+    dest[o + 13] = e.worldWidth === false ? 0 : 1
     // o + 14 and o + 15 stay zero (pad)
   }
-  return out
+  return dest
 }

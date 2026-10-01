@@ -1596,10 +1596,23 @@ export class NodeEditor extends JsxW {
    * `pick()` works from the start (pure curve math). Switching back to the
    * SVG layer is the same call: `editor.setLineLayer(createSvgLineLayer(editor))`.
    *
+   * A layer whose `dispose()` released resources but which can come back exposes
+   * `revive()` (the canvas layer does), and re-installing it works: the install
+   * path below calls `onViewport`/`onResize` first, which revive it. Passing the
+   * layer that is ALREADY installed — a host that disposed it in place — revives
+   * it explicitly, so it does not stay installed-but-dead.
+   *
    * @param {LineLayer} layer
    */
   setLineLayer(layer) {
-    if (!layer || layer == this.lineLayer || this.destroyed) return
+    if (!layer || this.destroyed) return
+    if (layer == this.lineLayer) {
+      // Normally a no-op. A host may have disposed the ACTIVE layer (or a device
+      // loss may have stopped it), so give it the chance to come back instead of
+      // leaving a dead layer installed.
+      layer.revive?.()
+      return
+    }
     // take the lines off the OLD layer first: on the SVG layer that detaches
     // the line `<g>`s (canvas mode must not draw them a second time), on the
     // canvas layer it only drops their state

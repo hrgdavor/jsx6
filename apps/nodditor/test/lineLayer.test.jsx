@@ -62,18 +62,51 @@ const waitFrame = () => new Promise(r => setTimeout(r, 50))
 
 /**
  * A fake `@jsx6/line-render` module: the REAL `parseLinePath`/`pickEdge` (pure curve
- * math) plus a `LineRenderer` whose `init()` succeeds or rejects on demand and whose
- * `render`/`setViewport` calls are recorded.
+ * math) plus a `LineRenderer` whose `init()` succeeds, rejects or WAITS on demand and
+ * whose `render`/`setViewport`/`dispose` calls are recorded.
+ *
+ * `initGate` is a promise the fake `init()` awaits — or a FUNCTION returning one, which is
+ * how a per-life gate is built (each `init()` call takes the next one) — so a test can
+ * dispose and revive the layer while the GPU is still coming up. `supported` drives the
+ * static `isSupported()` probe; `created` collects the constructor options of every
+ * renderer built (which is how the device forwarding is asserted); `renderers` records the
+ * instance behind each `render()` call (so a test can prove WHICH life is drawing);
+ * `lostHook` is the `onLost` the layer passed in. `create()` mirrors the library contract:
+ * null instead of a throw.
  */
-function fakeLr({ initReject = false } = {}) {
+function fakeLr({ initReject = false, initGate = null, supported = true } = {}) {
   const rendered = []
   const viewports = []
+  /** @type {any[]} constructor options of every renderer that was built */
+  const created = []
+  /** @type {LineRenderer[]} the instance behind every `render()` call */
+  const renderers = []
+  let instances = 0
+  let disposedCount = 0
+  let lostHook = null
   class LineRenderer {
+    static isSupported() {
+      return supported
+    }
+    static async create(canvas, opts) {
+      const r = new LineRenderer(canvas, opts)
+      try {
+        await r.init()
+      } catch {
+        r.dispose()
+        return null
+      }
+      return r
+    }
     constructor(canvas, opts) {
+      this.id = ++instances
       this.canvas = canvas
       this.opts = opts
+      created.push(opts)
+      lostHook = opts?.onLost
     }
     async init() {
+      if (initGate) await (typeof initGate == 'function' ? initGate() : initGate)
       if (initReject) throw new Error('no gpu')
     }
     setViewport(x, y, z) {
@@ -81,10 +114,26 @@ function fakeLr({ initReject = false } = {}) {
     }
     render(edges) {
       rendered.push(edges)
+      renderers.push(this)
     }
-    dispose() {}
+    dispose() {
+      disposedCount++
+    }
   }
-  return { parseLinePath, pickEdge, LineRenderer, rendered, viewports }
+  return {
+    parseLinePath,
+    pickEdge,
+    LineRenderer,
+    rendered,
+    viewports,
+    created,
+    renderers,
+    get disposedCount() {
+      return disposedCount
+    },
+    /** Report a device loss through the callback the layer handed to the renderer. */
+    lose: info => lostHook?.(info),
+  }
 }
 
 /** The curve point at t = 1/2 — exactly on the parsed edge, in world coordinates. */
@@ -265,7 +314,9 @@ test('canvas layer: a failed init rejects `ready`, picking still works, dispose 
   const layer = makeCanvasLineLayer(editor, fx)
   editor.setLineLayer(layer)
 
-  await expect(layer.ready).rejects.toThrow(/no gpu/)
+  // `LineRenderer.create()` reported the cause to the console and resolved null,
+  // so the layer reports the degradation without an exception
+  await expect(layer.ready).rejects.toThrow(/could not be started/)
   // the canvas stays blank, but pick is pure curve math and still works
   const [px, py] = curveMidpoint(line)
   expect(layer.pick(px, py)).toBe(line)
@@ -273,6 +324,176 @@ test('canvas layer: a failed init rejects `ready`, picking still works, dispose 
   layer.dispose()
   expect(layer.el.parentNode).toBeNull()
   expect(() => layer.dispose()).not.toThrow()
+})
+
+test('canvas layer: no WebGPU is caught by the synchronous probe, before any renderer', async () => {
+  addTwoBlocks()
+  const fx = fakeLr({ supported: false })
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+
+  await expect(layer.ready).rejects.toThrow(/WebGPU is not available/)
+  expect(fx.created.length).toBe(0) // nothing was constructed, no adapter asked for
+  layer.dispose()
+})
+
+test('canvas layer: a host device is forwarded to the renderer (shared device)', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const shared = { fake: 'GPUDevice' }
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx, { device: shared })
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+
+  expect(fx.created.length).toBe(1)
+  expect(fx.created[0].device).toBe(shared)
+  expect(fx.rendered.at(-1).length).toBe(1) // and it draws normally
+  layer.dispose()
+})
+
+test('canvas layer: edges keep the SVG layer screen-pixel width (worldWidth: false)', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+
+  // The layer's stroke policy is a constant 2 CSS px at any zoom (mirroring the 8px
+  // non-scaling CSS hit stroke the pick radius is derived from), so the canvas edge
+  // must opt OUT of the world-unit width. `parseLinePath` used to drop the flag,
+  // which silently turned these edges into zoom-scaled ones.
+  expect(fx.rendered.at(-1)[0].worldWidth).toBe(false)
+
+  editor.zoom = 4
+  await waitFrame()
+  const zoomed = fx.rendered.at(-1)[0]
+  expect(zoomed.worldWidth).toBe(false)
+  expect(zoomed.width).toBe(2) // screen px, unchanged by the zoom
+})
+
+// ---------- canvas layer: GPU lifetime ----------
+
+test('canvas layer: dispose during GPU init settles `ready` and releases the renderer', async () => {
+  addTwoBlocks()
+  let release
+  const gate = new Promise(resolve => (release = resolve))
+  const fx = fakeLr({ initGate: gate })
+
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  layer.dispose() // the adapter/device is still being acquired
+  release()
+
+  // a host awaiting `ready` must not hang on a layer that is gone
+  await expect(layer.ready).rejects.toThrow(/disposed/)
+  await waitFrame()
+  expect(fx.disposedCount).toBe(1) // the renderer created during the race is released
+  expect(fx.rendered.length).toBe(0) // and never draws into the removed canvas
+  expect(layer.el.parentNode).toBeNull()
+})
+
+test('canvas layer: a lost device stops drawing, releases the renderer and notifies the host', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const lost = []
+  const layer = makeCanvasLineLayer(editor, fx, { onLost: info => lost.push(info) })
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+  const frames = fx.rendered.length
+
+  fx.lose({ reason: 'destroyed', message: 'gpu reset' })
+  await waitFrame()
+  expect(lost.length).toBe(1)
+  expect(fx.disposedCount).toBe(1)
+  expect(fx.rendered.length).toBe(frames) // the redraw loop stopped
+
+  // picking is pure curve math: it keeps working on a dead GPU, including for a
+  // line added after the loss (nothing redraws, so the list is rebuilt on demand)
+  const line = editor.lines[0]
+  const [px, py] = curveMidpoint(line)
+  expect(layer.pick(px, py)).toBe(line)
+  editor.add(<Message />, '3', { pos: [230, 110], type: 'Message' })
+  const line2 = editor.addConnectorFromTo('1/o2', '3/i1')
+  const [px2, py2] = curveMidpoint(line2)
+  expect(layer.pick(px2, py2)).toBe(line2)
+
+  // a second loss (or a later frame) must not report again or draw again
+  fx.lose({ reason: 'destroyed', message: 'gpu reset' })
+  editor.zoom = 2
+  await waitFrame()
+  expect(lost.length).toBe(1)
+  expect(fx.rendered.length).toBe(frames)
+})
+
+test('canvas layer: a throwing renderer is treated as a loss', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const lost = []
+  const layer = makeCanvasLineLayer(editor, fx, { onLost: info => lost.push(info) })
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+
+  const realRender = fx.LineRenderer.prototype.render
+  fx.LineRenderer.prototype.render = () => {
+    throw new Error('device is gone')
+  }
+  editor.zoom = 2 // schedule a frame
+  await waitFrame()
+  expect(lost.length).toBe(1)
+  expect(lost[0]).toBeInstanceOf(Error)
+  expect(fx.disposedCount).toBe(1)
+
+  fx.LineRenderer.prototype.render = realRender
+})
+
+test('canvas layer: a device pixel ratio change resizes the backing store and the viewport', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  // capture the MediaQueryList the layer watches for the ratio change
+  const realMatchMedia = window.matchMedia.bind(window)
+  /** @type {any} */
+  let query = null
+  window.matchMedia = q => (query = realMatchMedia(q))
+  try {
+    const layer = makeCanvasLineLayer(editor, fx)
+    editor.setLineLayer(layer)
+    await layer.ready
+    layer.onResize(400, 300)
+    expect(layer.el.width).toBe(400)
+
+    // a 2x display: the backing store follows the ratio, and so must the viewport
+    window.devicePixelRatio = 2
+    query.dispatchEvent(new Event('change'))
+    expect(layer.el.width).toBe(800)
+    expect(layer.el.height).toBe(600)
+    expect(fx.viewports.at(-1)).toEqual([0, 0, 2]) // zoom 1 × dpr 2
+
+    // the pick scale follows too: client coordinates are CSS px, so the click
+    // position is unchanged — only the backing-store math behind it scales
+    const line = editor.lines[0]
+    const [px, py] = curveMidpoint(line)
+    expect(layer.pick(px, py)).toBe(line)
+
+    layer.dispose()
+    expect(fx.disposedCount).toBe(1)
+  } finally {
+    window.matchMedia = realMatchMedia
+    window.devicePixelRatio = 1
+  }
 })
 
 // ---------- setLineLayer ----------

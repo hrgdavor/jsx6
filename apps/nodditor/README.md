@@ -415,7 +415,7 @@ A layer implements:
 | `pick(clientX, clientY)` → line or `null` | line hit test (client coordinates) |
 | `onViewport(zoom)` | zoom changed (pan is 0 — the canvas scales from its top-left corner) |
 | `onResize(cssW, cssH)` | canvas area changed |
-| `ready` (canvas layers) | promise that resolves when the renderer is usable; rejects if `init()` fails |
+| `ready` (canvas layers) | promise that resolves when the renderer is usable; rejects when WebGPU is unavailable/the renderer cannot start, or if the layer is disposed while it is still initialising (never left pending) |
 | `dispose()` | tear the layer down |
 
 The editor calls these on every relevant event — `addConnector`/`removeLine`, `selectBlocks` /
@@ -433,18 +433,56 @@ import { loadLineRender, makeCanvasLineLayer } from '@jsx6/nodditor'
 
 const lr = await loadLineRender() // dynamic import; null (with a console warning) when the
                                    // package is not installed
-if (lr) {
-  const layer = makeCanvasLineLayer(editor, lr)
+if (lr?.LineRenderer.isSupported()) {   // synchronous probe: skip the whole attempt without WebGPU
+  const layer = makeCanvasLineLayer(editor, lr, {
+    // a device lost after startup (driver reset, GPU process crash) is the same
+    // story as a failed init: fall back to the SVG layer
+    onLost: () => editor.setLineLayer(createSvgLineLayer(editor)),
+  })
   editor.setLineLayer(layer)
   await layer.ready.catch(() => editor.setLineLayer(createSvgLineLayer(editor)))
 }
 ```
 
-Degradation: if `LineRenderer.init()` rejects (no WebGPU), `ready` rejects, `pick` keeps working
-(the picking is pure curve math), and `dispose()` is quiet — the demo page falls back to the SVG
-layer and shows a disabled toggle. Selection colours mirror the CSS rule order
+Degradation: the layer probes with `LineRenderer.isSupported()` first and rejects `ready` when the
+browser has no WebGPU; otherwise `LineRenderer.create()` reports the cause to the console, releases
+what it half-acquired and resolves with `null`, and `ready` rejects on that too. Either way `pick`
+keeps working (the picking is pure curve math) and `dispose()` is quiet — the demo page falls back
+to the SVG layer and shows a disabled toggle. `ready` also rejects when the layer is disposed while
+the GPU is still coming up, so a host awaiting it can never be left hanging. A device lost after
+startup is reported once through `onLost` (drawing stops and the renderer is released first); `pick`
+keeps working there too, and the loss raised by the layer's own `dispose()` is not reported.
+Selection colours mirror the CSS rule order
 (to-selected > from-selected > selected > base black), and the pick radius mirrors the SVG hit
 path (4 px, like half of the 8 px transparent hit stroke).
+
+Geometry: the canvas element covers the editor box in CSS pixels and its backing store is
+`editor box × devicePixelRatio`; the renderer viewport is `zoom × dpr` with pan `(0, 0)` (the editor
+canvas scales from its top-left corner and panning moves the blocks). A change of
+`devicePixelRatio` — another display, browser zoom — re-derives both, so the lines do not go blurry
+and picking stays under the pointer.
+
+GPU lifetime and device ownership: by default the layer lets the renderer request its own
+`GPUDevice`, so **one canvas layer per editor means one device per editor** (the SVG layer owns
+none, and so does a layer that never got past `ready`). A host that installs several editors can
+share ONE device instead by passing it in — the layer forwards it to
+`LineRenderer.create()`:
+
+```js
+const adapter = await navigator.gpu.requestAdapter()
+const device = await adapter.requestDevice()
+// every editor's layer borrows the same device; each still owns its canvas context
+const layerA = makeCanvasLineLayer(editorA, lr, { device })
+const layerB = makeCanvasLineLayer(editorB, lr, { device })
+// ... dispose the layers/editors first, then the device (a borrowed device is never
+// destroyed by `dispose()`, which is what makes the sharing safe)
+device.destroy()
+```
+
+A borrowed device is not destroyed by `dispose()` — including the one `setLineLayer` performs when
+it swaps the layer out — and a device lost or destroyed by its owner is reported to every layer
+using it through `onLost`. See "Device ownership and sharing" in the
+[`@jsx6/line-render` README](../../libs/line-render/README.md#device-ownership-and-sharing).
 
 A line **being connected** is drawn too: while its free end follows the pointer during a drag
 (its `d` is recomputed by `ConnectLine.updatePath`, `p2.con` still null) the canvas layer has

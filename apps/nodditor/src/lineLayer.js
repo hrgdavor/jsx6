@@ -20,6 +20,15 @@ import { listenUntil } from './listenUntil.js'
  *   onViewport(zoom)                     the editor zoom changed
  *   onResize(cssW, cssH)                 the editor box changed
  *   dispose()                            release everything the layer owns
+ *   revive?()                            OPTIONAL: undo `dispose()` and make the layer usable again
+ *
+ * `dispose()` may be terminal or not, depending on the layer: the SVG layer owns nothing
+ * (its `dispose()` is a no-op) and is therefore "revivable" by construction, while the
+ * canvas layer releases its GPU session and its canvas element and comes back through
+ * `revive()`. The editor uses that: passing the layer that is already installed
+ * (`setLineLayer(activeLayer)`) calls `revive?.()` before its no-op return, and installing
+ * a disposed layer elsewhere calls `onViewport`/`onResize` first, which revive it. A layer
+ * that cannot come back may omit `revive`.
  *
  * `ConnectLine` always keeps its `<g>` + two `<path>`s and its `d` attribute;
  * the SVG layer attaches that element to the document, the canvas layer

@@ -133,12 +133,22 @@ async function switchToCanvas() {
   switchingLayer = true
   try {
     const lr = await loadLineRender()
-    if (!lr) {
+    // `isSupported()` is the synchronous capability probe: no point building a
+    // layer (or waiting on `ready`) when the browser has no WebGPU at all
+    if (!lr || !lr.LineRenderer.isSupported()) {
       lineLayerMode = 'unavailable'
       updateToggleUi()
       return
     }
-    const layer = makeCanvasLineLayer(editor, lr)
+    const layer = makeCanvasLineLayer(editor, lr, {
+      // A device lost after startup (driver reset, GPU process crash) is the
+      // same story as a failed init: fall back to the SVG layer for good.
+      onLost: () => {
+        editor.setLineLayer(createSvgLineLayer(editor))
+        lineLayerMode = 'unavailable'
+        updateToggleUi()
+      },
+    })
     editor.setLineLayer(layer)
     // drawing starts when the GPU is ready; if init fails (no WebGPU), go back to SVG
     layer.ready

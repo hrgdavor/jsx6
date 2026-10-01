@@ -41,14 +41,32 @@ export async function loadLineRender() {
  * Synchronous on purpose — the canvas element is created and inserted right
  * away, and picking (pure curve math, no GPU) works from the start. The GPU
  * renderer is initialised lazily: `layer.ready` resolves when drawing can
- * begin and rejects when WebGPU is unavailable. After a rejection the canvas
- * stays blank but `pick()` still works; a host should treat that as "fall back
- * to the SVG layer" (the demo does).
+ * begin and rejects when WebGPU is unavailable, or when the layer is disposed
+ * before the GPU came up (so a host awaiting `ready` is never left hanging).
+ * After a rejection the canvas stays blank but `pick()` still works; a host
+ * should treat that as "fall back to the SVG layer" (the demo does).
+ *
+ * `dispose()` is not the end of the object: it releases the GPU session, the
+ * listeners, the pixel-ratio watch and the canvas element, and `revive()` brings
+ * the same layer back with a fresh session and a fresh `ready`. The editor does
+ * that itself when a disposed layer is re-installed (`setLineLayer` on the
+ * current layer, or the `onViewport`/`onResize` it calls on a new one), so a host
+ * can keep its canvas layer around and hand it back instead of building a new
+ * one. A stale GPU startup or a stale rAF frame can never leak into the new life
+ * — both carry the life they started in.
+ *
+ * A device that is lost AFTER startup (driver reset, GPU process crash) — or a
+ * renderer that throws instead of reporting one — is handed to `opts.onLost`
+ * once, and drawing stops. A host should fall back to the SVG layer there too;
+ * the demo does. The loss raised by this layer's own `dispose()` is not
+ * reported.
  *
  * Geometry: the canvas covers the editor box in CSS pixels; its backing store
  * is `css * devicePixelRatio`, and the renderer viewport is `zoom * dpr` with
  * pan `(0, 0)` — nodditor's `.ne-canvas` is scaled from the top-left and panning
- * moves the blocks, not the layer.
+ * moves the blocks, not the layer. A change of `devicePixelRatio` (moving the
+ * window to another display, browser zoom) re-derives both, so the layer does
+ * not go blurry or pick at the wrong scale.
  *
  * A line being connected is drawn too: while its free end follows the pointer
  * (`p2.con` still null, `d` recomputed by `ConnectLine.updatePath`) the layer
@@ -60,7 +78,13 @@ export async function loadLineRender() {
  *
  * @param {NodeEditor} editor
  * @param {import('@jsx6/line-render')} lr the loaded `@jsx6/line-render` module
- * @param {{segmentsPerCurve?: number}} [opts]
+ * @param {{segmentsPerCurve?: number, device?: any, onLost?: (info: unknown) => void}} [opts]
+ *   `device` is a `GPUDevice` to BORROW instead of requesting one, so several
+ *   editors (each with its own canvas layer) can draw on ONE device; the device
+ *   then stays the host's to destroy — see "Device ownership and sharing" in the
+ *   `@jsx6/line-render` README. `onLost` is called once if the GPU device is lost
+ *   (or the renderer throws) after the layer started drawing; the layer stops
+ *   drawing and releases the renderer before the call.
  * @returns {object} a line layer (see `lineLayer.js`) plus `ready: Promise<void>`
  */
 export function makeCanvasLineLayer(editor, lr, opts = {}) {
@@ -81,23 +105,53 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
   let edges = null
   /** @type {number} */
   let zoom = 1
+  /** @type {number} editor box size in CSS px, as last reported by `onResize` */
+  let cssW = 0
+  /** @type {number} */
+  let cssH = 0
   /** @type {import('@jsx6/line-render').LineRenderer|null} */
   let renderer = null
   /** @type {number} */
   let raf = 0
   /** @type {boolean} */
   let disposed = false
+  /** @type {boolean} the GPU is gone (or the renderer threw): stop drawing */
+  let lost = false
+  /** @type {MediaQueryList|null} */
+  let dprQuery = null
+  /** @type {(() => void)|null} */
+  let releaseClick = null
+  /** @type {(() => void)|null} */
+  let releaseMove = null
 
-  /** @type {Promise<void>} resolves when the renderer is ready, rejects if WebGPU is unavailable */
+  /**
+   * Life counter: bumped by `dispose()` AND by `revive()`. Every asynchronous
+   * continuation (the GPU startup, the rAF redraw) carries the value it started
+   * with and refuses to touch state once the layer has moved on — otherwise a
+   * `create()` that resolves after a dispose + revive would publish a renderer
+   * from the previous life, and the device it acquired would leak.
+   * @type {number}
+   */
+  let life = 0
+
+  /** @type {Promise<void>} the CURRENT life's readiness — a fresh promise after every revive */
   let ready
-  /** @type {() => void} */
-  let resolveReady
-  /** @type {(err: Error) => void} */
-  let rejectReady
-  ready = new Promise((resolve, reject) => {
-    resolveReady = resolve
-    rejectReady = reject
-  })
+  /** @type {(err?: Error) => void} */
+  let settleReady = () => {}
+
+  /** Create the `ready` promise (and its one-shot settle function) for the current life. */
+  const newReady = () => {
+    let settled = false
+    ready = new Promise((resolve, reject) => {
+      settleReady = err => {
+        if (settled) return
+        settled = true
+        if (err) reject(err)
+        else resolve()
+      }
+    })
+  }
+  newReady()
 
   /**
    * Build the edge list from the live lines: every line that HAS A PATH
@@ -128,15 +182,120 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
     return out
   }
 
+  /**
+   * Release the renderer (idempotent). A failed `init()` may have left a
+   * half-initialised one behind, and a lost device must be dropped too.
+   */
+  const disposeRenderer = () => {
+    if (!renderer) return
+    const r = renderer
+    renderer = null
+    try {
+      r.dispose()
+    } catch {
+      // the renderer may have failed to initialise; nothing to release
+    }
+  }
+
+  /**
+   * The GPU is gone: stop drawing at once, release the renderer and tell the
+   * host ONCE, so it can fall back to the SVG layer (the same contract as a
+   * rejected `ready`). Reached from the renderer's `onLost` and from a
+   * `render()` that threw.
+   *
+   * @param {unknown} info
+   */
+  const handleLost = info => {
+    if (disposed || lost) return
+    lost = true
+    disposeRenderer()
+    opts.onLost?.(info)
+  }
+
   /** One rAF-batched full redraw; the edge list is rebuilt every time (cheap: one `d` read per line). */
   const scheduleRender = () => {
-    if (disposed || raf) return
+    if (disposed || raf || lost) return
+    const gen = life
     raf = requestAnimationFrame(() => {
       raf = 0
-      if (disposed) return
+      // a frame scheduled by a previous life must not draw into this one
+      if (gen !== life || disposed || lost) return
       edges = buildEdges()
-      if (renderer) renderer.render(edges)
+      if (renderer) {
+        try {
+          renderer.render(edges)
+        } catch (err) {
+          // a device lost between frames (or a broken pipeline): `onLost` is the
+          // host's cue to fall back, and `handleLost` stops the redraw loop
+          handleLost(err)
+        }
+      }
     })
+  }
+
+  /**
+   * Register a line's visual state and its path listener. Idempotent: a
+   * re-installed (or revived) layer can be handed the same line twice — the
+   * editor re-adds every line after `onViewport`/`onResize`, and `revive()`
+   * already picked up the ones it knows.
+   *
+   * @param {ConnectLine} line
+   */
+  const registerLine = line => {
+    // While a free end is being dragged the line's `d` changes without any
+    // `ne-move` event; the path listener funnels those updates into the same
+    // rAF-batched redraw (see `scheduleRender`).
+    pathSubs.get(line)?.()
+    states.set(line, { selected: line.selected || false, fromSel: false, toSel: false })
+    pathSubs.set(
+      line,
+      line.onPathChange(() => scheduleRender()),
+    )
+  }
+
+  /**
+   * Apply the current box size and device pixel ratio to the canvas and the
+   * renderer viewport. Called on every resize, on every DPR change and once
+   * when the GPU comes up.
+   */
+  const applySize = () => {
+    const d = dpr()
+    canvas.width = Math.max(1, Math.round(cssW * d))
+    canvas.height = Math.max(1, Math.round(cssH * d))
+    if (renderer) renderer.setViewport(0, 0, zoom * d)
+    scheduleRender()
+  }
+
+  /** Stop watching the current `devicePixelRatio` query. */
+  const releaseDpr = () => {
+    if (!dprQuery) return
+    if (dprQuery.removeEventListener) dprQuery.removeEventListener('change', onDprChange)
+    else dprQuery.removeListener?.(onDprChange)
+    dprQuery = null
+  }
+
+  /** The ratio changed: watch the new one and re-derive the backing store. */
+  const onDprChange = () => {
+    if (disposed) return
+    watchDpr()
+    applySize()
+  }
+
+  /**
+   * (Re-)arm the `devicePixelRatio` watch: a `matchMedia` query that changes
+   * exactly when the ratio does. Without it the backing store keeps the ratio
+   * it was created with — a window dragged to another display draws blurry
+   * lines and picks at the wrong scale.
+   */
+  const watchDpr = () => {
+    if (typeof window == 'undefined' || !window.matchMedia) return
+    // the previous query is for the PREVIOUS ratio and never fires again
+    releaseDpr()
+    dprQuery = window.matchMedia(`(resolution: ${dpr()}dppx)`)
+    // happy-dom has both; a MediaQueryList only implements one of them depending
+    // on how old the DOM implementation is
+    if (dprQuery.addEventListener) dprQuery.addEventListener('change', onDprChange)
+    else dprQuery.addListener?.(onDprChange)
   }
 
   const onClick = e => {
@@ -148,32 +307,45 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
     if (line) editor.selectConnector(line)
     // Empty canvas: the `pointerup` handler already deselected; nothing to do.
   }
-  const releaseClick = backend.current.listen(editor, 'click', onClick)
-  const releaseMove = backend.current.listenCustom(editor, 'ne-move', () => {
-    scheduleRender()
-  })
+
+  /** Release the editor-level listeners (idempotent). */
+  const releaseEvents = () => {
+    releaseClick?.()
+    releaseMove?.()
+    releaseClick = null
+    releaseMove = null
+  }
+
+  /** (Re-)register the editor-level listeners. */
+  const listenEvents = () => {
+    releaseEvents()
+    releaseClick = backend.current.listen(editor, 'click', onClick)
+    releaseMove = backend.current.listenCustom(editor, 'ne-move', () => {
+      scheduleRender()
+    })
+  }
+  listenEvents()
 
   /** @type {object} the layer */
   const layer = {
     kind: 'canvas',
     /** @type {HTMLCanvasElement} */
     el: canvas,
-    /** @type {Promise<void>} GPU renderer ready (or rejected) */
-    ready,
+    /** The current life's GPU readiness. @type {Promise<void>} */
+    get ready() {
+      return ready
+    },
+    /** True while the layer is disposed and can be brought back with `revive()`. @type {boolean} */
+    get disposed() {
+      return disposed
+    },
 
     /**
      * Register the line; it joins the next redraw.
      * @param {ConnectLine} line
      */
     add(line) {
-      states.set(line, { selected: line.selected || false, fromSel: false, toSel: false })
-      // While a free end is being dragged the line's `d` changes without any
-      // `ne-move` event; the path listener funnels those updates into the same
-      // rAF-batched redraw (see `scheduleRender`).
-      pathSubs.set(
-        line,
-        line.onPathChange(() => scheduleRender()),
-      )
+      registerLine(line)
       scheduleRender()
     },
     /**
@@ -215,7 +387,10 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
      * @returns {ConnectLine|null}
      */
     pick(clientX, clientY) {
-      if (!edges) edges = buildEdges() // pick must not wait for the first redraw
+      // `pick` must not wait for the first redraw, and after a device loss nothing
+      // rebuilds the list at all (the redraw loop stopped) — so a layer that stays
+      // installed still picks the lines it has
+      if (!edges || lost) edges = buildEdges()
       if (!edges.length) return null
       const d = dpr()
       const rect = canvas.getBoundingClientRect()
@@ -229,46 +404,79 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
      */
     onViewport(z) {
       zoom = z
+      // the editor calls this FIRST when it installs a layer, so a disposed layer
+      // comes back here (see `revive`)
+      revive()
       if (renderer) renderer.setViewport(0, 0, zoom * dpr())
       scheduleRender()
     },
     /**
-     * @param {number} cssW
-     * @param {number} cssH
+     * @param {number} w editor box width in CSS px
+     * @param {number} h editor box height in CSS px
      */
-    onResize(cssW, cssH) {
-      const d = dpr()
+    onResize(w, h) {
       // `realWidth`/`realHeight` are `undefined` until the editor's ResizeObserver
       // fires; treat that as "no size yet" rather than NaN.
-      canvas.width = Math.max(1, Math.round((cssW || 0) * d))
-      canvas.height = Math.max(1, Math.round((cssH || 0) * d))
-      scheduleRender()
+      cssW = w || 0
+      cssH = h || 0
+      revive()
+      applySize()
     },
     /**
-     * Stop the renderer, release both listeners and remove the canvas.
+     * Release everything the layer owns: the GPU session, the listeners, the
+     * pixel-ratio watch, the per-line state and the canvas element.
+     *
+     * The layer OBJECT survives — `revive()` (or re-installing it through
+     * `editor.setLineLayer`, which calls `revive()` for you) brings it back with
+     * a fresh GPU session and a fresh `ready`. The `ready` of the life being
+     * disposed rejects with an `AbortError`, so nobody is left waiting; the next
+     * life gets a new one. Idempotent.
      */
     dispose() {
       if (disposed) return
       disposed = true
+      life++ // every in-flight continuation (GPU startup, rAF) is now stale
       if (raf) {
         cancelAnimationFrame(raf)
         raf = 0
       }
-      releaseClick()
-      releaseMove()
-      if (renderer) {
-        try {
-          renderer.dispose()
-        } catch {
-          // the renderer may have failed to initialise; nothing to release
-        }
-        renderer = null
-      }
+      releaseEvents()
+      releaseDpr()
+      disposeRenderer()
       pathSubs.forEach(unsub => unsub())
       pathSubs.clear()
       states.clear()
       edges = null
+      settleReady(Object.assign(new Error('the canvas line layer was disposed'), { name: 'AbortError' }))
       canvas.remove()
+    },
+    /**
+     * Bring a disposed layer back: the same canvas element goes back into the
+     * editor, the listeners and the pixel-ratio watch are re-armed, the editor's
+     * current lines are registered again, and a NEW GPU session starts (so
+     * `ready` is a new promise, not the rejected one).
+     *
+     * Idempotent — a live layer ignores it — and safe to call while the layer is
+     * still the editor's active one, which is the case `onViewport`/`onResize`
+     * cover for the re-install path.
+     */
+    revive() {
+      if (!disposed) return
+      // a destroyed editor never disposes its layers again: reviving here would
+      // acquire a GPU session that nothing can release
+      if (editor.destroyed) return
+      disposed = false
+      life++
+      lost = false
+      editor.insertBefore(canvas, editor.contentArea)
+      listenEvents()
+      watchDpr()
+      newReady()
+      // `onViewport`/`onResize` run BEFORE the lines when the editor re-installs a
+      // layer, and a host may revive a layer it never re-installs — either way the
+      // layer has to pick the editor's lines up itself (`add` is idempotent)
+      editor.lines.forEach(registerLine)
+      initRenderer()
     },
   }
 
@@ -279,29 +487,51 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
    */
   const edgeToLine = edge => edge.line
 
+  /**
+   * Bring up the GPU renderer. The renderer is only published (and the layer
+   * only allowed to draw) once it is initialised AND the life that asked for it
+   * is still the current one: a `dispose()` — or a dispose + revive — while the
+   * GPU was coming up would otherwise leave an orphaned device behind, or
+   * publish a stale renderer over the new life's.
+   *
+   * The host-facing helpers do the throwing-free part: `isSupported()` is a
+   * synchronous probe (no WebGPU → `ready` rejects without asking for an
+   * adapter), and `create()` reports the cause to the console, cleans up what it
+   * half-acquired and resolves with `null` instead of throwing.
+   */
   const initRenderer = async () => {
-    try {
-      renderer = new lr.LineRenderer(canvas, {
-        // transparent clear: the editor's own background shows through
-        clear: [0, 0, 0, 0],
-        segmentsPerCurve: opts.segmentsPerCurve || 32,
-      })
-      await renderer.init()
-      renderer.setViewport(0, 0, zoom * dpr())
-      resolveReady()
-      scheduleRender()
-    } catch (err) {
-      rejectReady(err)
-      if (renderer) {
-        try {
-          renderer.dispose()
-        } catch {
-          // ignore
-        }
-        renderer = null
-      }
+    const gen = life
+    if (!lr.LineRenderer.isSupported()) {
+      settleReady(new Error('WebGPU is not available (navigator.gpu) — keeping the SVG line layer'))
+      return
     }
+    const created = await lr.LineRenderer.create(canvas, {
+      // transparent clear: the editor's own background shows through
+      clear: [0, 0, 0, 0],
+      segmentsPerCurve: opts.segmentsPerCurve || 32,
+      // a host can hand in its own device, so several editors share one
+      device: opts.device || null,
+      onLost: info => handleLost(info),
+    })
+    if (gen !== life || disposed) {
+      // disposed (or disposed AND revived) while the adapter/device was being
+      // acquired: release what this stale call acquired and stay out of the way
+      created?.dispose()
+      return
+    }
+    if (!created || lost) {
+      // either nothing could be started, or the device was lost while it was
+      // starting up (then `onLost` has already told the host)
+      if (created) created.dispose()
+      settleReady(new Error('the WebGPU renderer could not be started — keeping the SVG line layer'))
+      return
+    }
+    renderer = created
+    renderer.setViewport(0, 0, zoom * dpr())
+    settleReady()
+    scheduleRender()
   }
+  watchDpr()
   initRenderer()
 
   return layer

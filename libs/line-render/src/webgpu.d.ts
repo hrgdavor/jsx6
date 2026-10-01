@@ -20,6 +20,9 @@ interface GPUAdapter {
 
 interface GPUDevice {
   queue: GPUQueue
+  /** resolves when the device is lost (driver reset, GPU crash, `destroy()`) */
+  lost: Promise<{ reason: string; message: string }>
+  destroy(): void
   createShaderModule(descriptor: { code: string }): unknown
   createRenderPipeline(descriptor: unknown): GPURenderPipeline
   createBuffer(descriptor: { size: number; usage: number }): GPUBuffer
@@ -71,6 +74,7 @@ interface GPUTexture {
 
 interface GPUCanvasContext {
   configure(descriptor: unknown): void
+  unconfigure(): void
   getCurrentTexture(): GPUTexture
 }
 

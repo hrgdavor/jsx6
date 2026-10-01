@@ -43,7 +43,9 @@ const edge = {
 
 ## API
 
-- `parseLinePath(d, { color, width })` — SVG `M...C...` string → edge
+- `parseLinePath(d, { color, width, worldWidth })` — SVG `M...C...` string → edge.
+  `worldWidth: false` is carried through (screen-pixel width); omitting it means
+  the default WORLD-unit width, so it is only recorded when it is `false`
 - `edgeToPath(edge)` — edge → SVG `d` string
 - `makeConnector(p1, p2, strength)` — the nodditor connector formula
   (horizontal tangents, strength clamped to half the point distance)
@@ -63,19 +65,38 @@ const edge = {
   larger value adds a thickness-independent tolerance (easy picking of thin
   lines in a graph)
 - `screenToWorld(...)` / `worldToScreen(...)` — viewport transforms
-- `packEdges(edges)` — the 16-float-per-edge layout for the GPU buffer
+- `packEdges(edges, out?)` — the 16-float-per-edge layout for the GPU buffer.
+  `out` is an optional scratch array to pack into: when it is big enough it is
+  reused and returned (one array for the whole render loop instead of one per
+  frame), and only the live prefix is written
 - `LINE_SHADER` — the WGSL source
 - `BLIT_SHADER` — the WGSL source for the linear-downscale blit
 - `LineRenderer` — the WebGPU renderer (always 4x MSAA; supersampling is
   OPT-IN and costs `supersample^2` pixels):
-  - `new LineRenderer(canvas, { segmentsPerCurve = 32, clear, supersample = 1 })`
+  - `LineRenderer.isSupported()` — SYNCHRONOUS probe of `navigator.gpu`, for a UI
+    decision (disable a "GPU layer" toggle). Not a guarantee: the adapter request
+    can still fail
+  - `await LineRenderer.create(canvas, opts)` — build AND initialise in one call;
+    resolves with a ready renderer, or with `null` after reporting the cause
+    through `console.warn`. Use `new` + `init()` when the host wants the error
+    (a usage error, such as a bad `supersample`, throws from `create()` too)
+  - `new LineRenderer(canvas, { segmentsPerCurve = 32, clear, supersample = 1, onLost, device })`
+    — `device` is a BORROWED `GPUDevice` to draw on (see "Device ownership and
+    sharing")
   - `await renderer.init()`
   - `renderer.setViewport(panX, panY, zoom)` (or set `panX`/`panY`/`zoom` directly)
   - `renderer.setSupersample(n)` — opt into higher-quality antialiasing
     (render at `n`x resolution with 4x MSAA, linear-downscale); default 1
     keeps the plain 4x MSAA path
-  - `renderer.render(edges)` — clears and draws all edges in one draw call
-  - `renderer.dispose()`
+  - `renderer.render(edges)` — clears and draws all edges in one draw call;
+    throws once the device is lost (see `onLost`)
+  - `renderer.dispose()` — releases the buffers, textures, context and — unless
+    the device was borrowed — the GPU device `init()` acquired. Single-use
+    afterwards, idempotent, and safe after a failed `init()`. See "Device
+    ownership and sharing" below
+  - `onLost(info)` is called ONCE if the GPU device is lost (driver reset, GPU
+    process crash) so the host can fall back to another layer. A loss raised by
+    `dispose()` is not reported
 
 The viewport convention is `screenPos = worldPos * zoom + pan`, the same
 convention nodditor uses for its pan/zoom.
@@ -87,6 +108,62 @@ any half-transparent color — lets the page background show through. Edge
 colors are still passed as straight `RGBA 0..1`; the renderer premultiplies
 them by alpha for compositing. The `clear` value goes straight to WebGPU and
 is interpreted as premultiplied (identical for opaque, alpha-1 colors).
+
+### Device ownership and sharing
+
+`init()` acquires everything the renderer draws with — an adapter, a `GPUDevice`
+and the `webgpu` context of ITS canvas — and `dispose()` releases all of it,
+`device.destroy()` included. Nothing is created before `init()`, so the picker
+(`pickEdge`, `edgeDistance`) needs no device at all.
+
+A renderer therefore OWNS its device by default, and **N canvases mean N
+devices**: two `LineRenderer`s call `requestAdapter()`/`requestDevice()` twice.
+The batching is unaffected — each renderer still draws its batch in ONE instanced
+call — so what multiplies is per-device state, not draw calls. That is fine for
+one editor and wasteful for many small ones.
+
+To put ONE device behind several canvases, hand the same `device` to every
+renderer. Such a device is **borrowed**: `init()` skips the adapter/device
+request, and `dispose()` releases only that renderer's buffers, textures and
+canvas context and leaves the device alive — destroying it stays the caller's
+job.
+
+```js
+import { LineRenderer } from '@jsx6/line-render'
+
+// the host owns the device; the renderers each own their canvas context
+const adapter = await navigator.gpu.requestAdapter()
+const device = await adapter.requestDevice()
+
+// `create()` resolves with null (after a console warning) when WebGPU is not
+// available, so no try/catch is needed for the degraded path
+const rendererA = await LineRenderer.create(canvasA, { device, onLost: useSvgLayer })
+const rendererB = await LineRenderer.create(canvasB, { device, onLost: useSvgLayer })
+
+rendererA.render(edgesA)
+rendererB.render(edgesB)
+
+rendererA.dispose() // its context/buffers only — `device` is untouched
+rendererB.dispose()
+device.destroy() // the host's call, once it is done with ALL of them
+```
+
+What that costs and what to watch for:
+
+- Sharing reduces the number of *devices*, never the number of canvas
+  *contexts* (one per canvas) or of per-renderer buffers.
+- `renderer.ownsDevice` is `false` for a borrowed device — that flag, not
+  `renderer.device`, is what decides whether `dispose()` destroys it. Reading
+  `renderer.device` and destroying it yourself still breaks every other renderer
+  on that device.
+- A shared device is lost for EVERY renderer on it at once, so each one reports
+  through its own `onLost` (including when the owner destroys it). Dispose all
+  the renderers before destroying the device.
+- The canvas format comes from `navigator.gpu.getPreferredCanvasFormat()`; with a
+  borrowed device and no `navigator.gpu` to ask (a stubbed global, a worker
+  shim), it falls back to `bgra8unorm`.
+- Two renderers must not share one canvas: each renderer configures the `webgpu`
+  context it was constructed with.
 
 ## Other shapes (lines, circles, polygons)
 
@@ -262,8 +339,12 @@ then open in a WebGPU-capable browser:
 - `pickEdge` is the closest-candidate picker: when two edges are both within
   the threshold, the nearer one wins (a deliberate upgrade over a first-match
   `find`).
-- GPU buffers are created once and grown as the batch grows; a frame costs two
-  `writeBuffer` calls and no buffer allocation.
+- GPU buffers are created once and grown as the batch grows; per frame the cost
+  is two `writeBuffer` calls, one cached bind group, no buffer allocation and no
+  per-frame `Float32Array` (the pack scratch is reused and only the live prefix
+  is uploaded).
+- Device lifetime, ownership and the (unsupported) sharing cases: see
+  [Device ownership and sharing](#device-ownership-and-sharing).
 - **Background / alpha caveat:** a WebGPU canvas defaults to `opaque` — with
   that setting a transparent `clear` still renders as a black rectangle,
   because the browser composites every pixel as alpha 1. `LineRenderer`
