@@ -111,8 +111,16 @@ View:
 Persistence and history:
 
 - `saveGraph()` → `{ blocks: [{id, type, pos}], lines: [[idFull, idFull]] }`
-- `loadGraph(state, typeMap = this.typeMap)` — clears the editor and rebuilds it (needs the block
-  factories); resets the undo baseline
+- `loadGraph(state, typeMap = this.typeMap)` → `{ attached, skipped }` — clears the editor and
+  rebuilds it (needs the block factories); resets the undo baseline. **A host that persists the graph
+  must check `skipped` before saving**: writing the state back after a lossy load makes the loss
+  permanent, and a stored graph with `lines: []` makes a diagram look connection-less on every reload.
+  `loadLines` returns the same counts when you wire lines yourself.
+
+  Note there is no event for "a line was added" (`LineInteraction` creates one with
+  `editor.addConnector`, and `addConnectorFromTo` records history but fires nothing), so a host that
+  persists should save on its **own** connect path — a listener on `ne-move-done`/`ne-remove` alone
+  will miss every new connection.
 - `undo()`, `redo()` — both need `typeMap`, otherwise they warn and return `false`
 - `historyReset()`, `historyRecord(kind)` — snapshots the graph; only a real change is recorded
 
@@ -492,6 +500,18 @@ Renderer options pass through: `makeCanvasLineLayer(editor, lr, { segmentsPerCur
 — `clear` defaults to fully transparent (the editor's background shows through) and `supersample: 2`
 opts into the higher-quality antialiasing path, which renders at 2x and downscales for 4x the pixels.
 `device` is a borrowed `GPUDevice` shared between editors (see the library README).
+
+**Stroke width and the pick band scale with the zoom, in both layers.** The canvas edges are stroked in
+world units (`--ne-line-width`, `worldWidth: true`) and its pick band is half of `--ne-line-hit-width`,
+scaled by the zoom. That is not a preference, it is what the SVG layer does: the zoom is a CSS
+`transform` on `.ne-canvas`, an HTML **ancestor** of the `<svg>`, and `vector-effect: non-scaling-stroke`
+only compensates transforms **inside** the SVG. Measured in Chrome at zoom 4 with a 2px stroke: 8 painted
+px with the property, 8 px without — while the same stroke under an in-SVG `<g transform="scale(4)">`
+painted 2 px with it. So a 2px line is 2 CSS px at zoom 1 and 8 CSS px at zoom 4, in both layers, and the
+line markup carries no `vector-effect` (it would be dead weight). A host that wants a zoom-independent
+thickness instead divides by the zoom the editor publishes on `.ne-canvas`
+(`stroke-width: calc(var(--ne-line-width) / var(--ne-zoom, 1))`) and opts the canvas out with
+`worldWidth: false`; see [doc/styling-migration.md](doc/styling-migration.md).
 
 Degradation: the layer probes with `LineRenderer.isSupported()` first and rejects `ready` when the
 browser has no WebGPU; otherwise `LineRenderer.create()` reports the cause to the console, releases

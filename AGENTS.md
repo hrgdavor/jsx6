@@ -20,10 +20,18 @@ read it there instead of duplicating it here.
 
 ## Sandbox limits that change how you verify (expected, not bugs)
 
-- **No automated browser.** `chrome --headless` self-terminates (its IPC needs named pipes, which are
-  blocked), `bun` cannot spawn `git`/`cmd.exe` (`EPERM`), and Node `child_process` with piped stdio
-  fails the same way. Anything needing a real rendering engine must be checked by a human, or left as
-  an explicit open question.
+- **Browser checks depend on the session's file policy.** Under the confined modes headless Chrome
+  cannot start (crashpad and Chromium's IPC need named pipes/`OpenProcess`, both denied:
+  `crash server failed to launch, self-terminating`), and `bun`/Node cannot spawn `git`/`cmd.exe` or
+  capture piped stdio. With unrestricted file access Chrome runs fine, and a *measurable* browser check
+  is then cheap: render a probe page with
+  `chrome --headless=new --no-sandbox --disable-crash-reporter --hide-scrollbars --force-device-scale-factor=1 --window-size=W,H --screenshot=out.png --user-data-dir=<scratch> file:///…/probe.html`,
+  decode the PNG with `node:zlib` (`inflateSync` + the PNG filter loop) and measure dark runs per row.
+  Add **calibration bars of known width** to the page and report their measured widths — that is what
+  makes the pixel numbers trustworthy. This is how the `worldWidth`/`non-scaling-stroke` policy was
+  settled (see [plan/line-render-followups.md](plan/line-render-followups.md) §6.1): an HTML ancestor
+  `transform: scale(4)` painted 8 px both with and without `vector-effect: non-scaling-stroke`, while an
+  in-SVG transform painted 2 px with it.
 - **`oxfmt --check` cannot pass here**: it exits 2 with `spawn EPERM` on six HTML files. Use
   `bun run check --no-format`, and `bun x oxfmt` (no args) to format — its **stdout** lists the source
   files that need formatting; the stderr HTML noise is the sandbox, not the tree.
@@ -33,7 +41,9 @@ read it there instead of duplicating it here.
   through the ANSI code page, so a `Get-Content -Raw` → `Set-Content` round trip mixes encodings and
   can leave invalid UTF-8 (it happened to `plan/line-render-followups.md`). Use the file-editing tools;
   if a file does get mangled, the repair is a byte walk keeping valid UTF-8 and mapping stray bytes
-  through CP1252, then re-check every file you touched.
+  through CP1252, then re-check every file you touched. The same code page mangles *displayed* non-ASCII
+  in `pwsh` output (`â€”` for an em dash) even when the file is fine — read files with the read tool
+  before concluding an encoding bug from console output.
 
 ## How this context reaches you (so it stays small)
 

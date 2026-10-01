@@ -168,6 +168,20 @@ jsx6-nodditor:focus {
    matches or inherits to the editor:
 
      jsx6-nodditor { --ne-line-selected: #ff5722; --ne-line-width: 3px } */
+
+/* The two widths are USER-SPACE lengths: these paths are drawn inside `.ne-canvas`, whose
+   zoom is a CSS transform, so the painted thickness is `width * zoom` and the painted hit
+   band is `hitWidth * zoom`. `vector-effect: non-scaling-stroke` cannot undo that (it only
+   compensates transforms INSIDE the svg — measured in Chrome at zoom 4: 8 painted px both
+   with and without the property on an ancestor-scaled stroke, while an in-svg transform
+   painted 2 px with it). The canvas layer matches by stroking in world units, so the two
+   layers agree at every zoom; a host that wants a zoom-INDEPENDENT thickness instead would
+   divide by the zoom this stylesheet publishes on `.ne-canvas`:
+
+     stroke-width: calc(var(--ne-line-width) / var(--ne-zoom, 1))
+     stroke-width: calc(var(--ne-line-hit-width) / var(--ne-zoom, 1))
+
+   ... and pass `worldWidth: false` to `makeCanvasLineLayer` for the canvas side. */
 jsx6-nodditor {
   --ne-line-color: #000;
   --ne-line-selected: #2ea7a7;

@@ -4,6 +4,18 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
 
 ## Unreleased
 
+- `loadGraph` now returns `{ attached, skipped }` — the line-attach counts it used to discard — so a
+  host that persists the graph can tell whether it is safe to write the state back. Saving right after
+  a LOSSY load is how a document loses its connections for good: the stored graph ends up with
+  `lines: []`, and any loader that prefers stored data over a default then boots connection-less
+  forever. See `README.md` (`loadGraph`).
+- The DEMO page no longer persists anything: it renders its initial data on every reload. Its old
+  `localStorage` restore had two failure modes worth not repeating — the demo never saved on connect
+  (a line added interactively fires no graph-level event, so the demo's `ne-move-done`/`ne-remove`
+  save triggers missed it and a reload right after connecting lost the line), and a stored graph
+  outlived its format, because the boot preferred it over the seed and never re-seeded. Persisting is
+  the host's job: save on your own connect path, and never write back a load that skipped lines.
+  The demo also removes the `ne.graph`/`ne.positions` keys it used to write.
 - **BREAKING (styling): the library stylesheet is now required.** The editor no
   longer writes inline styles; it publishes its layout as CSS custom properties
   (`--ne-x`/`--ne-y` per block, `--ne-zoom`/`--ne-zoom-w`/`--ne-zoom-h` on the
@@ -159,12 +171,27 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
   the revived one, and the stale session is released instead of leaking. Reviving is refused
   on a destroyed editor. The `LineLayer` contract gained the optional `revive()`, and `add()`
   is now idempotent so a re-install cannot double-subscribe a line.
-- Fixed (canvas line layer): the parsed connectors now really opt out of the world-unit
-  stroke width. `makeCanvasLineLayer` passes `worldWidth: false` (2 CSS px at any zoom, the
-  policy the SVG layer expresses with `vector-effect: non-scaling-stroke`), but
-  `@jsx6/line-render`'s `parseLinePath` silently dropped the flag, so the canvas edges were
-  built as world-unit ones and their thickness grew with zoom. The library carries the flag
-  through now, and `test/lineLayer.test.jsx` locks the pass-through down.
+- Fixed (canvas line layer): the two line layers now agree at every zoom, on the measured
+  behaviour rather than the assumed one. The editor's zoom is a CSS transform on
+  `.ne-canvas`, which is an HTML **ancestor** of the `<svg>`, and
+  `vector-effect: non-scaling-stroke` does not compensate for that — it only compensates
+  transforms **inside** the SVG. Measured in Chrome (devicePixelRatio 1, `scale(4)`, a 2px
+  stroke): 8 painted px **with** the property and 8 px without, while the same stroke under
+  an in-SVG `transform="scale(4)"` painted 2 px with it and 8 px without. The SVG line
+  layer has therefore always scaled with zoom, and the canvas layer now matches it:
+  `makeCanvasLineLayer` strokes in **world units** (`--ne-line-width`, `worldWidth: true`)
+  instead of screen pixels, and its pick band scales with the zoom to mirror the
+  `--ne-line-hit-width` hit stroke, which the SVG layer paints inside the same scaled
+  canvas. Nothing on a canvas edge depends on the device pixel ratio any more (the
+  renderer's viewport carries it), the inert `vector-effect` was dropped from the line
+  markup, and `theme.widthCss`/`theme.hitWidthCss` are now `width`/`hitWidth`, since they
+  are world units, not screen pixels. A host that wants a zoom-INDEPENDENT thickness
+  instead can divide by the zoom the editor publishes — the recipe is in
+  `static/nodditor.css` and `src/lineTheme.js`.
+- Fixed (@jsx6/line-render): `parseLinePath` silently dropped the `worldWidth` flag, so a
+  caller that asked for screen-pixel widths got zoom-scaled world-unit ones instead. The
+  flag is carried through now (the geometry the parser returns is otherwise unchanged), and
+  both the library tests and `test/lineLayer.test.jsx` lock it down.
 - Fixed (canvas line layer): `devicePixelRatio` changes (window moved to another display,
   browser zoom) re-derive the backing store and the renderer viewport (they were only
   derived from the editor's `ResizeObserver`, leaving the canvas blurry and the pick scale

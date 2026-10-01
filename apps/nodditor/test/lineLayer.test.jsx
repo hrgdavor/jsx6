@@ -76,6 +76,20 @@ function offsetFromMidpoint(line, d) {
 }
 
 /**
+ * A POINTER position `d` CSS px off the line's midpoint at a given zoom — the units
+ * `pick()` takes. `offsetFromMidpoint` returns WORLD coordinates, which only coincide with
+ * client coordinates at zoom 1 (pan 0, dpr 1); above that the world point has to be
+ * scaled into screen space first (`pan` is 0 and happy-dom's rect is `0,0,0,0`).
+ */
+function screenOffsetFromMidpoint(line, d, zoom) {
+  const [mx, my] = offsetFromMidpoint(line, 0)
+  const [ax, ay] = offsetFromMidpoint(line, 1)
+  const nx = ax - mx
+  const ny = ay - my
+  return [mx * zoom + nx * d, my * zoom + ny * d]
+}
+
+/**
  * A fake `@jsx6/line-render` module: the REAL `parseLinePath`/`pickEdge` (pure curve
  * math) plus a `LineRenderer` whose `init()` succeeds, rejects or WAITS on demand and
  * whose `render`/`setViewport`/`dispose` calls are recorded.
@@ -464,7 +478,7 @@ test('canvas layer: a host device is forwarded to the renderer (shared device)',
   layer.dispose()
 })
 
-test('canvas layer: edges keep the SVG layer screen-pixel width (worldWidth: false)', async () => {
+test('canvas layer: edges are stroked in WORLD units, like the zoom-scaled SVG layer', async () => {
   addTwoBlocks()
   editor.addConnectorFromTo('1/o1', '2/i1')
 
@@ -474,17 +488,57 @@ test('canvas layer: edges keep the SVG layer screen-pixel width (worldWidth: fal
   await layer.ready
   await waitFrame()
 
-  // The layer's stroke policy is a constant 2 CSS px at any zoom (mirroring the 8px
-  // non-scaling CSS hit stroke the pick radius is derived from), so the canvas edge
-  // must opt OUT of the world-unit width. `parseLinePath` used to drop the flag,
-  // which silently turned these edges into zoom-scaled ones.
-  expect(fx.rendered.at(-1)[0].worldWidth).toBe(false)
+  // The stroke policy is WORLD units, because that is what the SVG layer actually
+  // paints: the editor's zoom is a CSS transform on `.ne-canvas`, an HTML ANCESTOR of
+  // the <svg>, and `vector-effect: non-scaling-stroke` does not compensate for it
+  // (measured in Chrome at zoom 4: 8 painted px with the property, 8 px without, while
+  // an in-SVG transform painted 2 px). So the SVG stroke is `2 * zoom` CSS px, and the
+  // canvas edge must be 2 world units to paint the same.
+  expect(fx.rendered.at(-1)[0].worldWidth).toBe(true)
+  expect(fx.rendered.at(-1)[0].width).toBe(2) // world units = the theme's --ne-line-width
 
   editor.zoom = 4
   await waitFrame()
   const zoomed = fx.rendered.at(-1)[0]
+  expect(zoomed.worldWidth).toBe(true)
+  // the field is zoom-free on purpose (nothing on the edge depends on the dpr or the
+  // zoom: the renderer's viewport carries them), so the zoom must NOT rewrite it
+  expect(zoomed.width).toBe(2)
+  expect(zoomed).toBe(fx.rendered.at(-2)[0]) // and it is still the same pinned object
+})
+
+test('canvas layer: worldWidth: false opts into a zoom-independent screen-pixel stroke', async () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+
+  // The documented escape hatch for a host that pins the SVG stroke to a constant screen
+  // width instead (see doc/styling-migration.md): the canvas has to follow, or the two
+  // layers disagree.
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx, { worldWidth: false })
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+
+  const edge = fx.rendered.at(-1)[0]
+  expect(edge.worldWidth).toBe(false)
+  expect(edge.width).toBe(2) // --ne-line-width * devicePixelRatio (1 here) = screen px
+
+  // the pick band is a fixed half hit width (4 CSS px by default) instead of a zoom-scaled
+  // one: at zoom 1 it is 4 px, so 3 px off the line hits and 5 px misses
+  expect(layer.pick(...screenOffsetFromMidpoint(line, 3, 1))).toBe(line)
+  expect(layer.pick(...screenOffsetFromMidpoint(line, 5, 1))).toBeNull()
+
+  // at zoom 4 neither the stroke nor the band changes: still 2 screen px, and the same
+  // 3 px SCREEN offset still hits (in the default world-unit mode the stroke would be 8 px
+  // and the band 16 px, which is the whole difference between the two modes)
+  editor.zoom = 4
+  await waitFrame()
+  const zoomed = fx.rendered.at(-1)[0]
   expect(zoomed.worldWidth).toBe(false)
-  expect(zoomed.width).toBe(2) // screen px, unchanged by the zoom
+  expect(zoomed.width).toBe(2) // screen px, so the zoom does NOT change it
+  expect(layer.pick(...screenOffsetFromMidpoint(line, 3, 4))).toBe(line)
+  expect(layer.pick(...screenOffsetFromMidpoint(line, 5, 4))).toBeNull()
 })
 
 // ---------- canvas layer: GPU lifetime ----------
@@ -775,16 +829,25 @@ test('canvas layer: the stroke colours, width and pick band come from the theme'
 
   const edge = fx.rendered.at(-1)[0]
   expect(edge.color).toEqual([16 / 255, 32 / 255, 48 / 255, 1]) // --ne-line-color
-  expect(edge.width).toBe(3) // --ne-line-width × devicePixelRatio
+  expect(edge.width).toBe(3) // --ne-line-width, in world units (the dpr is not a factor)
 
   editor.selectConnector(line)
   await waitFrame()
   expect(fx.rendered.at(-1)[0].color).toEqual([1, 0, 0, 1]) // --ne-line-selected
 
-  // the pick band is HALF the hit width: 6 CSS px here, so 5 px off the line still hits
-  // and 7 px does not (the default 4 px band would have missed both)
+  // the pick band is HALF the hit width: 6 CSS px at zoom 1, so 5 px off the line still
+  // hits and 7 px does not (the default 4 px band would have missed both)
   expect(layer.pick(...offsetFromMidpoint(line, 5))).toBe(line)
   expect(layer.pick(...offsetFromMidpoint(line, 7))).toBeNull()
+
+  // ... and it scales with the zoom, because the SVG hit stroke it mirrors is painted
+  // inside `.ne-canvas` and therefore scaled by the zoom transform: at zoom 3 the band is
+  // 18 CSS px (half of 12 world units painted at 3x), so a 12 px offset hits where it
+  // would have missed at zoom 1
+  editor.zoom = 3
+  await waitFrame()
+  expect(layer.pick(...screenOffsetFromMidpoint(line, 12, 3))).toBe(line)
+  expect(layer.pick(...screenOffsetFromMidpoint(line, 20, 3))).toBeNull()
 })
 
 test('canvas layer: a theme change is picked up by the live layer', async () => {

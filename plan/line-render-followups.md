@@ -49,6 +49,7 @@ with `bun run check --no-format`.
 | 16 | [5.1](#51-one-theme-for-both-layers-css-custom-properties) `--ne-line-*` theme driving BOTH layers, read (and re-read on a class/style change) by the canvas layer | [lineTheme.js](../apps/nodditor/src/lineTheme.js), [nodditor.css](../apps/nodditor/static/nodditor.css), [styling-migration.md](../apps/nodditor/doc/styling-migration.md), tests in [lineTheme.test.js](../apps/nodditor/test/lineTheme.test.js) |
 | 17 | [5.2](#52-install-helper--honest-loadlinerender-failure) `installCanvasLineLayer` + honest `loadLineRender` failure | [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) (`installCanvasLineLayer`), [index.js](../apps/nodditor/index.js) |
 | 18 | [5.3](#53-pass-the-renderer-options-through) `clear`/`supersample` forwarded to the renderer | [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) (`initRenderer`) |
+| 19 | [6.1](#61-real-layer-parity-test--browser-check) browser check that settled [9.1](#9-open-decisions-need-the-maintainer-not-an-agent), then the policy it implied: the canvas strokes in **world units** (`worldWidth: true`, pick band scaled by zoom), `worldWidth: false` kept as the documented escape hatch, inert `vector-effect` dropped, `widthCss`/`hitWidthCss` renamed to `width`/`hitWidth` | [svgUtil.js](../apps/nodditor/src/svgUtil.js), [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) (`edgeFor`/`pick`), [lineTheme.js](../apps/nodditor/src/lineTheme.js), [nodditor.css](../apps/nodditor/static/nodditor.css), tests in [lineLayer.test.jsx](../apps/nodditor/test/lineLayer.test.jsx) |
 
 ---
 
@@ -432,28 +433,70 @@ a null-safe path for canvas mode.
 
 ### 6.1 Real layer-parity test + browser check
 
-**What.** The landed test asserts the canvas edge carries `worldWidth: false` and `width: 2`; it does
-**not** compare the rendered canvas stroke with what the SVG layer actually paints. And nobody has
+**Status: the browser check is DONE (measured, not eyeballed) and it settled the policy; the parity
+test landed in unit form; the demo edge is still open.**
+
+**What.** The landed test asserted the canvas edge carried `worldWidth: false` and `width: 2`; it did
+**not** compare the rendered canvas stroke with what the SVG layer actually paints. And nobody had
 verified in a browser what `vector-effect: non-scaling-stroke` does under
-`.ne-canvas { transform: scale() }` (an HTML ancestor transform) — the intent recorded in the code is
-"constant 2 CSS px", but the oracle is the demo toggle at zoom 4.
+`.ne-canvas { transform: scale() }` (an HTML ancestor transform) — the intent recorded in the code was
+"constant 2 CSS px", and the point of this item was that the intent had never been checked.
 
-**Approach.**
+**Outcome of the browser check (2026-02, Chrome 141 headless, `devicePixelRatio` 1, window 480x300).**
+A five-band probe page (`.tmp/zoom-stroke/policy.html`) drew the same 2px vertical stroke five ways and
+a screenshot was measured with a PNG dark-run decoder (`.tmp/zoom-stroke/measure-runs.mjs`). Two
+calibration bars of known width (10px, 2px) measured 10px and 2px, so the harness itself is sound:
 
-1. **Browser check (do this first; it decides the policy):** serve the demo, toggle to the canvas
-   layer, zoom to 4, compare the canvas lines with the SVG panel. Record the outcome in
-   [apps/nodditor/README.md](../apps/nodditor/README.md) §"Line layer" and/or
-   [docs/webgpu-pitfalls.md](../libs/line-render/docs/webgpu-pitfalls.md).
-2. **Parity test (happy-dom):** assert the canvas layer's `width`/`worldWidth` policy equals the SVG
-   path's computed `stroke-width` + `vector-effect` at zoom 1 and 4 (read the CSS/`getComputedStyle`
-   of `line.line1`). This is the test that would have caught the `worldWidth` bug outright.
-3. **Demo coverage:** [docs/compare.html](../libs/line-render/docs/compare.html) builds its edges by
-   hand (`straightEdge(...)`), which is why `parseLinePath`'s options were never exercised by the
-   demo. Add one panel/edge that goes through `parseLinePath` so the demo covers the parsed path.
+| band | transform | `vector-effect` | painted width |
+| --- | --- | --- | --- |
+| A | HTML ancestor `.ne-canvas{transform:scale(4)}` | **yes** | **8 px** |
+| B | HTML ancestor `.ne-canvas{transform:scale(4)}` | no | 8 px |
+| C | in-SVG `<g transform="scale(4)">` | **yes** | **2 px** |
+| D | in-SVG `<g transform="scale(4)">` | no | 8 px |
+| E | calibration 10px / 2px bars | — | 10 px / 2 px |
 
-**Effort:** S for the test, S for the demo edge, and the browser check is a manual 5-minute step
-(needs an unrestricted shell — Chrome cannot start under the file sandbox: named-pipe IPC is
-blocked).
+So the property **does** work (C vs D) but does **not** compensate a transform on an HTML ancestor
+(A == B). That matches Blink's `LayoutSVGShape::ComputeNonScalingStrokeTransform`, which computes the
+CTM to the **SVG root** plus `EffectiveZoom` and deliberately stops short of the host coordinate space
+(the source comment says so and cites crbug.com/747708).
+
+**Policy chosen: make the canvas match what the SVG actually paints** (the no-visual-change option).
+The SVG line layer has always scaled with zoom, so `makeCanvasLineLayer` now strokes in **world units**
+(`--ne-line-width`, `worldWidth: true`) and its pick band scales with the zoom, mirroring the
+`--ne-line-hit-width` hit stroke the SVG paints inside the same scaled canvas. `theme.widthCss` /
+`theme.hitWidthCss` were renamed to `width` / `hitWidth` (they are world units, not screen pixels), the
+inert `vector-effect` was dropped from the line markup, and `opts.worldWidth: false` remains as the
+supported escape hatch for a host that wants the *other* policy (constant screen thickness — which then
+requires the `calc(var(--ne-line-width) / var(--ne-zoom, 1))` CSS on the SVG side to stay coherent).
+
+**Remaining in this item.**
+
+1. ~~Browser check~~ — done above; the numbers are also in
+   [apps/nodditor/README.md](../apps/nodditor/README.md), [doc/styling-migration.md](../apps/nodditor/doc/styling-migration.md)
+   and the CSS comment.
+2. **Parity test:** the unit test now pins the policy at zoom 1 and 4
+   (`test/lineLayer.test.jsx`: "edges are stroked in WORLD units…", "worldWidth: false opts into…"), and
+   both modes' pick bands. A test that reads the SVG path's *computed* `stroke-width` is impossible in
+   happy-dom (stylesheet rules are not applied to computed values — see `AGENTS.md` §2), so the pixel
+   oracle above is the parity evidence for the SVG side, and the canvas side is a three-link chain that
+   is each verified separately: the shader's world-width branch multiplies by `u.zoom`
+   (`wPx = select(edge.width, edge.width * u.zoom, edge.worldWidth > 0.5)` — visible in the committed
+   smoke bundle, `apps/nodditor/smoke/boot-page.bundle.mjs`), the layer sets that viewport to
+   `zoom * devicePixelRatio` and the backing store to `css * devicePixelRatio`
+   (`canvas layer: zoom and resize flow through…`, `…a device pixel ratio change resizes…`), and the
+   width field is `--ne-line-width` world units (the new test). Net: `width * zoom * dpr` **device** px =
+   `width * zoom` **CSS** px, which is exactly what the SVG paints. The one thing not yet done under
+   SwiftShader is a pixel render of the canvas itself; it needs a bundle of `@jsx6/line-render` and a
+   WebGPU-capable headless Chrome, and it would only re-check arithmetic that the three links above
+   already pin.
+3. **Demo coverage:** [docs/compare.html](../libs/line-render/docs/compare.html) still builds its edges
+   by hand (`straightEdge(...)`), so `parseLinePath`'s options are never exercised by the demo. Add one
+   panel/edge that goes through `parseLinePath`.
+
+**Effort:** S for the demo edge. The browser check needed an unrestricted shell (Chrome cannot start
+under the file sandbox: crashpad/IPC use named pipes) and took ~3 minutes with the harness committed
+to the plan above; re-running it is a 2-command recipe (render the page with
+`chrome --headless=new --screenshot=…`, measure with the dark-run decoder).
 
 ### 6.2 `pickEdge` doc: the `worldWidth` default
 
@@ -525,7 +568,7 @@ Each batch is one reviewable change set (tests + docs inside it).
 
 | Batch | Contents | Why together | Effort |
 | ----- | -------- | ------------ | ------ |
-| **A** | [6.1](#61-real-layer-parity-test--browser-check) browser check → policy, + parity test + demo edge; [5.4](#54-document-the-pick-semantics), [6.2](#62-pickedge-doc-the-worldwidth-default), [6.3](#63-migration-tables-parselinepath-is-the-only-bridge-that-grows) | Small, closes out the landed work honestly, needs no code decisions ([1.1](#11-dispose-is-terminal--decide-and-document)(b) already landed) | S |
+| **A** | ~~[6.1](#61-real-layer-parity-test--browser-check) browser check → policy~~ **done** (measured: the SVG layer scales with zoom, so the canvas now strokes in world units; §[9.1](#9-open-decisions-need-the-maintainer-not-an-agent) closed) + parity test landed in unit form; still open in A: the [6.1](#61-real-layer-parity-test--browser-check) demo edge, [5.4](#54-document-the-pick-semantics), [6.2](#62-pickedge-doc-the-worldwidth-default), [6.3](#63-migration-tables-parselinepath-is-the-only-bridge-that-grows) | Small, closes out the landed work honestly | S |
 | **B** | ~~[3.1](#31-pickedge-aabb-prefilter-over-cached-points--the-early-exit-was-rejected) picker~~, ~~[2.1](#21-numeric-edge-as-the-source-of-truth)~~, ~~[3.3](#33-edgeline-mutation)~~ — **landed** (see [§0](#0-what-already-landed) rows 12–14); what remains is the optional spatial index, only if a graph ever needs it | The picker prefilter is what makes per-move picking affordable; the numeric edge removes the parse that feeds it | done |
 | **C** | ~~[5.1](#51-one-theme-for-both-layers-css-custom-properties) theme vars~~, ~~[5.2](#52-install-helper--honest-loadlinerender-failure) install helper~~, ~~[5.3](#53-pass-the-renderer-options-through) options pass-through~~ — **landed** (see [§0](#0-what-already-landed) rows 16–18) | Integration ergonomics; the theme removes the duplicated look, the helper removes the duplicated startup | done |
 | **D** | ~~[2.3](#23-formula-parity-test) parity test~~ (landed with B), [2.2](#22-directions-belongs-in-the-connector-formula) directions, [5.5](#55-lazy-line-element) lazy element | Connector-model change; land it when vertical ports are actually needed, not before | M |
@@ -536,9 +579,11 @@ Each batch is one reviewable change set (tests + docs inside it).
 
 ## 9. Open decisions (need the maintainer, not an agent)
 
-1. **The `worldWidth` policy.** Is "constant 2 CSS px" the target for the canvas layer, and what does
-   `non-scaling-stroke` actually do under the ancestor `transform: scale()` in Chrome? The landed fix
-   makes the flag work; it does not prove the intent. Batch A's browser check resolves this.
+1. ~~The `worldWidth` policy~~ — **decided and measured**: the SVG layer scales with zoom (the zoom is
+   an HTML ancestor transform, which `non-scaling-stroke` does not compensate: 8 painted px at zoom 4
+   with the property, 8 px without, while an in-SVG transform paints 2 px), so the canvas layer strokes
+   in world units and its pick band scales too; `opts.worldWidth: false` remains for the opposite
+   policy. Evidence and the harness recipe are in [6.1](#61-real-layer-parity-test--browser-check).
 2. ~~Terminal vs revivable `dispose()`~~ — **decided: revivable** (option (b)), see
    [1.1](#11-dispose-is-terminal--decide-and-document).
 3. **Optional-dependency version guard.** `makeCanvasLineLayer` now calls

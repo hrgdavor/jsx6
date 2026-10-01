@@ -296,3 +296,98 @@ test('Delete: nothing selected means nothing happens', () => {
   expect(editor.blocks.length).toBe(3)
   expect(editor.lines.length).toBe(0)
 })
+
+// ---------- loadGraph / saveGraph: the demo's boot path ----------
+
+/**
+ * The demo page's seed graph (`src/index.jsx`), copied here because it is the exact input the
+ * reported "the demo starts with no connections" symptom flows through: four blocks and TWO lines,
+ * both of which target the same input connector (`2/i1`).
+ */
+const demoSeed = {
+  blocks: [
+    { id: '1', type: 'Switch', pos: [30, 10] },
+    { id: '2', type: 'Switch', pos: [30, 220] },
+    { id: '3', type: 'Message', pos: [200, 100] },
+    { id: '4', type: 'Message', pos: [510, 60] },
+  ],
+  lines: [
+    ['1/o1', '2/i1'],
+    ['1/o3', '2/i1'],
+  ],
+}
+
+test('loadGraph: the demo seed draws its lines and survives the save round trip', () => {
+  editor.loadGraph(demoSeed, typeMap)
+
+  expect(editor.blocks.length).toBe(4)
+  expect(editor.lines.length).toBe(2)
+
+  // every line is RENDERED, not just registered: the SVG layer writes the cached shape text
+  // into both of its paths on `add`
+  for (const line of editor.lines) {
+    expect(line.line1.getAttribute('d')).toMatch(/^M/)
+    expect(line.line2.getAttribute('d')).toMatch(/^M/)
+    expect(line.el.isConnected).toBe(true)
+  }
+
+  // and the graph the demo persists right after loading (index.jsx calls saveGraph() on boot)
+  // still carries both lines, in the same ids the seed used
+  const saved = editor.saveGraph()
+  expect(saved.lines).toEqual([
+    ['1/o1', '2/i1'],
+    ['1/o3', '2/i1'],
+  ])
+
+  // ... so a reload of that saved graph is NOT empty: it must reproduce the same two lines
+  editor.loadGraph(saved, typeMap)
+  expect(editor.lines.length).toBe(2)
+  expect(editor.saveGraph().lines).toEqual(saved.lines)
+})
+
+test('loadGraph: reports the lines it wired and the ones it had to skip', () => {
+  // the demo (and any host that persists the graph) keys "is it safe to save?" off this, because
+  // saving right after a LOSSY load makes the loss permanent
+  const wired = editor.loadGraph(
+    {
+      blocks: [
+        { id: '1', type: 'Switch', pos: [10, 10] },
+        { id: '2', type: 'Switch', pos: [10, 200] },
+      ],
+      lines: [
+        ['1/o1', '2/i1'],
+        ['1/o2', '2/missing-connector'], // skipped: no such connector
+        ['1/o1', '2/i1'], // skipped: duplicate
+      ],
+    },
+    typeMap,
+  )
+
+  expect(wired).toEqual({ attached: 1, skipped: 2 })
+  expect(editor.lines.length).toBe(1)
+  // a CLEAN load reports zero skips, which is what makes the boot save safe
+  expect(editor.loadGraph(editor.saveGraph(), typeMap)).toEqual({ attached: 1, skipped: 0 })
+})
+
+test('loadGraph: ignores a corrupt line entry instead of losing the whole graph', () => {
+  const wired = editor.loadGraph(
+    {
+      blocks: [{ id: '1', type: 'Switch', pos: [10, 10] }],
+      lines: [null, 'not-an-array', ['1/o1', undefined]],
+    },
+    typeMap,
+  )
+
+  expect(wired).toEqual({ attached: 0, skipped: 3 })
+  expect(editor.blocks.length).toBe(1) // the block survived
+})
+
+test('loadGraph: loads exactly the given graph (no implicit seeding)', () => {
+  // `loadGraph` never invents blocks or lines: an explicit empty `lines` list means no lines. The
+  // demo page now always passes its initial data, so this is the contract it relies on.
+  editor.loadGraph({ blocks: [{ id: '1', type: 'Switch', pos: [0, 0] }], lines: [] }, typeMap)
+
+  expect(editor.blocks.length).toBe(1)
+  expect(editor.lines.length).toBe(0)
+  expect(editor.saveGraph().lines).toEqual([])
+})

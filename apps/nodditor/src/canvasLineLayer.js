@@ -33,14 +33,18 @@ const STATE_TO = 3
  * @property {number} x1
  * @property {number} y1
  * @property {number[]} color - RGBA 0..1
- * @property {number} width - backing-store pixels (`worldWidth: false`)
- * @property {boolean} worldWidth
+ * @property {number} width - stroke width in WORLD units (`--ne-line-width`), so it
+ *   scales with zoom exactly like the SVG layer's `stroke-width`; in the `worldWidth: false`
+ *   mode it is screen pixels instead (`--ne-line-width * devicePixelRatio`)
+ * @property {boolean} worldWidth - the layer's stroke policy (`opts.worldWidth`, default true)
  * @property {Float64Array|null} points - the line's cached polyline (world coords)
  * @property {number[]|null} pointsBox - its AABB
  * @property {ConnectLine} line - how `pick` maps an edge back to its line
  * @property {number} ver - the `line.changeId` the geometry was copied at
- * @property {number} state - the selection state the colour was set for
- * @property {number} scale - the device pixel ratio the width was set for
+ * @property {number} state - the selection state the colour was resolved for
+ * @property {number} themeRev - the theme revision the colour and width were read at
+ * @property {number} scale - the device pixel ratio the width was set for (only used in
+ *   the screen-pixel mode)
  */
 
 /**
@@ -118,7 +122,7 @@ export async function loadLineRender() {
  *
  * @param {NodeEditor} editor
  * @param {import('@jsx6/line-render')} lr the loaded `@jsx6/line-render` module
- * @param {{segmentsPerCurve?: number, device?: any, clear?: number[], supersample?: number, onLost?: (info: unknown) => void}} [opts]
+ * @param {{segmentsPerCurve?: number, device?: any, clear?: number[], supersample?: number, worldWidth?: boolean, onLost?: (info: unknown) => void}} [opts]
  *   `device` is a `GPUDevice` to BORROW instead of requesting one, so several
  *   editors (each with its own canvas layer) can draw on ONE device; the device
  *   then stays the host's to destroy — see "Device ownership and sharing" in the
@@ -127,10 +131,20 @@ export async function loadLineRender() {
  *   opts into the higher-quality antialiasing path and costs 4x the pixels). `onLost`
  *   is called once if the GPU device is lost (or the renderer throws) after the layer
  *   started drawing; the layer stops drawing and releases the renderer before the call.
+ *
+ *   `worldWidth` (default `true`) is the stroke policy: `true` keeps the SVG layer's
+ *   behaviour (thickness = `--ne-line-width` world units, so it grows with the zoom — the
+ *   measured truth about the SVG layer, see `svgUtil.js`), `false` pins the thickness to
+ *   `--ne-line-width` SCREEN px at any zoom. The second mode is only coherent if the host
+ *   also makes the SVG layer zoom-independent
+ *   (`stroke-width: calc(var(--ne-line-width) / var(--ne-zoom, 1))`), otherwise the layers
+ *   disagree; the pick band follows the same choice (zoom-scaled or fixed).
  * @returns {object} a line layer (see `lineLayer.js`) plus `ready: Promise<void>`
  */
 export function makeCanvasLineLayer(editor, lr, opts = {}) {
   const dpr = () => (typeof window != 'undefined' && window.devicePixelRatio) || 1
+  /** the stroke policy: world units (SVG parity) unless the host pins screen pixels */
+  const worldWidth = opts.worldWidth !== false
 
   /**
    * The four state colours of a theme, in `STATE_*` order. A function declaration (not
@@ -192,6 +206,8 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
   let theme = readLineTheme(editor)
   /** @type {number[][]} colours indexed by the `STATE_*` constants, rebuilt with the theme */
   let themeColors = stateColors(theme)
+  /** @type {number} bumped on every theme re-read (the pinned edges refresh against it) */
+  let themeRev = 0
   /** @type {MutationObserver|null} */
   let themeMO = null
 
@@ -244,15 +260,28 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
    *    converts the pointer into that space, so a viewport change never invalidates
    *    geometry.
    *  - `state` — the selection changed, which is what the colour depends on.
-   *  - `scale` — the device pixel ratio changed, which is the only thing the
-   *    screen-pixel width depends on.
+   *  - `themeRev` — the theme was re-read, which is what the colour AND the width depend on.
+   *  - `scale` — the device pixel ratio changed, which only matters in the screen-pixel mode
+   *    (`worldWidth: false`). In the default world-unit mode the width is scale-independent
+   *    and nothing on this edge depends on the backing store (the renderer's viewport
+   *    carries the dpr, in `applySize`).
+   *
+   * The width is `--ne-line-width` in world units, which is what makes the canvas match
+   * the SVG layer: the SVG stroke is 2 user units inside `.ne-canvas`, which the editor's
+   * zoom transform then scales, so the SVG paints `2 * zoom` CSS px. That is measured,
+   * not assumed — `vector-effect: non-scaling-stroke` does NOT compensate a transform on
+   * an HTML ancestor (see `svgUtil.js` and `lineTheme.js` for the numbers). With
+   * `worldWidth: false` the width is instead `--ne-line-width * dpr` backing px: a constant
+   * screen thickness, coherent with the SVG layer only if the host also makes the CSS
+   * stroke zoom-independent.
    *
    * @param {ConnectLine} line
    * @param {number} state
+   * @param {number} themeRev
    * @param {number} scale
    * @returns {RenderEdge}
    */
-  const edgeFor = (line, state, scale) => {
+  const edgeFor = (line, state, themeRev, scale) => {
     let e = edgeCache.get(line)
     if (!e) {
       e = {
@@ -265,13 +294,15 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
         x1: 0,
         y1: 0,
         color: themeColors[STATE_BASE],
-        width: 0,
-        worldWidth: false,
+        width: worldWidth ? theme.width : theme.width * scale,
+        // world units by default: the thickness scales with zoom, like the SVG layer
+        worldWidth,
         points: null,
         pointsBox: null,
         line,
         ver: 0,
         state: -1,
+        themeRev: -1,
         scale: -1,
       }
       edgeCache.set(line, e)
@@ -292,12 +323,11 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
       e.pointsBox = line.pointsBox
       e.ver = line.changeId
     }
-    if (e.state !== state) {
+    if (e.state !== state || e.themeRev !== themeRev || (!worldWidth && e.scale !== scale)) {
       e.color = themeColors[state]
+      e.width = worldWidth ? theme.width : theme.width * scale
       e.state = state
-    }
-    if (e.scale !== scale) {
-      e.width = theme.widthCss * scale
+      e.themeRev = themeRev
       e.scale = scale
     }
     return e
@@ -317,7 +347,7 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
     const out = []
     for (const line of editor.lines) {
       if (!line.edge) continue
-      out.push(edgeFor(line, stateOf(states.get(line)), scale))
+      out.push(edgeFor(line, stateOf(states.get(line)), themeRev, scale))
     }
     builtSeq = changeSeq()
     return out
@@ -457,9 +487,10 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
   const applyTheme = () => {
     theme = readLineTheme(editor)
     themeColors = stateColors(theme)
+    themeRev++
     for (const edge of edgeCache.values()) {
       edge.state = -1 // re-resolved from the new themeColors
-      edge.scale = -1 // re-derived from the new widthCss
+      edge.themeRev = -1 // and the new width
     }
     scheduleRender()
   }
@@ -574,7 +605,15 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
       const rect = canvas.getBoundingClientRect()
       const sx = (clientX - rect.left) * d
       const sy = (clientY - rect.top) * d
-      const edge = lr.pickEdge(edges, sx, sy, 0, 0, zoom * d, PICK_SEGMENTS, (theme.hitWidthCss / 2) * d)
+      // Mirror the SVG hit path: its `--ne-line-hit-width` stroke is painted INSIDE
+      // `.ne-canvas`, so the zoom transform scales it and the painted band is
+      // `hitWidth * zoom` CSS px wide. Half of that, in backing pixels, is the radius
+      // `pickEdge` turns into a world-space threshold (dividing by `zoom * dpr` again),
+      // which is why the band ends up zoom-scaled in both layers. In screen-pixel mode
+      // (`worldWidth: false`) the band is a fixed half hit width instead, so picking stays
+      // as zoom-independent as the stroke.
+      const radiusPx = worldWidth ? (theme.hitWidth / 2) * zoom * d : (theme.hitWidth / 2) * d
+      const edge = lr.pickEdge(edges, sx, sy, 0, 0, zoom * d, PICK_SEGMENTS, radiusPx)
       return edge ? edgeToLine(edge) : null
     },
     /**

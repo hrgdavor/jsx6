@@ -73,12 +73,12 @@ test('readLineTheme falls back per variable, not all-or-nothing', () => {
   const theme = readLineTheme(el)
   expect(theme.selected).toEqual([1, 0, 0, 1])
   expect(theme.base).toEqual(LINE_THEME_DEFAULTS.base) // untouched
-  expect(theme.widthCss).toBe(LINE_THEME_DEFAULTS.widthCss)
+  expect(theme.width).toBe(LINE_THEME_DEFAULTS.width)
   // a value that cannot be parsed falls back rather than throwing
   el.style.setProperty('--ne-line-color', 'hsl(1 2% 3%)')
   el.style.setProperty('--ne-line-width', 'wide')
   const t2 = readLineTheme(el)
   expect(t2.base).toEqual(LINE_THEME_DEFAULTS.base)
-  expect(t2.widthCss).toBe(LINE_THEME_DEFAULTS.widthCss)
+  expect(t2.width).toBe(LINE_THEME_DEFAULTS.width)
   el.remove()
 })

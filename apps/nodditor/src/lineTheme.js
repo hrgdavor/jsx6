@@ -12,8 +12,16 @@
  * | `--ne-line-selected`    | `#2ea7a7` | a selected line                                       |
  * | `--ne-line-from-sel`    | `#bfc233` | a line whose SOURCE block is selected                 |
  * | `--ne-line-to-sel`      | `#2e6ca7` | a line whose TARGET block is selected                 |
- * | `--ne-line-width`       | `2px`     | stroke width in CSS px (zoom independent)             |
- * | `--ne-line-hit-width`   | `8px`     | the invisible hit stroke; the canvas pick band is HALF of it |
+ * | `--ne-line-width`       | `2px`     | stroke width in world units (it scales with the editor zoom) |
+ * | `--ne-line-hit-width`   | `8px`     | the invisible hit stroke; the pick band is HALF of it |
+ *
+ * The two widths are lengths in USER-SPACE px, not screen px: the zoom is a CSS transform
+ * on `.ne-canvas`, so everything drawn inside it — the SVG strokes and the canvas edges —
+ * scales with zoom. `vector-effect: non-scaling-stroke` cannot change that (the transform
+ * is on an HTML ancestor, not inside the SVG); see `svgUtil.js` for the measurement. A
+ * host that wants a zoom-independent thickness instead must divide by the zoom the editor
+ * publishes on `.ne-canvas`, e.g. `stroke-width: calc(var(--ne-line-width) / var(--ne-zoom, 1))`,
+ * and pass `worldWidth: false` to `makeCanvasLineLayer` for the canvas side.
  *
  * ONE thing the variables cannot express: the precedence between the three selection
  * states (to-sel > from-sel > selected > base). In the SVG layer that is the ORDER OF
@@ -31,15 +39,15 @@
  * The fallbacks, already parsed. These are what an app that does NOT load
  * static/nodditor.css gets, and they mirror the defaults declared in that file.
  *
- * @type {{base: number[], selected: number[], fromSel: number[], toSel: number[], widthCss: number, hitWidthCss: number}}
+ * @type {{base: number[], selected: number[], fromSel: number[], toSel: number[], width: number, hitWidth: number}}
  */
 export const LINE_THEME_DEFAULTS = {
   base: [0, 0, 0, 1],
   selected: [46 / 255, 167 / 255, 167 / 255, 1], // #2ea7a7
   fromSel: [191 / 255, 194 / 255, 51 / 255, 1], // #bfc233
   toSel: [46 / 255, 108 / 255, 167 / 255, 1], // #2e6ca7
-  widthCss: 2,
-  hitWidthCss: 8,
+  width: 2,
+  hitWidth: 8,
 }
 
 /** The handful of colour keywords a hand-written theme is likely to use. */
@@ -141,7 +149,7 @@ export const readLineTheme = (el, defaults = LINE_THEME_DEFAULTS) => {
     selected: parseCssColor(variable('--ne-line-selected')) ?? defaults.selected.slice(),
     fromSel: parseCssColor(variable('--ne-line-from-sel')) ?? defaults.fromSel.slice(),
     toSel: parseCssColor(variable('--ne-line-to-sel')) ?? defaults.toSel.slice(),
-    widthCss: parseCssLength(variable('--ne-line-width'), defaults.widthCss),
-    hitWidthCss: parseCssLength(variable('--ne-line-hit-width'), defaults.hitWidthCss),
+    width: parseCssLength(variable('--ne-line-width'), defaults.width),
+    hitWidth: parseCssLength(variable('--ne-line-hit-width'), defaults.hitWidth),
   }
 }

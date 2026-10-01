@@ -19,17 +19,24 @@ import { installCanvasLineLayer } from './canvasLineLayer.js'
 // https://stackoverflow.com/questions/22483643/svg-still-receives-clicks-even-if-pointer-events-visible-painted/29319009#29319009
 
 /**
- * Persist the whole graph (blocks + connections + positions) to
- * localStorage. Fired on every `ne-move-done` and on `ne-remove`, so the
- * demo graph survives both moves and deletions across reloads.
+ * This page deliberately does NOT persist the graph: it demonstrates the editor from INIT DATA, so
+ * every reload starts from the same known graph.
+ *
+ * It used to save to `localStorage` on `ne-move-done`/`ne-remove` and restore on boot, which had two
+ * problems worth remembering before adding persistence back:
+ *
+ *  - **The demo never saved on CONNECT.** Those two events are the only graph-level notifications the
+ *    editor fires; a line added interactively (`LineInteraction` → `editor.addConnector(new
+ *    ConnectLine())`) or through `addConnectorFromTo` fires none, so it reached `ne.graph` only after
+ *    some later move or delete. Reloading right after connecting lost it.
+ *  - **A stored graph outlived its format.** The boot preferred `ne.graph` over the seed and never
+ *    re-seeded, so a graph saved without lines (e.g. through the gap above) made the page look
+ *    connection-less on every reload, with nothing on screen to explain why.
+ *
+ * Both are the demo's problem, not the editor's: `saveGraph()` returns the live graph faithfully, and
+ * `loadGraph()` reports `{attached, skipped}`. A host that persists should save on its OWN connect
+ * path rather than waiting for an event, and must not write back a load that skipped lines.
  */
-const saveGraph = () => {
-  localStorage.setItem('ne.graph', JSON.stringify(editor.saveGraph()))
-}
-
-const moveDone = () => {
-  saveGraph()
-}
 
 /**
  * Block component factories for `editor.loadGraph` and undo/redo (which
@@ -92,8 +99,6 @@ const editor = (
       e.preventDefault()
       editor.changeZoomMouse(e.deltaY > 0 ? -0.1 : 0.1, e)
     }}
-    onne-move-done={moveDone}
-    onne-remove={saveGraph}
   />
 )
 
@@ -161,9 +166,10 @@ toggleButton.onclick = () => {
 updateToggleUi()
 backend.current.insert(document.body, toggleBar)
 
-// the default demo graph, used on first run and as the migration target for
-// the old position-only `ne.positions` storage
-let defaultGraph = {
+// The demo's initial data — the graph every reload starts from (see the note at the top of this
+// file for why this page does not persist anything). Ids 1,2 render as Switch blocks and 3,4 as
+// Message blocks, so the two seeded lines exercise both a normal and a `Switch` output.
+const defaultGraph = {
   blocks: [
     { id: '1', type: 'Switch', pos: [30, 10] },
     { id: '2', type: 'Switch', pos: [30, 220] },
@@ -176,32 +182,21 @@ let defaultGraph = {
   ],
 }
 
+// one-time tidy-up: this page used to persist here, and a browser that still holds those keys would
+// otherwise keep a graph the demo no longer reads (and `ne.positions` predates even that)
+try {
+  localStorage.removeItem('ne.graph')
+  localStorage.removeItem('ne.positions')
+} catch {
+  // private mode / storage disabled: nothing to clean up, and nothing depends on it
+}
+
 setTimeout(() => {
-  let graph = localStorage.getItem('ne.graph')
-  if (graph) {
-    editor.loadGraph(JSON.parse(graph))
-  } else {
-    let positions = localStorage.getItem('ne.positions')
-    if (positions) {
-      // migrate the old position-only storage into the full graph format:
-      // ids 1,2 are Switch blocks and 3,4 are Message blocks
-      positions = JSON.parse(positions)
-      defaultGraph = {
-        blocks: [
-          { id: '1', type: 'Switch', pos: positions['1'] },
-          { id: '2', type: 'Switch', pos: positions['2'] },
-          { id: '3', type: 'Message', pos: positions['3'] },
-          { id: '4', type: 'Message', pos: positions['4'] },
-        ],
-        lines: [
-          ['1/o1', '2/i1'],
-          ['1/o3', '2/i1'],
-        ],
-      }
-    }
-    editor.loadGraph(defaultGraph)
-  }
-  saveGraph()
+  // INIT DATA, always: no stored graph is consulted, so the page cannot come up empty or stale.
+  // `loadGraph` reports what it wired, which is asserted in the test suite; here it is only worth a
+  // console line if the seed itself stops attaching (i.e. someone edited `defaultGraph` badly).
+  let { attached, skipped } = editor.loadGraph(defaultGraph)
+  if (skipped) console.warn(`nodditor demo: defaultGraph attached ${attached} line(s), skipped ${skipped}`)
 }, 1)
 
 //editor.getConnectorPos(1, 'o1')

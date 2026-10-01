@@ -1327,7 +1327,8 @@ export class NodeEditor extends JsxW {
    * Serialize the whole graph to a plain JSON-compatible object: `blocks` as
    * `{id, type, pos}` and `lines` as pairs of connector ids
    * (`ConnectorData.idFull`, `"blockId/ncid"`). The result is suitable for
-   * `JSON.stringify` (the demo stores it in `localStorage`).
+   * `JSON.stringify`, so a host can store it wherever it likes (the demo page does not persist —
+   * it renders its initial data on every load).
    * @returns {GraphState}
    */
   saveGraph() {
@@ -1361,9 +1362,14 @@ export class NodeEditor extends JsxW {
    *
    * @param {GraphState} state
    * @param {Object<string, Function>} [typeMap]
+   * @returns {{attached: number, skipped: number}} how many lines were wired and how many had to be
+   *   skipped. A host that PERSISTS the graph must look at `skipped`: writing the state back after a
+   *   lossy load makes the loss permanent. (The demo page does not persist — it renders its initial
+   *   data on every load.)
    * @throws {Error} when a block type has no factory in `typeMap`
    */
   loadGraph(state, typeMap = this.typeMap) {
+    let wired = { attached: 0, skipped: 0 }
     this._loadingGraph = true
     try {
       this.clear()
@@ -1375,11 +1381,12 @@ export class NodeEditor extends JsxW {
         this.add(make(b), b.id, { pos: [b.pos[0], b.pos[1]], type: b.type })
       }
       this.inspectConnectors()
-      this.loadLines(state?.lines)
+      wired = this.loadLines(state?.lines)
     } finally {
       this._loadingGraph = false
     }
     this.historyReset()
+    return wired
   }
 
   /**

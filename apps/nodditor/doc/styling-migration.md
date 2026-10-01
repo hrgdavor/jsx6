@@ -93,8 +93,8 @@ jsx6-nodditor {
 | `--ne-line-selected` | **you** (optional, default `#2ea7a7`) | a selected line |
 | `--ne-line-from-sel` | **you** (optional, default `#bfc233`) | a line whose source block is selected |
 | `--ne-line-to-sel` | **you** (optional, default `#2e6ca7`) | a line whose target block is selected |
-| `--ne-line-width` | **you** (optional, default `2px`) | connector stroke width in CSS px |
-| `--ne-line-hit-width` | **you** (optional, default `8px`) | the invisible hit stroke; the canvas pick band is half of it |
+| `--ne-line-width` | **you** (optional, default `2px`) | connector stroke width, in world units (it scales with the editor zoom) |
+| `--ne-line-hit-width` | **you** (optional, default `8px`) | the invisible hit stroke; the pick band is half of it (also scaled by the zoom) |
 
 ### The line theme drives BOTH line layers
 
@@ -104,7 +104,7 @@ stylesheet turns them into `stroke` / `stroke-width` for the SVG layer, and the 
 the same resolved values off the editor (it cannot use CSS for GPU geometry) — so a themed editor
 stays themed when it switches layers, which is the whole point of them living in CSS.
 
-Two details worth knowing:
+Three details worth knowing:
 
 - The values are read when the canvas layer is created and again whenever the editor's `class` or
   `style` attribute changes, so flipping a theme class re-colours the GPU layer live. A theme
@@ -113,6 +113,20 @@ Two details worth knowing:
 - The precedence between the three selection states (to-selected > from-selected > selected > base)
   is rule ORDER in `static/nodditor.css`, not something a variable can express. Keep that in mind
   if you add a state.
+- **The widths are world units, so lines get thicker as you zoom in** — 2 world units is 2 CSS px at
+  zoom 1 and 8 CSS px at zoom 4, in both layers. The zoom is a `transform` on `.ne-canvas`, and
+  `vector-effect: non-scaling-stroke` does not compensate for a transform on an HTML ancestor (it
+  only compensates transforms inside the `<svg>`); that is measured, not assumed — see the note in
+  `static/nodditor.css`. If you want a constant screen thickness instead, divide by the zoom the
+  editor publishes on `.ne-canvas`:
+
+  ```css
+  jsx6-nodditor svg g path:first-child { stroke-width: calc(var(--ne-line-width) / var(--ne-zoom, 1)) }
+  jsx6-nodditor svg g path:nth-child(2) { stroke-width: calc(var(--ne-line-hit-width) / var(--ne-zoom, 1)) }
+  ```
+
+  and pass `worldWidth: false` to `makeCanvasLineLayer` (a canvas layer option) so the GPU layer
+  keeps a fixed screen width too. Picking then uses a fixed band instead of a zoom-scaled one.
 
 ## Class names: who owns what
 
