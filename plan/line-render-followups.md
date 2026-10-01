@@ -42,6 +42,13 @@ with `bun run check --no-format`.
 | 9 | `LineRenderer` fake-WebGPU tests (was zero coverage), nodditor layer tests | [index.test.js](../libs/line-render/index.test.js#L507), [lineLayer.test.jsx](../apps/nodditor/test/lineLayer.test.jsx) |
 | 10 | Docs: API list, "Device ownership and sharing" recipe, CHANGELOG entries | [libs README](../libs/line-render/README.md#L112), [nodditor README](../apps/nodditor/README.md#L425) |
 | 11 | [1.1](#11-dispose-is-terminal--decide-and-document)(b) revivable canvas layer: `revive()`, `layer.disposed`, idempotent `add`, generation-guarded GPU startup/rAF, `setLineLayer` revival | [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js#L463), [NodeEditor.jsx](../apps/nodditor/src/NodeEditor.jsx#L1601), [lineLayer.js](../apps/nodditor/src/lineLayer.js#L10), tests in [lineLayer.test.jsx](../apps/nodditor/test/lineLayer.test.jsx#L499) |
+| 12 | [2.1](#21-numeric-edge-as-the-source-of-truth) numeric edge as the source of truth + cached `svgText`/`points`/`pointsBox` + `changeId` from a process-wide sequence; the layers render (SVG writes the text, canvas pins a render edge) | [ConnectLine.js](../apps/nodditor/src/ConnectLine.js), [makeLineConnector.js](../apps/nodditor/src/makeLineConnector.js), [changeSeq.js](../apps/nodditor/src/changeSeq.js), [lineLayer.js](../apps/nodditor/src/lineLayer.js), [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) |
+| 13 | [3.2](#32-stop-re-parsing-d-per-frame) / [3.3](#33-edgeline-mutation) no SVG parse per frame, no per-frame edge allocation (pinned render edges, three refresh stamps) | [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) (`edgeFor`/`edgeCache`) |
+| 14 | [3.1](#31-pickedge-aabb-prefilter-over-cached-points--the-early-exit-was-rejected) AABB reject over cached polylines + polyline walk (`sampleEdgePoints`/`polylineBounds`/`distToPolyline`); the early exit was REJECTED | [curve.js](../libs/line-render/src/curve.js#L97), tests in [index.test.js](../libs/line-render/index.test.js) |
+| 15 | [2.3](#23-formula-parity-test) formula/format/sampling parity between nodditor and line-render | [lineGeometry.test.js](../apps/nodditor/test/lineGeometry.test.js) |
+| 16 | [5.1](#51-one-theme-for-both-layers-css-custom-properties) `--ne-line-*` theme driving BOTH layers, read (and re-read on a class/style change) by the canvas layer | [lineTheme.js](../apps/nodditor/src/lineTheme.js), [nodditor.css](../apps/nodditor/static/nodditor.css), [styling-migration.md](../apps/nodditor/doc/styling-migration.md), tests in [lineTheme.test.js](../apps/nodditor/test/lineTheme.test.js) |
+| 17 | [5.2](#52-install-helper--honest-loadlinerender-failure) `installCanvasLineLayer` + honest `loadLineRender` failure | [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) (`installCanvasLineLayer`), [index.js](../apps/nodditor/index.js) |
+| 18 | [5.3](#53-pass-the-renderer-options-through) `clear`/`supersample` forwarded to the renderer | [canvasLineLayer.js](../apps/nodditor/src/canvasLineLayer.js) (`initRenderer`) |
 
 ---
 
@@ -87,6 +94,18 @@ a disposed life releases its device and never publishes (the revived session is 
 ## 2. Connector model (both packages)
 
 ### 2.1 Numeric edge as the source of truth
+
+**Landed.** `ConnectLine.edge` holds the cubic as data (`connectorEdge`); `line.svgText`/`line.pathText`
+(alias `line.d`) is the cached SVG text, and `line.points`/`line.pointsBox` the cached sampled polyline
++ AABB, all dropped together by `ConnectLine.changed()` when a new `changeId` is stamped from
+`./changeSeq.js`. Rendering moved to the layers (the SVG layer writes the cached text into both
+`<path>`s; the canvas layer pins one render edge per line and reads the line's points), so
+`ConnectLine` no longer touches the DOM and no frame parses `d`. See
+[ConnectLine.js](../apps/nodditor/src/ConnectLine.js), [makeLineConnector.js](../apps/nodditor/src/makeLineConnector.js),
+[changeSeq.js](../apps/nodditor/src/changeSeq.js) and the "Connector geometry and its caches" section of
+the [nodditor README](../apps/nodditor/README.md). This also lands [3.2](#32-stop-re-parsing-d-per-frame)
+and [3.3](#33-edgeline-mutation) (see below), and the parity half of [2.3](#23-formula-parity-test).
+The text below is the original analysis.
 
 **What.** The canvas layer reconstructs geometry by regex-parsing the SVG `d` string that
 `ConnectLine.updatePath()` just formatted: `makeLineConnector(...)` → `d` → `parseLinePath(d)` →
@@ -143,6 +162,11 @@ points; the existing nodditor `d` snapshots do not change for the demo graph.
 
 ### 2.3 Formula parity test
 
+**Landed** as `apps/nodditor/test/lineGeometry.test.js`: for a table of inputs (including degenerate
+ones: same point, zero distance, clamped strength) it asserts that nodditor's `connectorEdge`/`edgeToSvg`
+and line-render's `connectorEdge`/`edgeToPath`/`makeConnector` agree as DATA and as text, and that both
+samplers produce identical points and bounds.
+
 **What.** `makeConnector` (library) and `makeLineConnector` (nodditor) are the same math written
 twice, and nodditor cannot import the library unconditionally.
 
@@ -157,109 +181,61 @@ the line layer — exactly the class of bug `worldWidth` was.
 
 ## 3. Performance
 
-### 3.1 `pickEdge`: AABB prefilter, allocation-free distance, early exit
+### 3.1 `pickEdge`: AABB prefilter over cached points — the early exit was REJECTED
 
-**What.** [`pickEdge`](../libs/line-render/src/curve.js#L167) walks every edge and
-[`edgeDistance`](../libs/line-render/src/curve.js#L97) allocates a `[x, y]` array per sample
-(`sampleCubic` returns a fresh array, 25 per edge per pick).
+**Landed (the useful half): exact AABB reject over cached polylines.** `pickEdge` now rejects an edge
+on `edge.pointsBox` before touching it and walks `edge.points` (`distToPolyline`) instead of
+re-sampling the curve; `sampleEdgePoints`/`polylineBounds`/`distToPolyline` are the library helpers
+that fill those caches, and [2.1](#21-numeric-edge-as-the-source-of-truth) makes the connector hold
+them. Measured over 1000 connectors (24 samples, 4 px pick radius):
 
-**Measured (prototype, 24 samples, pick radius 4):**
+| pick path | ms per pick |
+| --------- | ----------: |
+| sample the curve per pick (before) | 0.633 |
+| cached `points` + `pointsBox` (landed) | **0.028** |
+| ... plus a polyline early exit | 0.010 |
 
-```
---- 1000 edges ---
-  pickEdge (current):                      0.6440 ms/op
-  pickEdge (AABB + no-alloc + early exit): 0.0054 ms/op     (0 parity mismatches / 2000 random picks)
---- 5000 edges ---
-  pickEdge (current):                      2.9946 ms/op
-  pickEdge (AABB + no-alloc + early exit): 0.1012 ms/op
-```
+**Rejected: the early exit.** The prototype in the original suggestion stopped walking as soon as a
+sample fell inside the pick band and below the current best. That is WRONG for ranking: the first
+in-band sample can overstate the edge's true minimum (`m <= d_sample`), so a farther edge whose
+distance falls between `m` and `d_sample` wins the pick. A 2000-pick random sweep did not hit it (the
+window is bounded by the sampling error and the pick radius), and a 4000-pick sweep of the final
+implementation shows 0 mismatches for the exact walk — but "usually the closest line" is not the
+contract. The AABB reject already removes the bulk of the work (the last row is what the approximate
+version would add), and picking is once per click today and ~0.17 % of a frame at 60 Hz even for 1000
+connectors if hover ever calls it per `pointermove`.
 
-The prototype that produced those numbers — keep it in the PR description and in the test:
+**Test that pins it:** randomised parity between the cached-points path and the sampling path (400
+picks, deterministic PRNG, `radiusPx` 0 and 4), plus the far-away-nothing case.
 
-```js
-// 1. control-hull AABB per edge: the Bézier is contained in the hull of its
-//    control points, so this rejects without sampling
-const box = e => [
-  Math.min(e.x0, e.cx0, e.cx1, e.x1),
-  Math.min(e.y0, e.cy0, e.cy1, e.y1),
-  Math.max(e.x0, e.cx0, e.cx1, e.x1),
-  Math.max(e.y0, e.cy0, e.cy1, e.y1),
-]
-
-// 2. scalar distance, no per-sample arrays, with an early exit
-function edgeDistanceFast(e, px, py, samples, maxD, threshold) {
-  let min = Infinity
-  let x0 = e.x0
-  let y0 = e.y0
-  for (let i = 1; i <= samples; i++) {
-    const t = i / samples
-    const u = 1 - t
-    const uu = u * u
-    const tt = t * t
-    const cx = uu * u * e.x0 + 3 * uu * t * e.cx0 + 3 * u * tt * e.cx1 + tt * t * e.x1
-    const cy = uu * u * e.y0 + 3 * uu * t * e.cy0 + 3 * u * tt * e.cy1 + tt * t * e.y1
-    const dx = cx - x0
-    const dy = cy - y0
-    const l2 = dx * dx + dy * dy
-    let s = l2 === 0 ? 0 : ((px - x0) * dx + (py - y0) * dy) / l2
-    s = s < 0 ? 0 : s > 1 ? 1 : s
-    const d = Math.hypot(px - (x0 + s * dx), py - (y0 + s * dy))
-    if (d < min) {
-      min = d
-      // BOTH conditions are required: the sample must be inside the pick band
-      // AND better than the current best. Exiting on `min <= maxD` alone gave
-      // 250 wrong picks in a 2000-pick random sweep.
-      if (min <= threshold && min <= maxD) return min
-    }
-    x0 = cx
-    y0 = cy
-  }
-  return min
-}
-```
-
-and the `pickEdge` loop keeps its signature — reject, then delegate:
-
-```js
-const threshold = Math.max(e.worldWidth === false ? e.width / 2 : (e.width * zoom) / 2, radiusPx) / zoom
-const b = boxed[i]
-if (wx < b[0] - threshold || wx > b[2] + threshold || wy < b[1] - threshold || wy > b[3] + threshold) continue
-const d = edgeDistanceFast(e, wx, wy, samples, bestDist, threshold)
-if (d <= threshold && d < bestDist) {
-  best = e
-  bestDist = d
-}
-```
-
-**Approach.**
-
-1. Add an internal control-point AABB per edge (`min/max` over `p0, c0, c1, p1` — the Bézier is
-   contained in its control hull) and reject before sampling; inflate by the world-space threshold.
-2. Rewrite `edgeDistance` to a scalar loop with no array allocation, and add an optional
-   `(maxDist, threshold)` early exit: stop as soon as the running minimum is both inside the pick
-   band and better than the current best.
-3. Keep the exported signature of `pickEdge`/`edgeDistance` as-is (both are public and used by
-   hosts). If a box cache is wanted, compute boxes lazily in a `WeakMap` keyed by the edge object,
-   or accept an optional prebuilt array — do **not** add a required argument.
-
-**Honest framing for the PR:** picking runs once per click today, so this is not urgent for graphs
-of hundreds; it becomes load-bearing the moment hover highlighting calls it per `pointermove`
-(see [§3.3](#33-edgeline-mutation)) and for 1000+ edges.
-
-**Tests.** Parity test against the current implementation over randomised edges/points (the
-prototype's 2000-pick sweep); explicit tests for the early-exit condition (a far edge must not be
-returned just because a sample is close to `bestDist`); `radiusPx = 0` exactness preserved.
-
-**Effort:** M.
+**What remains open:** a real spatial INDEX (loose grid / static AABB tree) over the per-line boxes.
+It is not needed at the sizes measured (the linear scan with a box reject is already ~30 us for 1000
+connectors, and a pick is not per-frame work), and when it is needed it should be updated from the
+IDENTIFIED change (`line.onPathChange` gives the line that moved) rather than rebuilt on
+`changeSeq()` — a global counter cannot say *what* changed. `changeSeq()` remains the coarse "did
+anything change since X?" signal (the canvas layer uses it to decide whether its built edge list is
+still current).
 
 ### 3.2 Stop re-parsing `d` per frame
 
-Covered structurally by [2.1](#21-numeric-edge-as-the-source-of-truth). The cheap interim (if 2.1 is
-deferred) is a `Map` keyed by `line.d` inside the canvas layer, invalidated when the layer's
-`states`/line set changes — **only** worth doing if 2.1 slips, because it caches a string that
-should not be the input in the first place.
+**Landed** with [2.1](#21-numeric-edge-as-the-source-of-truth): the canvas layer builds its edge list
+from `line.edge` and `line.samplePoints()`, and parses no SVG text at all — `parseLinePath` is no
+longer imported by `canvasLineLayer.js`. The old per-frame cost it removes (`parseLinePath` + sampling
+per connector per frame) measured 0.81 ms per 1000 connectors, against 0.23 ms for sampling each shape
+ONCE per change.
+
+The interim idea below is obsolete.
 
 ### 3.3 `edge.line` mutation
+
+**Landed** with [2.1](#21-numeric-edge-as-the-source-of-truth): the canvas layer PINS one render edge
+per line (`edgeCache`) and mutates it in place, so `edge.line` is set once instead of being stamped
+onto a freshly allocated edge every frame — and a steady-state frame allocates no edge objects at all.
+The refresh is driven by three stamps (`line.changeId`, the selection state, the device pixel ratio).
+
+**Landed differently (and better):** the pinned render edge carries `line` as a permanent field, so
+there is no stamp at all and `pick` still returns the edge it always did. The idea below (a parallel
+array / `pickEdgeIndex`) is obsolete.
 
 **What.** `buildEdges` stamps a pointer back onto the freshly parsed edge
 ([canvasLineLayer.js:151](../apps/nodditor/src/canvasLineLayer.js#L151)) and `pick` reads it
@@ -342,6 +318,20 @@ zooms, with the checkbox on and off.
 
 ### 5.1 One theme for both layers (CSS custom properties)
 
+**Landed.** `--ne-line-color`, `--ne-line-selected`, `--ne-line-from-sel`, `--ne-line-to-sel`,
+`--ne-line-width` and `--ne-line-hit-width` are declared in `static/nodditor.css` and consumed by its
+line rules; the canvas layer reads the same resolved values (see `lineTheme.js`) and re-reads them when
+the editor's `class`/`style` attribute changes, so a theme flip is live on both layers. Two
+deviations from the sketch above, both deliberate: the pick band is expressed as the SVG layer's
+`--ne-line-hit-width` (half of it is the band) instead of a separate `--ne-line-pick`, so the two
+layers cannot disagree about it; and the values are never read per frame — resolving custom
+properties in a render loop forces a style recalculation per line, so the observer is the only
+re-read trigger. The precedence (to-sel > from-sel > selected > base) stays rule order in the
+stylesheet plus `stateOf()` in the layer; a variable cannot express it. Tests:
+[lineTheme.test.js](../apps/nodditor/test/lineTheme.test.js) (parsing + per-variable fallback) and the
+"the stroke colours, width and pick band come from the theme" / "a theme change is picked up by the
+live layer" cases in [lineLayer.test.jsx](../apps/nodditor/test/lineLayer.test.jsx).
+
 **What.** The canvas layer hard-codes the four line colours, the 2 px stroke width, the 4 px pick
 radius **and** the CSS rule precedence (to-sel > from-sel > selected > base) —
 [canvasLineLayer.js:6–15](../apps/nodditor/src/canvasLineLayer.js#L6-L15). `static/nodditor.css`
@@ -364,6 +354,15 @@ the next divergence bug will come from.
 
 ### 5.2 Install helper + honest `loadLineRender` failure
 
+**Landed.** `installCanvasLineLayer(editor, { lr, onLost, ...rendererOpts })` resolves with
+`{ mode, layer, error }`; `mode: 'svg'` covers the missing package, no WebGPU and a failed start (in
+which case the failed layer is swapped out for a fresh SVG layer), a lost device does the same swap
+before calling the host's `onLost`, and `lr` can be injected (which is also what makes it testable).
+The plan's suggested return shape said `{ layer, mode, ready }`; `ready` is dropped because the helper
+already awaits it, and `error` is added because "no WebGPU" and "the renderer failed" need different
+host reactions. `loadLineRender()` now warns differently for "not installed" vs "failed to load" and
+logs the error in both cases. The demo toggle uses the helper.
+
 **What.** Every host repeats the demo's ~25 lines: dynamic import, capability probe, build the
 layer, `setLineLayer`, `ready.then/catch`, revert to SVG. And
 [`loadLineRender`](../apps/nodditor/src/canvasLineLayer.js#L26) catches **every** import error and
@@ -385,6 +384,11 @@ warning to debug.
 **Effort:** M.
 
 ### 5.3 Pass the renderer options through
+
+**Landed.** `makeCanvasLineLayer(editor, lr, { segmentsPerCurve, clear, supersample, device, onLost })`
+forwards `clear` (default `[0, 0, 0, 0]`) and `supersample` (default 1) to `LineRenderer.create`, and
+the README documents that `supersample: 2` costs 4x the pixels. Test: "renderer options are passed
+through to the renderer" in [lineLayer.test.jsx](../apps/nodditor/test/lineLayer.test.jsx).
 
 **What.** `makeCanvasLineLayer(editor, lr, opts)` forwards only `segmentsPerCurve`, `device`,
 `onLost`; `clear` is hard-coded to `[0, 0, 0, 0]` and `supersample` is unreachable, so a host cannot
@@ -522,9 +526,9 @@ Each batch is one reviewable change set (tests + docs inside it).
 | Batch | Contents | Why together | Effort |
 | ----- | -------- | ------------ | ------ |
 | **A** | [6.1](#61-real-layer-parity-test--browser-check) browser check → policy, + parity test + demo edge; [5.4](#54-document-the-pick-semantics), [6.2](#62-pickedge-doc-the-worldwidth-default), [6.3](#63-migration-tables-parselinepath-is-the-only-bridge-that-grows) | Small, closes out the landed work honestly, needs no code decisions ([1.1](#11-dispose-is-terminal--decide-and-document)(b) already landed) | S |
-| **B** | [3.1](#31-pickedge-aabb-prefilter-allocation-free-distance-early-exit) picker, then [2.1](#21-numeric-edge-as-the-source-of-truth) + [3.3](#33-edgeline-mutation) | The picker prefilter is what makes per-move picking affordable; the numeric edge removes the parse that feeds it | M |
-| **C** | [5.1](#51-one-theme-for-both-layers-css-custom-properties) theme vars, [5.2](#52-install-helper--honest-loadlinerender-failure) install helper, [5.3](#53-pass-the-renderer-options-through) options pass-through | Integration ergonomics; C's theme work depends on nothing, the rest benefits from B | M |
-| **D** | [2.2](#22-directions-belongs-in-the-connector-formula) directions + [2.3](#23-formula-parity-test) parity test, [5.5](#55-lazy-line-element) lazy element | Connector-model change; land it when vertical ports are actually needed, not before | M |
+| **B** | ~~[3.1](#31-pickedge-aabb-prefilter-over-cached-points--the-early-exit-was-rejected) picker~~, ~~[2.1](#21-numeric-edge-as-the-source-of-truth)~~, ~~[3.3](#33-edgeline-mutation)~~ — **landed** (see [§0](#0-what-already-landed) rows 12–14); what remains is the optional spatial index, only if a graph ever needs it | The picker prefilter is what makes per-move picking affordable; the numeric edge removes the parse that feeds it | done |
+| **C** | ~~[5.1](#51-one-theme-for-both-layers-css-custom-properties) theme vars~~, ~~[5.2](#52-install-helper--honest-loadlinerender-failure) install helper~~, ~~[5.3](#53-pass-the-renderer-options-through) options pass-through~~ — **landed** (see [§0](#0-what-already-landed) rows 16–18) | Integration ergonomics; the theme removes the duplicated look, the helper removes the duplicated startup | done |
+| **D** | ~~[2.3](#23-formula-parity-test) parity test~~ (landed with B), [2.2](#22-directions-belongs-in-the-connector-formula) directions, [5.5](#55-lazy-line-element) lazy element | Connector-model change; land it when vertical ports are actually needed, not before | M |
 | **E** | [4.1](#41-per-edge-segment-count-fixes-the-documented-one-segmentspercurve-for-the-batch) segments, [4.4](#44-analytic-antialiasing-in-the-fragment-shader) analytic AA, [4.2](#42-round-joins-for-polygonedges) joins, [4.3](#43-dashes) dashes | Standalone shader/quality work, verified against the compare page; do it after A so the page is a trustworthy oracle | M–L |
 | **F** | [7.1](#71-the-smoke-bundles-are-stale-and-have-no-committed-builder) smoke builder, [7.2](#72-appsnodditoroxfmtrcjson-is-inert) formatter policy | Repo hygiene; independent, can be done by anyone at any time | M |
 
@@ -544,10 +548,13 @@ Each batch is one reviewable change set (tests + docs inside it).
 4. **Should one device be the default for multi-editor hosts?** The borrowed-device API landed, but
    nodditor does not own a device: each canvas layer still requests its own unless the host passes
    one. A module-level `getSharedDevice()` helper in nodditor would make sharing the default.
-5. **Hover highlighting.** [3.1](#31-pickedge-aabb-prefilter-allocation-free-distance-early-exit)
-   makes per-`pointermove` picking viable; nothing in the SVG layer highlights on hover today, so
-   this is a new feature decision (and it needs a `--ne-line-hover` variable from
-   [5.1](#51-one-theme-for-both-layers-css-custom-properties)).
+5. **Hover highlighting.** [3.1](#31-pickedge-aabb-prefilter-over-cached-points--the-early-exit-was-rejected)
+   makes per-`pointermove` picking viable (~30 µs over 1000 connectors, exact); nothing in the SVG layer
+   highlights on hover today, so this is a new feature decision (and it needs a `--ne-line-hover`
+   variable from [5.1](#51-one-theme-for-both-layers-css-custom-properties)).
+6. ~~Early exit in the pick walk~~ — **decided: rejected**, see
+   [3.1](#31-pickedge-aabb-prefilter-over-cached-points--the-early-exit-was-rejected) (it can overstate
+   an edge's distance and mis-rank the pick; the AABB reject already removes the bulk of the work).
 
 ---
 

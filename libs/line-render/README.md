@@ -38,6 +38,10 @@ const edge = {
   color: [0.2, 0.7, 1.0, 1.0], // RGBA, 0..1
   width: 4, // WORLD units by default (scales with zoom)
   worldWidth: false, // optional — omit for the default world-unit width
+  // optional caches of THIS shape, in world coordinates (see "Picking with
+  // cached geometry"): the sampled polyline and its AABB
+  points: sampleEdgePoints(edge, 24),
+  pointsBox: polylineBounds(points),
 }
 ```
 
@@ -46,9 +50,18 @@ const edge = {
 - `parseLinePath(d, { color, width, worldWidth })` — SVG `M...C...` string → edge.
   `worldWidth: false` is carried through (screen-pixel width); omitting it means
   the default WORLD-unit width, so it is only recorded when it is `false`
-- `edgeToPath(edge)` — edge → SVG `d` string
+- `edgeToPath(edge)` — edge → SVG `d` string (geometry only)
+- `connectorEdge(p1, p2, strength)` — the nodditor connector formula as DATA (an
+  edge with no style yet); `makeConnector` is `edgeToPath(connectorEdge(...))`, so
+  the string form and the numeric form cannot drift
 - `makeConnector(p1, p2, strength)` — the nodditor connector formula
   (horizontal tangents, strength clamped to half the point distance)
+- `sampleEdgePoints(edge, segments = 24)` — the curve as a flat polyline
+  (`Float64Array` of `x, y` pairs, WORLD coordinates): the geometry hit detection
+  walks, and the thing to cache per shape. Returns `(segments + 1) * 2` numbers
+- `polylineBounds(points)` — `[minX, minY, maxX, maxY]` of such a polyline
+- `distToPolyline(points, x, y)` — point-to-polyline distance (exact for that
+  polyline, so it can RANK edges; see the `pickEdge` note on early exits)
 - `lineEdge(x0, y0, x1, y1, opts)` — a straight segment as a degenerate cubic
   Bezier (control points at 1/3 and 2/3 along the segment)
 - `circleEdges(cx, cy, r, segments = 4, opts)` — a circle OUTLINE as
@@ -63,7 +76,9 @@ const edge = {
   per-edge pick radius is the LARGER of the edge's rendered half-width and
   `radiusPx` screen pixels: `radiusPx = 0` → exact (only on the stroke); any
   larger value adds a thickness-independent tolerance (easy picking of thin
-  lines in a graph)
+  lines in a graph). An edge carrying the optional `points`/`pointsBox` caches
+  (see below) is rejected on its box and then walked as a polyline instead of
+  being re-sampled
 - `screenToWorld(...)` / `worldToScreen(...)` — viewport transforms
 - `packEdges(edges, out?)` — the 16-float-per-edge layout for the GPU buffer.
   `out` is an optional scratch array to pack into: when it is big enough it is
@@ -108,6 +123,42 @@ any half-transparent color — lets the page background show through. Edge
 colors are still passed as straight `RGBA 0..1`; the renderer premultiplies
 them by alpha for compositing. The `clear` value goes straight to WebGPU and
 is interpreted as premultiplied (identical for opaque, alpha-1 colors).
+
+### Picking with cached geometry
+
+Hit detection does not have to re-sample the curve on every click, and it does not
+have to rebuild anything when the user pans or zooms. Attach the two optional caches
+to an edge and `pickEdge` uses them:
+
+```js
+edge.points = sampleEdgePoints(edge, 24) // Float64Array of x, y pairs — world space
+edge.pointsBox = polylineBounds(edge.points) // [minX, minY, maxX, maxY]
+```
+
+- `pointsBox` is tested FIRST: four comparisons reject an edge whose box (inflated by
+  the pick radius) does not contain the pointer. The box is the hull of the polyline,
+  so the reject is exact — a skipped edge could not have won.
+- `points` is then walked with `distToPolyline`, which is the same 24-segment
+  approximation `edgeDistance` computes, so cached and uncached picks agree
+  bit-for-bit (4000 random picks over 500 connectors: 0 mismatches).
+- Both caches are in WORLD coordinates and picking converts the POINTER into that
+  space (`screenToWorld`), so **pan and zoom never invalidate them** — the only thing
+  that does is a change of the shape itself.
+
+Measured on 1000 connectors (24 samples, 4 px pick radius):
+
+| pick path | ms per pick |
+| --------- | ----------: |
+| sample the curve per pick (no caches) | 0.633 |
+| cached `points` + `pointsBox` | **0.028** |
+| ... plus an early exit inside the polyline walk | 0.010 |
+
+There is deliberately **no early exit** in `distToPolyline`: stopping at the first
+sample inside the pick band overstates that edge's distance (the true minimum may be
+a later sample), and `pickEdge` RANKS edges, so an overstatement can hand the pick to
+a farther line. The box reject already removes the bulk of the work — the last row is
+what the approximate version would have added, and it is not worth an answer that is
+only usually the closest.
 
 ### Device ownership and sharing
 

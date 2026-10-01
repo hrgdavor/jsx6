@@ -41,13 +41,32 @@ export function parseLinePath(d, { color = [0.2, 0.7, 1, 1], width = 1, worldWid
 }
 
 /**
- * Serialize an edge back to an SVG `d` string.
+ * Serialize an edge back to an SVG `d` string. Only the geometry is read, so a
+ * builder that has not decided a colour yet (`connectorEdge`) fits too.
  *
- * @param {import('./curve.js').Edge} edge
+ * @param {import('./curve.js').EdgeGeometry} edge
  * @returns {string}
  */
 export function edgeToPath(edge) {
   return `M${edge.x0} ${edge.y0} C${edge.cx0} ${edge.cy0} ${edge.cx1} ${edge.cy1} ${edge.x1} ${edge.y1}`
+}
+
+/**
+ * Build a connector as `Edge` DATA (the numeric source of truth) with the
+ * nodditor control-point formula: horizontal tangents with `strength` clamped to
+ * half the point distance. `makeConnector` is this plus `edgeToPath`, so the
+ * string form and the numeric form cannot drift.
+ *
+ * @param {number[]} p1 - [x, y]
+ * @param {number[]} p2 - [x, y]
+ * @param {number} strength
+ * @returns {import('./curve.js').EdgeGeometry}
+ */
+export function connectorEdge(p1, p2, strength) {
+  const [x0, y0] = p1
+  const [x1, y1] = p2
+  strength = Math.min(strength, Math.hypot(x0 - x1, y0 - y1) / 2)
+  return { x0, y0, cx0: x0 + strength, cy0: y0, cx1: x1 - strength, cy1: y1, x1, y1 }
 }
 
 /**
@@ -60,8 +79,5 @@ export function edgeToPath(edge) {
  * @returns {string}
  */
 export function makeConnector(p1, p2, strength) {
-  const [x0, y0] = p1
-  const [x1, y1] = p2
-  strength = Math.min(strength, Math.hypot(x0 - x1, y0 - y1) / 2)
-  return `M${x0} ${y0} C${x0 + strength} ${y0} ${x1 - strength} ${y1} ${x1} ${y1}`
+  return edgeToPath(connectorEdge(p1, p2, strength))
 }

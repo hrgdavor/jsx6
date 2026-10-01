@@ -100,6 +100,52 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
   adapter/device request and `dispose()` (including the one `setLineLayer` does on a swap)
   no longer destroys a device it does not own. A device lost by its owner is reported to
   every layer drawing on it.
+- Connector geometry is now DATA on the line, with every rendering derived from it and cached:
+  `ConnectLine.edge` holds the cubic ([`connectorEdge`](src/makeLineConnector.js)), `line.pathText`
+  (alias `line.d`) the cached SVG text, and `line.points`/`line.pointsBox` the cached sampled polyline
+  and its AABB. `updatePath()` computes the edge, drops those caches and stamps a new `changeId` from a
+  process-wide sequence ([src/changeSeq.js](src/changeSeq.js)) — a cache is validated against
+  `line.changeId`, which is a LINE-LOCAL test (a global one would invalidate every line whenever one
+  moved), while `changeSeq()` serves the coarser "did anything change?" check the canvas layer uses to
+  know whether its built edge list is still current.
+- Rendering moved to the layers, so `ConnectLine` no longer touches the DOM: the SVG layer writes the
+  cached text into both `<path>`s on `add` and on every shape change (and releases that subscription in
+  `remove`, which matters when `setLineLayer` takes the lines off it), and the canvas layer pins one
+  render edge per line and refreshes geometry/colour/width only when the corresponding stamp moved. A
+  frame no longer parses SVG text (`parseLinePath` is gone from the canvas layer) and allocates no edge
+  objects: the per-frame shape work drops from 0.81 ms per 1000 connectors to a re-point at the pinned
+  edges, with the sampling that used to happen per frame now costing 0.23 ms once per change.
+- Hit detection walks the line's cached polyline and rejects on its cached AABB. Both caches live in
+  world coordinates and picking converts the pointer into that space, so pan and zoom never invalidate
+  them. `@jsx6/line-render`'s `pickEdge` uses the caches when present (0.63 ms → 0.028 ms per pick over
+  1000 connectors) and gained `connectorEdge`, `sampleEdgePoints`, `polylineBounds` and
+  `distToPolyline`; there is deliberately no early exit in the walk, because stopping at the first
+  in-band sample can overstate a distance and hand the pick to a farther line.
+- New public helpers on the package root: `connectorEdge`, `edgeToSvg`, `sampleEdgePoints`,
+  `pointsBounds`.
+- The look of the lines is a THEME, not constants duplicated in the canvas layer:
+  `--ne-line-color`, `--ne-line-selected`, `--ne-line-from-sel`, `--ne-line-to-sel`,
+  `--ne-line-width` and `--ne-line-hit-width` (declared with their defaults in
+  `static/nodditor.css`). The stylesheet turns them into `stroke`/`stroke-width` for the SVG
+  layer, and the canvas layer reads the same resolved values off the editor — so a themed
+  editor stays themed when it switches layers. The canvas layer re-reads them whenever the
+  editor's `class`/`style` attribute changes, so a theme flip re-colours the GPU layer live,
+  and any variable it cannot parse (hex, `rgb()`/`rgba()`, a few keywords) falls back to the
+  library default instead of drawing something wrong. The pick band is half of
+  `--ne-line-hit-width`, so it follows the same theme. See
+  [doc/styling-migration.md](doc/styling-migration.md).
+- `installCanvasLineLayer(editor, opts)` — probe → build → await `ready` → fall back, in one
+  call: resolves with `{ mode, layer, error }` where `mode` is `'canvas'` or `'svg'`, restores
+  a working SVG layer when the renderer fails or the device is lost after startup (and then
+  calls the host's `onLost`), and accepts `lr` (an already-loaded module), `segmentsPerCurve`,
+  `clear`, `supersample` and `device`. The demo toggle now uses it instead of hand-rolling the
+  sequence and the SVG fallback.
+- `makeCanvasLineLayer` forwards `clear` and `supersample` to the renderer, so a host can opt
+  into the supersampled antialiasing path (4x the pixels) or a non-transparent clear without
+  reaching for `LineRenderer` directly.
+- `loadLineRender()` now separates "not installed" (an expected host choice) from "failed to
+  load" (a bug that must not hide behind that message) in its warning, and logs the underlying
+  error in both cases.
 - A canvas line layer is no longer dead after `dispose()`: `revive()` brings the same layer
   back — same canvas element, re-armed listeners and pixel-ratio watch, the editor's lines
   re-registered, and a fresh GPU session with a fresh `ready` (the disposed life's `ready`

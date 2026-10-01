@@ -30,16 +30,19 @@
 export { LineRenderer } from './src/renderer.js'
 export { BLIT_SHADER, LINE_SHADER } from './src/shader.js'
 export {
+  distToPolyline,
   distToSegment,
   edgeDistance,
   packEdges,
   pickEdge,
+  polylineBounds,
   sampleCubic,
+  sampleEdgePoints,
   sampleTangent,
   screenToWorld,
   worldToScreen,
 } from './src/curve.js'
-export { edgeToPath, makeConnector, parseLinePath } from './src/path.js'
+export { connectorEdge, edgeToPath, makeConnector, parseLinePath } from './src/path.js'
 export { circleEdges, lineEdge, polygonEdges } from './src/shapes.js'
 export { drawEdgesPixi, pixiStroke, toPixiColor } from './src/pixi.js'
 export { drawEdgesTwo, edgeAnchors, toTwoColor, twoStroke } from './src/two.js'

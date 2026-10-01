@@ -2,6 +2,8 @@ import { expect, test } from 'bun:test'
 
 import {
   circleEdges,
+  connectorEdge,
+  distToPolyline,
   distToSegment,
   drawEdgesPixi,
   drawEdgesTwo,
@@ -16,7 +18,9 @@ import {
   pickEdge,
   pixiStroke,
   polygonEdges,
+  polylineBounds,
   sampleCubic,
+  sampleEdgePoints,
   sampleTangent,
   screenToWorld,
   toPixiColor,
@@ -217,6 +221,89 @@ test('makeConnector uses the nodditor strength formula', () => {
   expect(makeConnector([0, 0], [100, 50], 40)).toBe('M0 0 C40 0 60 50 100 50')
   // strength clamped to half the point distance
   expect(makeConnector([0, 0], [10, 0], 999)).toBe('M0 0 C5 0 5 0 10 0')
+})
+
+test('connectorEdge is the data form of makeConnector', () => {
+  const e = connectorEdge([0, 0], [100, 50], 40)
+  expect(e).toEqual({ x0: 0, y0: 0, cx0: 40, cy0: 0, cx1: 60, cy1: 50, x1: 100, y1: 50 })
+  expect(edgeToPath(e)).toBe(makeConnector([0, 0], [100, 50], 40))
+  // clamped exactly like the string form
+  expect(connectorEdge([0, 0], [10, 0], 999)).toEqual({
+    x0: 0,
+    y0: 0,
+    cx0: 5,
+    cy0: 0,
+    cx1: 5,
+    cy1: 0,
+    x1: 10,
+    y1: 0,
+  })
+})
+
+test('sampleEdgePoints/polylineBounds/distToPolyline describe the sampled curve', () => {
+  const e = connectorEdge([0, 0], [100, 50], 40)
+  const points = sampleEdgePoints(e, 4)
+  expect(points).toBeInstanceOf(Float64Array)
+  expect(points.length).toBe(10) // (segments + 1) pairs
+  // the polyline starts and ends on the curve's endpoints
+  expect([points[0], points[1]]).toEqual([0, 0])
+  expect([points[8], points[9]]).toEqual([100, 50])
+  const box = polylineBounds(points)
+  // every sampled point is inside the box, and the endpoints touch its corners
+  expect(box[0]).toBe(0)
+  expect(box[3]).toBe(50)
+  for (let i = 0; i < points.length; i += 2) {
+    expect(points[i]).toBeGreaterThanOrEqual(box[0])
+    expect(points[i]).toBeLessThanOrEqual(box[2])
+    expect(points[i + 1]).toBeGreaterThanOrEqual(box[1])
+    expect(points[i + 1]).toBeLessThanOrEqual(box[3])
+  }
+  // a point ON the polyline is at distance 0, a far one is far
+  const mid = [points[2], points[3]]
+  expect(distToPolyline(points, mid[0], mid[1])).toBeCloseTo(0)
+  expect(distToPolyline(points, 0, 500)).toBeGreaterThan(400)
+})
+
+test('pickEdge over cached points+box returns exactly what sampling returns', () => {
+  // deterministic PRNG so a failure is reproducible
+  let seed = 123456789
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff
+  const edges = []
+  for (let i = 0; i < 40; i++) {
+    const e = connectorEdge([rnd() * 400, rnd() * 300], [rnd() * 400, rnd() * 300], 60)
+    e.color = [0, 0, 0, 1]
+    e.width = 2
+    e.worldWidth = false
+    e.id = i
+    edges.push(e)
+  }
+  // the same edges, with the geometry every caller of sampleEdgePoints would cache
+  const cached = edges.map(e => {
+    const points = sampleEdgePoints(e, 24)
+    return { ...e, points, pointsBox: polylineBounds(points) }
+  })
+  for (let i = 0; i < 400; i++) {
+    const sx = rnd() * 400
+    const sy = rnd() * 300
+    const zoom = 1 + rnd() * 3
+    const radiusPx = i % 8 === 0 ? 0 : 4
+    const sampled = pickEdge(edges, sx, sy, 0, 0, zoom, 24, radiusPx)
+    const fromCache = pickEdge(cached, sx, sy, 0, 0, zoom, 24, radiusPx)
+    expect(fromCache?.id ?? null).toBe(sampled?.id ?? null)
+  }
+  // and the box actually prunes: a point far from every box picks nothing
+  expect(pickEdge(cached, 5000, 5000, 0, 0, 1, 24, 4)).toBeNull()
+})
+
+test('pickEdge tolerates a cached polyline without a cached box', () => {
+  const e = connectorEdge([0, 0], [100, 0], 40)
+  e.color = [0, 0, 0, 1]
+  e.width = 2
+  e.worldWidth = false
+  const points = sampleEdgePoints(e, 24)
+  const noBox = { ...e, points }
+  expect(pickEdge([noBox], 50, 0, 0, 0, 1, 24, 4)).toBe(noBox)
+  expect(pickEdge([noBox], 50, 400, 0, 0, 1, 24, 4)).toBeNull()
 })
 
 test('toPixiColor converts 0..1 RGBA to 0xRRGGBB', () => {

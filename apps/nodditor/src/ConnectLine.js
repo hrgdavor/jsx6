@@ -1,12 +1,14 @@
 import { backend } from './runtime.js'
 
+import { nextChangeId } from './changeSeq.js'
 import { addFinalizer } from './listenUntil.js'
-import { makeLineConnector } from './makeLineConnector.js'
+import { connectorEdge, edgeToSvg, pointsBounds, sampleEdgePoints } from './makeLineConnector.js'
 import { makeLine } from './svgUtil.js'
 
 /**
  * @typedef {import('./NodeEditor.jsx').LinePoint} LinePoint
  * @typedef {import('./NodeEditor.jsx').ConnectorData} ConnectorData
+ * @typedef {import('./makeLineConnector.js').LineEdge} LineEdge
  */
 
 export class ConnectLine {
@@ -26,10 +28,52 @@ export class ConnectLine {
     this.p2 = { pos: [0, 0], listen: [], align: 'left', con: null }
 
     /**
-     * @type {Array<(d: string) => void>} path-change callbacks: the canvas line
-     * layer subscribes so a line whose FREE end is being dragged (connect-in-
-     * progress, `p*.con` still null) keeps being drawn. Subscribers are expected
-     * to be rAF-batched; the callback itself is a cheap schedule call.
+     * The line's shape as DATA — the single source of truth (see `updatePath`).
+     * `null` until the first `updatePath()`.
+     *
+     * @type {LineEdge|null}
+     */
+    this.edge = null
+
+    /**
+     * Change id of the current shape, stamped from the process-wide sequence
+     * (`./changeSeq.js`). Every cache below is dropped when it moves, and a consumer
+     * that caches something per line (the canvas layer pins a render edge, an index
+     * would pin a leaf) validates it by comparing against THIS — a line-local test
+     * that ignores what else changed.
+     *
+     * @type {number}
+     */
+    this.changeId = 0
+
+    /**
+     * Cached SVG `M…C…` text for `edge`, built on demand by `pathText` and cleared
+     * by every change. The SVG layer writes it into the two `<path>`s.
+     *
+     * @type {string|null}
+     */
+    this.svgText = null
+
+    /**
+     * Cached sampled polyline of `edge` (WORLD coordinates, `[x, y, …]` pairs),
+     * built on demand by `samplePoints` and cleared by every change. Hit detection
+     * walks it instead of re-sampling the curve, and pan/zoom never invalidate it.
+     *
+     * @type {Float64Array|null}
+     */
+    this.points = null
+
+    /** @type {number[]|null} cached AABB of `points` (`[minX, minY, maxX, maxY]`) */
+    this.pointsBox = null
+
+    /** @type {number} segment count `points` was sampled with */
+    this.pointsSegments = 0
+
+    /**
+     * @type {Array<(changeId: number) => void>} shape-change callbacks. The layers
+     * subscribe: the SVG layer re-applies the (cached) text to its `<path>`s, the
+     * canvas layer schedules a redraw. Subscribers are expected to be rAF-batched;
+     * the callback itself is a cheap schedule call.
      */
     this.pathListeners = []
     addFinalizer(this, () => this.finalize())
@@ -134,36 +178,91 @@ export class ConnectLine {
     if (!skipUpdate) this.updatePath()
   }
 
+  /**
+   * Recompute the line's shape from its two points. The shape is stored as numeric
+   * DATA (`this.edge`); the SVG text and the sampled polyline are DERIVED from it,
+   * built on demand (`pathText`, `samplePoints`) and cached until the next change —
+   * so a move costs one Bezier formula plus a change id, and the layers pick up
+   * "something changed" through `changed()`.
+   *
+   * Nothing here touches the DOM: the ACTIVE line layer renders (the SVG layer
+   * writes `line.pathText` into the two `<path>`s, the canvas layer refreshes its
+   * pinned edge), which is what keeps the line model free of renderer details.
+   */
   updatePath() {
-    let line = makeLineConnector(
-      this.strength,
-      this.p1.pos,
-      this.p1.pos, // todo box pos
-      [100, 100],
-      'R',
-      this.p2.pos,
-      [0, 0], // todo box pos
-      [100, 100],
-      'L',
-    )
-    // `d` is the single source of truth for the line shape: the SVG paths
-    // read it via `setAttribute`, and the canvas line layer parses it
-    // (`@jsx6/line-render`'s `parseLinePath`).
-    this.d = line
-    this.line1.setAttribute('d', line)
-    this.line2.setAttribute('d', line)
-    this.pathListeners.forEach(fn => fn(line))
+    this.edge = connectorEdge(this.strength, this.p1.pos, this.p2.pos)
+    this.changed()
   }
 
   /**
-   * Register a callback invoked whenever the path is recomputed, with the new
-   * `d`. Returns an unregister function.
+   * A new shape is in place: drop every cached derivation of the old one, stamp a
+   * new change id from the process-wide sequence and notify the layers.
    *
-   * Used by the canvas line layer to redraw while a free (still unconnected)
-   * end is being dragged: that move fires no `ne-move` event, and the SVG
-   * paths that `updatePath` updates are not in the DOM in canvas mode.
+   * Caches are dropped EAGERLY (rather than version-checked lazily) because they are
+   * rebuilt once per change, not once per frame, and a stale `points` array is a
+   * correctness hazard (hit detection) — leaving nothing behind is the simpler
+   * guarantee.
+   */
+  changed() {
+    this.changeId = nextChangeId()
+    this.svgText = null
+    this.points = null
+    this.pointsBox = null
+    this.pointsSegments = 0
+    const changeId = this.changeId
+    this.pathListeners.forEach(fn => fn(changeId))
+  }
+
+  /**
+   * The SVG `M…C…` text of the current shape, built once per change and cached in
+   * `svgText`. `line.d` is kept as the historical alias of this.
    *
-   * @param {(d: string) => void} fn
+   * @returns {string|null}
+   */
+  get pathText() {
+    if (this.svgText === null && this.edge) this.svgText = edgeToSvg(this.edge)
+    return this.svgText
+  }
+
+  /**
+   * @deprecated use `pathText` — kept because hosts and older code read `line.d`.
+   * @returns {string|null}
+   */
+  get d() {
+    return this.pathText
+  }
+
+  /**
+   * The sampled polyline of the current shape, built once per change and cached on
+   * the line (see `points`), together with its AABB (`pointsBox`).
+   *
+   * Hit detection walks this: the points are in WORLD coordinates and picking
+   * converts the POINTER into that space, so a pan or a zoom never invalidates them
+   * — only a shape change does.
+   *
+   * @param {number} [segments = 24] sampling of the cubic; the canvas layer passes
+   *   the same value it hands to `pickEdge`
+   * @returns {Float64Array|null}
+   */
+  samplePoints(segments = 24) {
+    if (!this.edge) return null
+    if (this.points === null || this.pointsSegments !== segments) {
+      this.points = sampleEdgePoints(this.edge, segments)
+      this.pointsBox = pointsBounds(this.points)
+      this.pointsSegments = segments
+    }
+    return this.points
+  }
+
+  /**
+   * Register a callback invoked whenever the shape is recomputed, with the new
+   * change id. Returns an unregister function.
+   *
+   * Used by the line layers: the SVG layer re-applies the cached text to its
+   * `<path>`s, and the canvas layer redraws (which it must do even while a free end
+   * is being dragged — that move fires no `ne-move` event).
+   *
+   * @param {(changeId: number) => void} fn
    * @returns {() => void}
    */
   onPathChange(fn) {

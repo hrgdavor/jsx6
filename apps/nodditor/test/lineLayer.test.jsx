@@ -24,8 +24,8 @@ import { ConnectLine } from '../src/ConnectLine.js'
 import { Message } from '../src/blocks/Message.js'
 import { Switch } from '../src/blocks/Switch.js'
 import { createSvgLineLayer } from '../src/lineLayer.js'
-import { makeCanvasLineLayer } from '../src/canvasLineLayer.js'
-import { edgeToPath, parseLinePath, pickEdge } from '@jsx6/line-render'
+import { installCanvasLineLayer, makeCanvasLineLayer } from '../src/canvasLineLayer.js'
+import { edgeToPath, parseLinePath, pickEdge, polylineBounds as lrPolylineBounds } from '@jsx6/line-render'
 
 const typeMap = { Switch: () => <Switch />, Message: () => <Message /> }
 
@@ -59,6 +59,21 @@ function addTwoBlocks() {
 
 /** Flush the canvas layer's rAF-batched redraw (happy-dom's rAF is a timer under the hood). */
 const waitFrame = () => new Promise(r => setTimeout(r, 50))
+
+/**
+ * A point `d` CSS px off the line's midpoint, PERPENDICULAR to the curve there — the
+ * only offset that measures the pick band (a connector's midpoint tangent is vertical, so
+ * offsetting in y would slide along the line).
+ */
+function offsetFromMidpoint(line, d) {
+  const p = line.samplePoints()
+  // flat index of the middle vertex's x; its y is the next number
+  const mid = Math.floor(p.length / 4) * 2
+  const dx = p[mid + 2] - p[mid - 2]
+  const dy = p[mid + 3] - p[mid - 1]
+  const len = Math.hypot(dx, dy) || 1
+  return [p[mid] + (-dy / len) * d, p[mid + 1] + (dx / len) * d]
+}
 
 /**
  * A fake `@jsx6/line-render` module: the REAL `parseLinePath`/`pickEdge` (pure curve
@@ -171,6 +186,101 @@ test('svg layer: selection states land as classes on the line <g>', () => {
   editor.selectBlocks([])
   expect(line.el.classList.contains('ne-from-sel-block')).toBe(false)
   expect(line.el.classList.contains('ne-to-sel-block')).toBe(false)
+})
+
+test('svg layer: it renders the line cached shape text into both paths', () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+
+  // the shape lives on the line as data; the layer put the cached text into the DOM
+  expect(line.edge).not.toBeNull()
+  expect(line.line1.getAttribute('d')).toBe(line.pathText)
+  expect(line.line2.getAttribute('d')).toBe(line.pathText)
+  expect(line.pathText).toBe(line.d) // `d` is the historical alias
+
+  // a move re-applies the text through the layer's subscription (the line never
+  // touches the DOM itself)
+  const before = line.line1.getAttribute('d')
+  line.setPos2(300, 100)
+  expect(line.line1.getAttribute('d')).toBe(line.pathText)
+  expect(line.line2.getAttribute('d')).toBe(line.pathText)
+  expect(line.line1.getAttribute('d')).not.toBe(before)
+})
+
+test('svg layer: swapping layers releases the text subscription it owned', () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+  expect(line.pathListeners.length).toBe(1) // the svg layer follows the shape
+
+  // `setLineLayer` takes the lines off the old layer without finalizing them: the
+  // old layer's subscription must go, or it keeps writing into a detached element
+  editor.setLineLayer(createSvgLineLayer(editor))
+  expect(line.pathListeners.length).toBe(1) // ... and the new one took over
+  line.setPos2(300, 100)
+  expect(line.line1.getAttribute('d')).toBe(line.pathText)
+})
+
+// ---------- the connector's shape caches ----------
+
+test('a line keeps its shape as data and rebuilds the derived caches per change', () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+  /** the 8 geometry numbers, so the comparison ignores line-render's extra Edge fields */
+  const geom = e => [e.x0, e.y0, e.cx0, e.cy0, e.cx1, e.cy1, e.x1, e.y1]
+
+  // the numeric edge is the source of truth, and the SVG text is its data form
+  expect(geom(line.edge)).toEqual(geom(parseLinePath(line.pathText)))
+  expect(line.changeId).toBeGreaterThan(0)
+
+  const points = line.samplePoints()
+  expect(points).toBeInstanceOf(Float64Array)
+  expect(line.pointsBox).toEqual(lrPolylineBounds(points))
+  expect(line.samplePoints()).toBe(points) // cached: no rebuild without a change
+
+  // a change drops the caches and stamps a NEW id
+  const changeId = line.changeId
+  const box = line.pointsBox
+  line.setPos2(300, 100)
+  expect(line.changeId).toBeGreaterThan(changeId)
+  expect(line.points).not.toBe(points) // rebuilt for the new shape
+  expect(line.pointsBox).not.toBe(box)
+  expect(line.samplePoints()).toBe(line.points)
+  expect(geom(line.edge)).toEqual(geom(parseLinePath(line.pathText)))
+  expect(line.pointsBox).toEqual(lrPolylineBounds(line.points))
+})
+
+test('canvas layer: the shape caches follow the line without an SVG round trip', async () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  await layer.ready
+
+  // the line was created while the SVG layer was active, so its text was built then;
+  // from here on nothing asks for it (the canvas layer reads the data, not the string)
+  expect(typeof line.svgText).toBe('string')
+  expect(line.line1.getAttribute('d')).toBe(line.svgText)
+
+  line.setPos2(300, 100)
+  // the change cleared the caches; the next frame rebuilds the POINTS (the canvas
+  // layer walks line.samplePoints()) and never rebuilds the text
+  expect(line.points).toBeNull()
+  expect(line.svgText).toBeNull()
+  await waitFrame()
+  expect(line.svgText).toBeNull()
+  expect(line.points).not.toBeNull()
+  expect(fx.rendered.at(-1)[0].x1).toBe(300)
+  expect(fx.rendered.at(-1)[0].points).toBe(line.points)
+  expect(fx.rendered.at(-1)[0].pointsBox).toBe(line.pointsBox)
+
+  // picking walks the cached polyline and converts the POINTER into world space, so
+  // moving the viewport must not rebuild it
+  const points = line.points
+  editor.zoom = 2
+  layer.pick(300, 100)
+  expect(line.points).toBe(points)
 })
 
 // ---------- the canvas layer ----------
@@ -642,6 +752,144 @@ test('canvas layer: revive does nothing on a destroyed editor', async () => {
   expect(layer.disposed).toBe(true)
   expect(layer.el.parentNode).toBeNull()
   expect(fx.created.length).toBe(1)
+})
+
+// ---------- the line theme ----------
+
+test('canvas layer: the stroke colours, width and pick band come from the theme', async () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+
+  // a host themes both layers by setting variables (inline here; a stylesheet rule or an
+  // ancestor works in a browser, where custom properties inherit)
+  editor.style.setProperty('--ne-line-color', '#102030')
+  editor.style.setProperty('--ne-line-selected', 'rgb(255, 0, 0)')
+  editor.style.setProperty('--ne-line-width', '3px')
+  editor.style.setProperty('--ne-line-hit-width', '12px')
+
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+
+  const edge = fx.rendered.at(-1)[0]
+  expect(edge.color).toEqual([16 / 255, 32 / 255, 48 / 255, 1]) // --ne-line-color
+  expect(edge.width).toBe(3) // --ne-line-width × devicePixelRatio
+
+  editor.selectConnector(line)
+  await waitFrame()
+  expect(fx.rendered.at(-1)[0].color).toEqual([1, 0, 0, 1]) // --ne-line-selected
+
+  // the pick band is HALF the hit width: 6 CSS px here, so 5 px off the line still hits
+  // and 7 px does not (the default 4 px band would have missed both)
+  expect(layer.pick(...offsetFromMidpoint(line, 5))).toBe(line)
+  expect(layer.pick(...offsetFromMidpoint(line, 7))).toBeNull()
+})
+
+test('canvas layer: a theme change is picked up by the live layer', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx)
+  editor.setLineLayer(layer)
+  await layer.ready
+  await waitFrame()
+  expect(fx.rendered.at(-1)[0].color).toEqual([0, 0, 0, 1]) // the default
+
+  // The trigger is an ATTRIBUTE write on the editor: a stylesheet theme flips a class,
+  // and `style.setProperty` reaches the same observer in a browser (happy-dom only
+  // delivers records for `setAttribute` / `classList`, so the test writes the attribute).
+  editor.setAttribute('style', '--ne-line-color: #00ff00')
+  await waitFrame()
+  expect(fx.rendered.at(-1)[0].color).toEqual([0, 1, 0, 1])
+
+  // ... and the width too (the same observer re-reads the whole theme)
+  editor.setAttribute('style', '--ne-line-color: #00ff00; --ne-line-width: 5px')
+  await waitFrame()
+  expect(fx.rendered.at(-1)[0].width).toBe(5)
+})
+
+test('canvas layer: renderer options are passed through to the renderer', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const layer = makeCanvasLineLayer(editor, fx, {
+    clear: [0.1, 0.2, 0.3, 0.4],
+    supersample: 2,
+    segmentsPerCurve: 8,
+  })
+  editor.setLineLayer(layer)
+  await layer.ready
+
+  expect(fx.created[0].clear).toEqual([0.1, 0.2, 0.3, 0.4])
+  expect(fx.created[0].supersample).toBe(2)
+  expect(fx.created[0].segmentsPerCurve).toBe(8)
+
+  // the defaults stay transparent and plain-MSAA
+  const fx2 = fakeLr()
+  const layer2 = makeCanvasLineLayer(editor, fx2)
+  editor.setLineLayer(layer2)
+  await layer2.ready
+  expect(fx2.created[0].clear).toEqual([0, 0, 0, 0])
+  expect(fx2.created[0].supersample).toBe(1)
+})
+
+// ---------- installCanvasLineLayer ----------
+
+test('installCanvasLineLayer: installs the canvas layer and reports the mode', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const { mode, layer } = await installCanvasLineLayer(editor, { lr: fx })
+  expect(mode).toBe('canvas')
+  expect(editor.lineLayer).toBe(layer)
+  expect(layer.kind).toBe('canvas')
+  await waitFrame()
+  expect(fx.rendered.at(-1).length).toBe(1) // and it is drawing
+})
+
+test('installCanvasLineLayer: falls back to a working SVG layer when the renderer fails', async () => {
+  addTwoBlocks()
+  const line = editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr({ initReject: true })
+  const { mode, layer, error } = await installCanvasLineLayer(editor, { lr: fx })
+  expect(mode).toBe('svg')
+  expect(layer).toBeNull()
+  expect(error).toBeInstanceOf(Error)
+  // the failed canvas layer is not left installed: the SVG layer draws again
+  expect(editor.lineLayer.kind).toBe('svg')
+  expect(line.el.parentNode).toBe(editor.svgLayer)
+  expect(line.line1.getAttribute('d')).toBe(line.pathText)
+})
+
+test('installCanvasLineLayer: no WebGPU never builds a renderer', async () => {
+  addTwoBlocks()
+  const fx = fakeLr({ supported: false })
+  const { mode, error } = await installCanvasLineLayer(editor, { lr: fx })
+  expect(mode).toBe('svg')
+  expect(error).toBeUndefined() // not a failure: the browser simply has no WebGPU
+  expect(fx.created.length).toBe(0)
+  expect(editor.lineLayer.kind).toBe('svg')
+})
+
+test('installCanvasLineLayer: a lost device degrades to SVG and tells the host', async () => {
+  addTwoBlocks()
+  editor.addConnectorFromTo('1/o1', '2/i1')
+
+  const fx = fakeLr()
+  const lost = []
+  const { mode } = await installCanvasLineLayer(editor, { lr: fx, onLost: info => lost.push(info) })
+  expect(mode).toBe('canvas')
+
+  fx.lose({ reason: 'destroyed', message: 'gpu reset' })
+  await waitFrame()
+  expect(editor.lineLayer.kind).toBe('svg') // the helper swapped it back for the host
+  expect(lost.length).toBe(1)
 })
 
 // ---------- setLineLayer ----------

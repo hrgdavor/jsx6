@@ -425,6 +425,40 @@ The editor calls these on every relevant event — `addConnector`/`removeLine`, 
 `selectConnector`, the zoom setter, and the resize observer — so a custom layer is all that a host
 has to provide.
 
+### Connector geometry and its caches
+
+A line keeps its shape as DATA, and every other representation of that shape is derived from it and
+cached on the line until the shape changes:
+
+| Member | What it is |
+| --- | --- |
+| `line.edge` | the cubic Bezier as 8 numbers ([`connectorEdge`](src/makeLineConnector.js)) — the source of truth. `null` until the first update |
+| `line.changeId` | id of the current shape, stamped from the process-wide sequence ([src/changeSeq.js](src/changeSeq.js)) |
+| `line.svgText` / `line.pathText` / `line.d` | the SVG `M…C…` text of that shape. `pathText` builds and caches it, `d` is the historical alias; `svgText` is the cache slot (`null` = not built) |
+| `line.points` / `line.pointsBox` | the sampled polyline (world coordinates) and its AABB — built by `line.samplePoints(segments)` and used by hit detection |
+| `line.pointsSegments` | the sampling `points` was built with |
+
+`ConnectLine.updatePath()` (called by every `setPos*`/`setPoint*`) computes the numeric edge, then
+`changed()` drops all of the above and stamps a new `changeId` from the global sequence. Caches are
+dropped EAGERLY rather than version-checked per read: they are rebuilt once per shape change, not once
+per frame, and a stale `points` array is a hit-detection hazard.
+
+Two properties keep this cheap and simple:
+
+- **Nothing is invalidated by the viewport.** `points` is in world coordinates and picking converts
+  the POINTER into that space, so pan and zoom change neither the points nor the boxes.
+- **The change id is line-local.** A consumer that pins something per line (the canvas layer pins a
+  render edge; a spatial index would pin a leaf) validates it by comparing against `line.changeId`,
+  which ignores what else in the graph moved. `changeSeq()` answers the coarser "did ANY connector
+  change since X?" — the canvas layer uses it to know whether its built edge list is still current —
+  but it is deliberately not a cache-validity test: that would invalidate every line whenever one
+  moved.
+
+Rendering is the LAYER's job, not the line's: the SVG layer subscribes to `onPathChange` and writes
+`line.pathText` into both `<path>`s (on `add` and on every change), and the canvas layer refreshes the
+geometry of the render edge it pins per line and reads `line.points` for hit detection. `ConnectLine`
+never touches the DOM.
+
 ### WebGPU canvas layer (optional dependency)
 
 `@jsx6/line-render` is an **optional** dependency: the package works without it. It contributes the
@@ -432,20 +466,32 @@ canvas layer ([src/canvasLineLayer.js](src/canvasLineLayer.js)), which draws eve
 canvas with a WebGPU `LineRenderer` and picks lines with `pickEdge`:
 
 ```js
-import { loadLineRender, makeCanvasLineLayer } from '@jsx6/nodditor'
+import { installCanvasLineLayer } from '@jsx6/nodditor'
 
-const lr = await loadLineRender() // dynamic import; null (with a console warning) when the
-                                   // package is not installed
-if (lr?.LineRenderer.isSupported()) {   // synchronous probe: skip the whole attempt without WebGPU
+// probe → build → await ready → fall back to the SVG layer, in one call; `mode` says
+// which layer you ended up on ('canvas' or 'svg' — the package missing, no WebGPU, or
+// the renderer failing all report 'svg', with `error` when it was a failure)
+const { mode } = await installCanvasLineLayer(editor, {
+  // a device lost after startup is handled for you (the helper restores the SVG layer),
+  // then this runs, so a host only has to reflect it in its own UI
+  onLost: () => console.warn('line rendering fell back to SVG'),
+})
+
+// ... or drive the parts yourself:
+const lr = await loadLineRender() // dynamic import; null when the package is not installed
+if (lr?.LineRenderer.isSupported()) {
   const layer = makeCanvasLineLayer(editor, lr, {
-    // a device lost after startup (driver reset, GPU process crash) is the same
-    // story as a failed init: fall back to the SVG layer
     onLost: () => editor.setLineLayer(createSvgLineLayer(editor)),
   })
   editor.setLineLayer(layer)
   await layer.ready.catch(() => editor.setLineLayer(createSvgLineLayer(editor)))
 }
 ```
+
+Renderer options pass through: `makeCanvasLineLayer(editor, lr, { segmentsPerCurve, clear, supersample, device })`
+— `clear` defaults to fully transparent (the editor's background shows through) and `supersample: 2`
+opts into the higher-quality antialiasing path, which renders at 2x and downscales for 4x the pixels.
+`device` is a borrowed `GPUDevice` shared between editors (see the library README).
 
 Degradation: the layer probes with `LineRenderer.isSupported()` first and rejects `ready` when the
 browser has no WebGPU; otherwise `LineRenderer.create()` reports the cause to the console, releases
@@ -455,9 +501,24 @@ to the SVG layer and shows a disabled toggle. `ready` also rejects when the laye
 the GPU is still coming up, so a host awaiting it can never be left hanging. A device lost after
 startup is reported once through `onLost` (drawing stops and the renderer is released first); `pick`
 keeps working there too, and the loss raised by the layer's own `dispose()` is not reported.
-Selection colours mirror the CSS rule order
-(to-selected > from-selected > selected > base black), and the pick radius mirrors the SVG hit
-path (4 px, like half of the 8 px transparent hit stroke).
+
+The look comes from the `--ne-line-*` custom properties, the same ones the SVG layer uses — see
+"The line theme drives BOTH line layers" in [doc/styling-migration.md](doc/styling-migration.md). The
+canvas layer reads them off the editor when it is created and again whenever the editor's `class` or
+`style` attribute changes, so a themed editor stays themed on either layer and a theme flip
+re-colours the GPU layer live. The `to-sel > from-sel > selected > base` precedence is the only part
+that variables cannot express: it is rule order in the stylesheet and repeated in the layer's
+`stateOf()`.
+
+Picking walks the line's cached polyline (`line.points`) instead of sampling the curve again, and
+rejects a line on its cached AABB (`line.pointsBox`) before walking anything — the canvas layer keeps
+its own render edge per line (geometry, colour, width, the two point caches) pinned in a map and only
+refreshes the parts that went stale, so a steady-state frame parses no SVG text and allocates no edge
+objects. Because both caches are in world coordinates and picking converts the pointer into that
+space, zooming and panning never rebuild them; the pick band is half of `--ne-line-hit-width`
+(4 px by default, mirroring the SVG layer's 8 px invisible hit stroke).
+`@jsx6/line-render`'s README has the measured numbers and the reason there is no early exit in the
+walk.
 
 Disposal is not the end of a canvas layer: `dispose()` releases the GPU session, the editor-level
 listeners, the pixel-ratio watch and the canvas element, and `revive()` puts all of it back on a

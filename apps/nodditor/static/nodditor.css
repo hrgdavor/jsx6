@@ -18,6 +18,8 @@
      .ne-marquee     --ne-marquee-x, -y, -w, -h
    Override-only:
      --ne-content-z, --ne-zoom-z, --ne-marquee-z (stacking)
+     --ne-line-color, --ne-line-selected, --ne-line-from-sel, --ne-line-to-sel,
+     --ne-line-width, --ne-line-hit-width (the line layer theme; see the line rules below)
    ============================================================================================ */
 
 jsx6-nodditor {
@@ -157,21 +159,37 @@ jsx6-nodditor:focus {
 /* #endregion zoom-css */
 
 /* line colours: the host's block/connector stylesheet normally sets these (see static/ne-blocks.css);
-   these are the fallbacks for an app that only imports this file. */
+   these are the fallbacks for an app that only imports this file.
+
+   The `--ne-line-*` custom properties are the theme of BOTH line layers: the rules below
+   turn them into `stroke` / `stroke-width`, and the WebGPU canvas layer (which cannot use
+   CSS) reads the same resolved values off the editor and parses them. That is what keeps a
+   themed editor themed when it switches to the canvas layer. Override them anywhere that
+   matches or inherits to the editor:
+
+     jsx6-nodditor { --ne-line-selected: #ff5722; --ne-line-width: 3px } */
+jsx6-nodditor {
+  --ne-line-color: #000;
+  --ne-line-selected: #2ea7a7;
+  --ne-line-from-sel: #bfc233;
+  --ne-line-to-sel: #2e6ca7;
+  --ne-line-width: 2px;
+  --ne-line-hit-width: 8px;
+}
 jsx6-nodditor svg g path:first-child {
-  stroke: black;
-  stroke-width: 2px;
+  stroke: var(--ne-line-color);
+  stroke-width: var(--ne-line-width);
 }
 jsx6-nodditor svg g path:nth-child(2) {
-  stroke-width: 8px;
+  stroke-width: var(--ne-line-hit-width);
   stroke: transparent;
 }
 jsx6-nodditor svg g.selected path:first-child {
-  stroke: #2ea7a7;
+  stroke: var(--ne-line-selected);
 }
 jsx6-nodditor svg g.ne-from-sel-block path:first-child {
-  stroke: #bfc233;
+  stroke: var(--ne-line-from-sel);
 }
 jsx6-nodditor svg g.ne-to-sel-block path:first-child {
-  stroke: #2e6ca7;
+  stroke: var(--ne-line-to-sel);
 }

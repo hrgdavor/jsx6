@@ -71,3 +71,7 @@ build
 build_dev
 build_vanilla
 coverage
+
+# personal agent-instruction overlays (loaded after AGENTS.md / CLAUDE.md; never shared)
+AGENTS.local.md
+CLAUDE.local.md

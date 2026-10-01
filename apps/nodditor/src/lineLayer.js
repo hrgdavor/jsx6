@@ -30,9 +30,10 @@ import { listenUntil } from './listenUntil.js'
  * a disposed layer elsewhere calls `onViewport`/`onResize` first, which revive it. A layer
  * that cannot come back may omit `revive`.
  *
- * `ConnectLine` always keeps its `<g>` + two `<path>`s and its `d` attribute;
- * the SVG layer attaches that element to the document, the canvas layer
- * leaves it detached and only reads `line.d` to build its edge list.
+ * `ConnectLine` always keeps its `<g>` + two `<path>`s and its shape as data
+ * (`line.edge`) with the derived SVG text cached (`line.pathText`); the SVG layer
+ * writes that text into the document, the canvas layer reads the data and its
+ * sampled points and never formats a path string at all.
  */
 
 /**
@@ -40,30 +41,62 @@ import { listenUntil } from './listenUntil.js'
  * It has zero dependencies (it is what the editor shipped with before the
  * layer seam) and works in every environment.
  *
+ * It also owns the `<path d>` rendering: `ConnectLine` keeps the shape as data and
+ * caches the SVG text (`line.pathText`), and this layer is what writes that text
+ * into the line's two paths — on `add`, and again on every shape change it
+ * subscribes to.
+ *
  * @param {NodeEditor} editor
  */
 export function createSvgLineLayer(editor) {
+  /** @type {Map<ConnectLine, () => void>} unregister fns from `line.onPathChange` */
+  const textSubs = new Map()
+
+  /**
+   * Put the line's cached shape text into its two `<path>`s. The text is built once
+   * per shape change (in the line), so this is two `setAttribute` calls per move.
+   *
+   * @param {ConnectLine} line
+   */
+  const applyText = line => {
+    const text = line.pathText
+    line.line1.setAttribute('d', text)
+    line.line2.setAttribute('d', text)
+  }
+
   return {
     kind: 'svg',
     /** @type {SVGElement} */
     el: editor.svgLayer,
     /**
-     * Attach the line's `<g>` and let it select itself on click — the exact
-     * pre-seam behaviour.
+     * Attach the line's `<g>`, let it select itself on click — the exact
+     * pre-seam behaviour — and follow its shape.
      * @param {ConnectLine} line
      */
     add(line) {
       listenUntil(line, line.el, 'click', () => {
         editor.selectConnector(line)
       })
+      // the layer renders: a shape change re-applies the text (a line being dragged
+      // fires no `ne-move`, so this is the only thing that keeps it in sync)
+      textSubs.get(line)?.()
+      textSubs.set(
+        line,
+        line.onPathChange(() => applyText(line)),
+      )
+      applyText(line)
       backend.current.insert(editor.svgLayer, line.el)
     },
     /**
-     * Detach the line's element. (Its listeners are released by the editor's
-     * `finalize(line)`; the layer owns only the element.)
+     * Detach the line's element and stop following its shape. (The line's other
+     * listeners are released by the editor's `finalize(line)`; the layer owns only
+     * the element and this subscription — which must go, because `setLineLayer`
+     * takes the lines off a layer without finalizing them.)
      * @param {ConnectLine} line
      */
     remove(line) {
+      textSubs.get(line)?.()
+      textSubs.delete(line)
       backend.current.remove(line.el)
     },
     /**

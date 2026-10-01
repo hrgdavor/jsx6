@@ -1,25 +1,57 @@
 import { backend } from './runtime.js'
 
-// The line colors as [r, g, b, a] in 0..1, mirroring the `.ne-svg-layer` rules in
-// static/nodditor.css. Priority follows the stylesheet's rule order:
-// `.ne-to-sel-block` > `.ne-from-sel-block` > `.selected` > black.
-const COLOR_BASE = [0, 0, 0, 1] // path:first-child { stroke: black }
-const COLOR_SELECTED = [46 / 255, 167 / 255, 167 / 255, 1] // #2ea7a7, g.selected
-const COLOR_FROM = [191 / 255, 194 / 255, 51 / 255, 1] // #bfc233, g.ne-from-sel-block
-const COLOR_TO = [46 / 255, 108 / 255, 167 / 255, 1] // #2e6ca7, g.ne-to-sel-block
+import { changeSeq } from './changeSeq.js'
+import { createSvgLineLayer } from './lineLayer.js'
+import { readLineTheme } from './lineTheme.js'
 
-// The SVG hit path is an invisible 8 CSS px wide stroke (`vector-effect:
-// non-scaling-stroke`), so its half-width — the canvas pick radius — is 4 CSS px.
-const PICK_RADIUS_CSS = 4
-// The rendered stroke is 2 CSS px at any zoom (`vector-effect: non-scaling-stroke`).
-const LINE_WIDTH_CSS = 2
+// Sampling of a connector for hit detection; the same value `pickEdge` would use if
+// it had to sample the curve itself (it does not — the line caches the points).
+const PICK_SEGMENTS = 24
+
+// Selection state as a small integer, so refreshing a pinned edge compares a number
+// instead of formatting a key. The order is the stylesheet's rule order for the same
+// states — `.ne-to-sel-block` > `.ne-from-sel-block` > `.selected` > base — which is
+// the one thing the `--ne-line-*` variables cannot express; keep the two in step.
+const STATE_BASE = 0
+const STATE_SELECTED = 1
+const STATE_FROM = 2
+const STATE_TO = 3
+
+/**
+ * The render edge of one line: the 8 geometry numbers the GPU packs, the per-frame
+ * style (colour, width), the line's cached `points`/`pointsBox` for picking, and the
+ * stamps that say which of those are still current. Pinned per line in `edgeCache`
+ * and MUTATED in place, so a steady-state frame copies nothing and allocates nothing.
+ *
+ * @typedef {object} RenderEdge
+ * @property {number} x0
+ * @property {number} y0
+ * @property {number} cx0
+ * @property {number} cy0
+ * @property {number} cx1
+ * @property {number} cy1
+ * @property {number} x1
+ * @property {number} y1
+ * @property {number[]} color - RGBA 0..1
+ * @property {number} width - backing-store pixels (`worldWidth: false`)
+ * @property {boolean} worldWidth
+ * @property {Float64Array|null} points - the line's cached polyline (world coords)
+ * @property {number[]|null} pointsBox - its AABB
+ * @property {ConnectLine} line - how `pick` maps an edge back to its line
+ * @property {number} ver - the `line.changeId` the geometry was copied at
+ * @property {number} state - the selection state the colour was set for
+ * @property {number} scale - the device pixel ratio the width was set for
+ */
 
 /**
  * Load `@jsx6/line-render`, nodditor's OPTIONAL dependency.
  *
- * The import is dynamic and wrapped: a host that did not install the package
- * (or a bundler that externalised it) gets `null` instead of a load error, and
- * the editor simply keeps its SVG line layer.
+ * The import is dynamic and wrapped: a host that did not install the package (or a
+ * bundler that externalised it) gets `null` instead of a load error, and the editor
+ * simply keeps its SVG line layer. The two failure modes are reported differently,
+ * because they need different reactions: "not installed" is an expected host choice,
+ * while a module that failed to evaluate is a bug that must not hide behind that
+ * message. Either way the underlying error is logged.
  *
  * @returns {Promise<import('@jsx6/line-render')|null>}
  */
@@ -27,8 +59,16 @@ export async function loadLineRender() {
   try {
     return await import('@jsx6/line-render')
   } catch (err) {
+    const missing =
+      err?.code === 'ERR_MODULE_NOT_FOUND' ||
+      err?.code === 'MODULE_NOT_FOUND' ||
+      /cannot find (module|package)|failed to resolve (module|import)/i.test(err?.message ?? '')
     console.warn(
-      'NodeEditor: @jsx6/line-render is not installed (it is an optional dependency); ' + 'keeping the SVG line layer.',
+      missing
+        ? 'NodeEditor: @jsx6/line-render is not installed (it is an optional dependency); ' +
+            'keeping the SVG line layer.'
+        : 'NodeEditor: @jsx6/line-render failed to load; keeping the SVG line layer.',
+      err,
     )
     return null
   }
@@ -78,17 +118,30 @@ export async function loadLineRender() {
  *
  * @param {NodeEditor} editor
  * @param {import('@jsx6/line-render')} lr the loaded `@jsx6/line-render` module
- * @param {{segmentsPerCurve?: number, device?: any, onLost?: (info: unknown) => void}} [opts]
+ * @param {{segmentsPerCurve?: number, device?: any, clear?: number[], supersample?: number, onLost?: (info: unknown) => void}} [opts]
  *   `device` is a `GPUDevice` to BORROW instead of requesting one, so several
  *   editors (each with its own canvas layer) can draw on ONE device; the device
  *   then stays the host's to destroy — see "Device ownership and sharing" in the
- *   `@jsx6/line-render` README. `onLost` is called once if the GPU device is lost
- *   (or the renderer throws) after the layer started drawing; the layer stops
- *   drawing and releases the renderer before the call.
+ *   `@jsx6/line-render` README. `clear` and `supersample` go straight to
+ *   `LineRenderer.create` (the transparent default is `[0, 0, 0, 0]`; `supersample: 2`
+ *   opts into the higher-quality antialiasing path and costs 4x the pixels). `onLost`
+ *   is called once if the GPU device is lost (or the renderer throws) after the layer
+ *   started drawing; the layer stops drawing and releases the renderer before the call.
  * @returns {object} a line layer (see `lineLayer.js`) plus `ready: Promise<void>`
  */
 export function makeCanvasLineLayer(editor, lr, opts = {}) {
   const dpr = () => (typeof window != 'undefined' && window.devicePixelRatio) || 1
+
+  /**
+   * The four state colours of a theme, in `STATE_*` order. A function declaration (not
+   * an arrow) because the theme is read below, before the rest of this factory runs.
+   *
+   * @param {typeof import('./lineTheme.js').LINE_THEME_DEFAULTS} theme
+   * @returns {number[][]}
+   */
+  function stateColors(theme) {
+    return [theme.base, theme.selected, theme.fromSel, theme.toSel]
+  }
 
   const canvas = document.createElement('canvas')
   canvas.className = 'ne-canvas-line-layer'
@@ -101,8 +154,12 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
   const states = new Map()
   /** @type {Map<ConnectLine, () => void>} unregister fns from `ConnectLine.onPathChange` */
   const pathSubs = new Map()
-  /** @type {import('@jsx6/line-render').Edge[]|null} edges for the last pick */
+  /** @type {Map<ConnectLine, RenderEdge>} the pinned render edge of every known line */
+  const edgeCache = new Map()
+  /** @type {RenderEdge[]|null} edges for the last pick */
   let edges = null
+  /** @type {number} `changeSeq()` value `edges` was built at (0 = never built) */
+  let builtSeq = 0
   /** @type {number} */
   let zoom = 1
   /** @type {number} editor box size in CSS px, as last reported by `onResize` */
@@ -123,6 +180,20 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
   let releaseClick = null
   /** @type {(() => void)|null} */
   let releaseMove = null
+  /**
+   * The theme of both line layers (see `lineTheme.js`), read off the editor so it
+   * resolves exactly as the stylesheet makes it resolve. It is re-read when the
+   * editor's `class`/`style` changes — cheap, because that is a rare, attribute-level
+   * event — and never per frame: resolving CSS custom properties in a render loop
+   * would force a style recalculation for every line drawn.
+   *
+   * @type {import('./lineTheme.js').LINE_THEME_DEFAULTS}
+   */
+  let theme = readLineTheme(editor)
+  /** @type {number[][]} colours indexed by the `STATE_*` constants, rebuilt with the theme */
+  let themeColors = stateColors(theme)
+  /** @type {MutationObserver|null} */
+  let themeMO = null
 
   /**
    * Life counter: bumped by `dispose()` AND by `revive()`. Every asynchronous
@@ -154,31 +225,101 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
   newReady()
 
   /**
-   * Build the edge list from the live lines: every line that HAS A PATH
-   * contributes its `d` (kept up to date by `ConnectLine.updatePath`) in its
-   * current visual state — including a line being connected, whose free end
-   * is a raw pointer position (`p2.con` still null) and which the SVG layer
-   * draws too.
+   * The selection state of a line as one of the `STATE_*` constants. The order is the
+   * stylesheet's rule order: to-selected beats from-selected beats selected.
    *
-   * Per-frame cost is one regex parse per line plus one instanced draw — the
-   * same budget as the `ne-move`/zoom path. If graphs ever grow into the
-   * thousands, a `d`-keyed edge cache is the next lever (the parse is still far
-   * cheaper than the GPU pass).
+   * @param {{selected: boolean, fromSel: boolean, toSel: boolean}|undefined} st
+   * @returns {number}
+   */
+  const stateOf = st =>
+    !st ? STATE_BASE : st.toSel ? STATE_TO : st.fromSel ? STATE_FROM : st.selected ? STATE_SELECTED : STATE_BASE
+
+  /**
+   * The line's pinned render edge, refreshed in place. Three stamps decide what has to
+   * be copied:
    *
-   * @returns {import('@jsx6/line-render').Edge[]}
+   *  - `ver` vs `line.changeId` — the SHAPE changed: copy the 8 numbers and point the
+   *    edge at the line's cached polyline (`line.samplePoints()`) and its AABB. Pan and
+   *    zoom are absent by design: the points are in world coordinates and picking
+   *    converts the pointer into that space, so a viewport change never invalidates
+   *    geometry.
+   *  - `state` — the selection changed, which is what the colour depends on.
+   *  - `scale` — the device pixel ratio changed, which is the only thing the
+   *    screen-pixel width depends on.
+   *
+   * @param {ConnectLine} line
+   * @param {number} state
+   * @param {number} scale
+   * @returns {RenderEdge}
+   */
+  const edgeFor = (line, state, scale) => {
+    let e = edgeCache.get(line)
+    if (!e) {
+      e = {
+        x0: 0,
+        y0: 0,
+        cx0: 0,
+        cy0: 0,
+        cx1: 0,
+        cy1: 0,
+        x1: 0,
+        y1: 0,
+        color: themeColors[STATE_BASE],
+        width: 0,
+        worldWidth: false,
+        points: null,
+        pointsBox: null,
+        line,
+        ver: 0,
+        state: -1,
+        scale: -1,
+      }
+      edgeCache.set(line, e)
+    }
+    if (e.ver !== line.changeId) {
+      const g = line.edge
+      e.x0 = g.x0
+      e.y0 = g.y0
+      e.cx0 = g.cx0
+      e.cy0 = g.cy0
+      e.cx1 = g.cx1
+      e.cy1 = g.cy1
+      e.x1 = g.x1
+      e.y1 = g.y1
+      // the polyline (and its box) is the line's own cache: built once per shape
+      // change, then reused by every pick at any pan/zoom
+      e.points = line.samplePoints(PICK_SEGMENTS)
+      e.pointsBox = line.pointsBox
+      e.ver = line.changeId
+    }
+    if (e.state !== state) {
+      e.color = themeColors[state]
+      e.state = state
+    }
+    if (e.scale !== scale) {
+      e.width = theme.widthCss * scale
+      e.scale = scale
+    }
+    return e
+  }
+
+  /**
+   * Build the edge list from the live lines. Every line that HAS a shape (`line.edge`)
+   * contributes its PINNED render edge (`edgeFor`), refreshed only where it is stale —
+   * the geometry is copied from the line's data and the polyline comes from the line's
+   * own cache (`line.points`), so no frame parses an SVG string, samples a curve, or
+   * allocates an edge object.
+   *
+   * @returns {RenderEdge[]}
    */
   const buildEdges = () => {
-    const d = dpr()
+    const scale = dpr()
     const out = []
     for (const line of editor.lines) {
-      if (!line.d) continue
-      const st = states.get(line) || { selected: false, fromSel: false, toSel: false }
-      // stylesheet rule order: to-sel beats from-sel beats selected
-      const color = st.toSel ? COLOR_TO : st.fromSel ? COLOR_FROM : st.selected ? COLOR_SELECTED : COLOR_BASE
-      const edge = lr.parseLinePath(line.d, { color, width: LINE_WIDTH_CSS * d, worldWidth: false })
-      edge.line = line // `pick` maps an edge back to its ConnectLine
-      out.push(edge)
+      if (!line.edge) continue
+      out.push(edgeFor(line, stateOf(states.get(line)), scale))
     }
+    builtSeq = changeSeq()
     return out
   }
 
@@ -308,6 +449,33 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
     // Empty canvas: the `pointerup` handler already deselected; nothing to do.
   }
 
+  /**
+   * Re-read the theme and drop what came from it on the pinned edges: the colour and the
+   * width. Rare by construction — it runs when the editor's `class`/`style` attribute
+   * changes, never per frame.
+   */
+  const applyTheme = () => {
+    theme = readLineTheme(editor)
+    themeColors = stateColors(theme)
+    for (const edge of edgeCache.values()) {
+      edge.state = -1 // re-resolved from the new themeColors
+      edge.scale = -1 // re-derived from the new widthCss
+    }
+    scheduleRender()
+  }
+
+  /** Watch the editor for a theme change (a class or style write). Idempotent. */
+  const observeTheme = () => {
+    if (themeMO || typeof MutationObserver != 'function') return
+    themeMO = new MutationObserver(() => applyTheme())
+    themeMO.observe(editor, { attributes: true, attributeFilter: ['class', 'style'] })
+  }
+
+  const releaseTheme = () => {
+    themeMO?.disconnect()
+    themeMO = null
+  }
+
   /** Release the editor-level listeners (idempotent). */
   const releaseEvents = () => {
     releaseClick?.()
@@ -346,21 +514,29 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
      */
     add(line) {
       registerLine(line)
+      // a line added while the layer is installed must be pickable before the next
+      // frame (the built list was made without it)
+      edges = null
       scheduleRender()
     },
     /**
-     * Unregister the line; it drops out of the next redraw. The `<g>` element
-     * was never attached to the DOM in canvas mode, so there is nothing to
-     * remove (its listeners are released by the editor's `finalize(line)`).
+     * Unregister the line; it drops out of the next redraw and its pinned render edge
+     * goes with it. The `<g>` element was never attached to the DOM in canvas mode, so
+     * there is nothing to remove (its listeners are released by the editor's
+     * `finalize(line)`).
      * @param {ConnectLine} line
      */
     remove(line) {
       states.delete(line)
+      edgeCache.delete(line)
       let unsub = pathSubs.get(line)
       if (unsub) {
         unsub()
         pathSubs.delete(line)
       }
+      // the built list still holds the removed line: drop it so a pick before the
+      // next frame cannot return a line the editor no longer has
+      edges = null
       scheduleRender()
     },
     /**
@@ -389,14 +565,16 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
     pick(clientX, clientY) {
       // `pick` must not wait for the first redraw, and after a device loss nothing
       // rebuilds the list at all (the redraw loop stopped) — so a layer that stays
-      // installed still picks the lines it has
-      if (!edges || lost) edges = buildEdges()
+      // installed still picks the lines it has. The global change sequence answers
+      // "did any connector move since that build?" in one comparison, which keeps a
+      // click right after a drag from testing the previous geometry.
+      if (!edges || lost || builtSeq !== changeSeq()) edges = buildEdges()
       if (!edges.length) return null
       const d = dpr()
       const rect = canvas.getBoundingClientRect()
       const sx = (clientX - rect.left) * d
       const sy = (clientY - rect.top) * d
-      const edge = lr.pickEdge(edges, sx, sy, 0, 0, zoom * d, 24, PICK_RADIUS_CSS * d)
+      const edge = lr.pickEdge(edges, sx, sy, 0, 0, zoom * d, PICK_SEGMENTS, (theme.hitWidthCss / 2) * d)
       return edge ? edgeToLine(edge) : null
     },
     /**
@@ -442,11 +620,14 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
       }
       releaseEvents()
       releaseDpr()
+      releaseTheme()
       disposeRenderer()
       pathSubs.forEach(unsub => unsub())
       pathSubs.clear()
       states.clear()
+      edgeCache.clear()
       edges = null
+      builtSeq = 0
       settleReady(Object.assign(new Error('the canvas line layer was disposed'), { name: 'AbortError' }))
       canvas.remove()
     },
@@ -471,6 +652,9 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
       editor.insertBefore(canvas, editor.contentArea)
       listenEvents()
       watchDpr()
+      // the theme may have changed while the layer was disposed
+      applyTheme()
+      observeTheme()
       newReady()
       // `onViewport`/`onResize` run BEFORE the lines when the editor re-installs a
       // layer, and a host may revive a layer it never re-installs — either way the
@@ -507,8 +691,10 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
     }
     const created = await lr.LineRenderer.create(canvas, {
       // transparent clear: the editor's own background shows through
-      clear: [0, 0, 0, 0],
+      clear: opts.clear ?? [0, 0, 0, 0],
       segmentsPerCurve: opts.segmentsPerCurve || 32,
+      // opt-in quality knob: `supersample: 2` renders at 2x and downscales (4x pixels)
+      supersample: opts.supersample || 1,
       // a host can hand in its own device, so several editors share one
       device: opts.device || null,
       onLost: info => handleLost(info),
@@ -532,7 +718,61 @@ export function makeCanvasLineLayer(editor, lr, opts = {}) {
     scheduleRender()
   }
   watchDpr()
+  observeTheme()
   initRenderer()
 
   return layer
+}
+
+/**
+ * Install the WebGPU canvas line layer on an editor, or leave the SVG layer alone —
+ * the whole "probe, build, await ready, fall back" dance in one call, for hosts that
+ * treat a missing GPU as a normal outcome.
+ *
+ * It resolves AFTER the layer is usable, so the return value says what is installed:
+ *
+ *   const { mode } = await installCanvasLineLayer(editor, { onLost: useSvgLayer })
+ *   // mode === 'canvas' (drawing on the GPU) or 'svg' (WebGPU unavailable/failed)
+ *
+ * `mode: 'svg'` covers all three ways the canvas layer can refuse: the optional package
+ * is not installed, the browser has no WebGPU (`LineRenderer.isSupported()`), or the
+ * renderer could not start (`layer.ready` rejected) — in which case the failed layer is
+ * swapped back out for a fresh SVG layer, and `error` carries the reason. A device lost
+ * AFTER startup does the same swap (and then calls the host's `onLost`), so a host only
+ * has to handle "we are on SVG now".
+ *
+ * @param {NodeEditor} editor
+ * @param {{lr?: import('@jsx6/line-render')|null, segmentsPerCurve?: number, device?: any, clear?: number[], supersample?: number, onLost?: (info: unknown) => void}} [opts]
+ *   `lr` is the already-loaded `@jsx6/line-render` module (when the host has it);
+ *   the rest are handed to `makeCanvasLineLayer`.
+ * @returns {Promise<{mode: 'canvas'|'svg', layer: object|null, error?: unknown}>}
+ */
+export async function installCanvasLineLayer(editor, opts = {}) {
+  const { lr: injected, onLost, ...layerOpts } = opts
+  const lr = injected || (await loadLineRender())
+  if (!lr || !lr.LineRenderer?.isSupported?.()) return { mode: 'svg', layer: null }
+  if (editor.destroyed) return { mode: 'svg', layer: null }
+
+  /** Put the SVG layer back, but only while the canvas layer is still the active one. */
+  let layer = null
+  const fallback = () => {
+    if (layer && editor.lineLayer === layer) editor.setLineLayer(createSvgLineLayer(editor))
+  }
+
+  layer = makeCanvasLineLayer(editor, lr, {
+    ...layerOpts,
+    // a lost device means "stop drawing on the GPU": degrade here, then tell the host
+    onLost: info => {
+      fallback()
+      onLost?.(info)
+    },
+  })
+  editor.setLineLayer(layer)
+  try {
+    await layer.ready
+    return { mode: 'canvas', layer }
+  } catch (error) {
+    fallback()
+    return { mode: 'svg', layer: null, error }
+  }
 }

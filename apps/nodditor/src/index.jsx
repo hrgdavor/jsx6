@@ -13,7 +13,7 @@ import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
 
 import { createSvgLineLayer } from './lineLayer.js'
-import { loadLineRender, makeCanvasLineLayer } from './canvasLineLayer.js'
+import { installCanvasLineLayer } from './canvasLineLayer.js'
 
 // click through empty parts of SVG
 // https://stackoverflow.com/questions/22483643/svg-still-receives-clicks-even-if-pointer-events-visible-painted/29319009#29319009
@@ -132,35 +132,18 @@ async function switchToCanvas() {
   if (switchingLayer || lineLayerMode != 'svg') return
   switchingLayer = true
   try {
-    const lr = await loadLineRender()
-    // `isSupported()` is the synchronous capability probe: no point building a
-    // layer (or waiting on `ready`) when the browser has no WebGPU at all
-    if (!lr || !lr.LineRenderer.isSupported()) {
-      lineLayerMode = 'unavailable'
-      updateToggleUi()
-      return
-    }
-    const layer = makeCanvasLineLayer(editor, lr, {
-      // A device lost after startup (driver reset, GPU process crash) is the
-      // same story as a failed init: fall back to the SVG layer for good.
+    // one call does probe → build → await ready → fall back to the SVG layer, and
+    // reports which layer we ended up on ('canvas' or 'svg')
+    const { mode } = await installCanvasLineLayer(editor, {
+      // the helper swaps in a fresh SVG layer before calling this, so the toggle
+      // only has to reflect it
       onLost: () => {
-        editor.setLineLayer(createSvgLineLayer(editor))
         lineLayerMode = 'unavailable'
         updateToggleUi()
       },
     })
-    editor.setLineLayer(layer)
-    // drawing starts when the GPU is ready; if init fails (no WebGPU), go back to SVG
-    layer.ready
-      .then(() => {
-        lineLayerMode = 'canvas'
-        updateToggleUi()
-      })
-      .catch(() => {
-        editor.setLineLayer(createSvgLineLayer(editor))
-        lineLayerMode = 'unavailable'
-        updateToggleUi()
-      })
+    lineLayerMode = mode === 'canvas' ? 'canvas' : 'unavailable'
+    updateToggleUi()
   } finally {
     switchingLayer = false
   }

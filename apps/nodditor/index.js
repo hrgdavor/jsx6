@@ -13,4 +13,4 @@ export { ConnectLine } from './src/ConnectLine.js'
 export { EditableTitle } from './src/EditableTitle.js'
 
 export { createSvgLineLayer } from './src/lineLayer.js'
-export { loadLineRender, makeCanvasLineLayer } from './src/canvasLineLayer.js'
+export { installCanvasLineLayer, loadLineRender, makeCanvasLineLayer } from './src/canvasLineLayer.js'

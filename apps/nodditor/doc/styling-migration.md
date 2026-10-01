@@ -73,6 +73,13 @@ jsx6-nodditor {
   background: #222;
   color: #eee;
 }
+
+/* the line layer has its own little theme; see below */
+jsx6-nodditor {
+  --ne-line-color: #444;
+  --ne-line-selected: #ff5722;
+  --ne-line-width: 3px;
+}
 ```
 
 | custom property | who writes it | what it drives |
@@ -82,6 +89,30 @@ jsx6-nodditor {
 | `--ne-menu-x`, `--ne-menu-y` | the editor (per menu) | selection menu position |
 | `--ne-marquee-x/-y/-w/-h` | the editor (while dragging) | marquee rectangle |
 | `--ne-content-z`, `--ne-zoom-z`, `--ne-marquee-z` | **you** (optional) | stacking |
+| `--ne-line-color` | **you** (optional, default `#000`) | the base connector stroke |
+| `--ne-line-selected` | **you** (optional, default `#2ea7a7`) | a selected line |
+| `--ne-line-from-sel` | **you** (optional, default `#bfc233`) | a line whose source block is selected |
+| `--ne-line-to-sel` | **you** (optional, default `#2e6ca7`) | a line whose target block is selected |
+| `--ne-line-width` | **you** (optional, default `2px`) | connector stroke width in CSS px |
+| `--ne-line-hit-width` | **you** (optional, default `8px`) | the invisible hit stroke; the canvas pick band is half of it |
+
+### The line theme drives BOTH line layers
+
+Lines are drawn by a pluggable layer: the default SVG layer, or the WebGPU canvas layer
+(`@jsx6/line-render`, optional). The `--ne-line-*` variables are the theme of **both** — the
+stylesheet turns them into `stroke` / `stroke-width` for the SVG layer, and the canvas layer reads
+the same resolved values off the editor (it cannot use CSS for GPU geometry) — so a themed editor
+stays themed when it switches layers, which is the whole point of them living in CSS.
+
+Two details worth knowing:
+
+- The values are read when the canvas layer is created and again whenever the editor's `class` or
+  `style` attribute changes, so flipping a theme class re-colours the GPU layer live. A theme
+  change that happens on an ANCESTOR only reaches the canvas layer through that observer if your
+  own code touches the editor (or the layer is re-created) — the SVG layer follows CSS either way.
+- The precedence between the three selection states (to-selected > from-selected > selected > base)
+  is rule ORDER in `static/nodditor.css`, not something a variable can express. Keep that in mind
+  if you add a state.
 
 ## Class names: who owns what
 
@@ -89,6 +120,7 @@ jsx6-nodditor {
 | --- | --- | --- |
 | `.ne-canvas` | **library** | the pannable/zoomable layer (do not reuse) |
 | `.ne-svg-layer` | **library** | the line layer inside the canvas |
+| `.ne-canvas-line-layer` | **library** | the WebGPU line layer (a `<canvas>` under the canvas, same theme) |
 | `.ne-block` | **shared** | your block element; the library supplies its geometry, your stylesheet its look |
 | `.ne-content` | **you** (conventional) | a block's body — used by the standard block markup |
 | `.ne-title`, `.ne-item`, `[ne-drag]`, `[ne-connect]` | **you** | block internals |
