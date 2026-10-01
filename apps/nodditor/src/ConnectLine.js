@@ -24,6 +24,14 @@ export class ConnectLine {
 
     /** @type {LinePoint} */
     this.p2 = { pos: [0, 0], listen: [], align: 'left', con: null }
+
+    /**
+     * @type {Array<(d: string) => void>} path-change callbacks: the canvas line
+     * layer subscribes so a line whose FREE end is being dragged (connect-in-
+     * progress, `p*.con` still null) keeps being drawn. Subscribers are expected
+     * to be rAF-batched; the callback itself is a cheap schedule call.
+     */
+    this.pathListeners = []
     addFinalizer(this, () => this.finalize())
   }
 
@@ -48,6 +56,7 @@ export class ConnectLine {
   finalize() {
     this.p1.listen?.forEach(backend.current.runFuncNoArg)
     this.p2.listen?.forEach(backend.current.runFuncNoArg)
+    this.pathListeners.length = 0
   }
 
   /**
@@ -137,8 +146,32 @@ export class ConnectLine {
       [100, 100],
       'L',
     )
+    // `d` is the single source of truth for the line shape: the SVG paths
+    // read it via `setAttribute`, and the canvas line layer parses it
+    // (`@jsx6/line-render`'s `parseLinePath`).
+    this.d = line
     this.line1.setAttribute('d', line)
     this.line2.setAttribute('d', line)
+    this.pathListeners.forEach(fn => fn(line))
+  }
+
+  /**
+   * Register a callback invoked whenever the path is recomputed, with the new
+   * `d`. Returns an unregister function.
+   *
+   * Used by the canvas line layer to redraw while a free (still unconnected)
+   * end is being dragged: that move fires no `ne-move` event, and the SVG
+   * paths that `updatePath` updates are not in the DOM in canvas mode.
+   *
+   * @param {(d: string) => void} fn
+   * @returns {() => void}
+   */
+  onPathChange(fn) {
+    this.pathListeners.push(fn)
+    return () => {
+      let i = this.pathListeners.indexOf(fn)
+      if (i >= 0) this.pathListeners.splice(i, 1)
+    }
   }
 
   /**

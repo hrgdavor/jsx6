@@ -12,6 +12,7 @@
  * The suite is not just "does it still work" — it asserts that the editor's calls actually ARRIVE at
  * the replacement. A replacement that is silently bypassed would otherwise pass unnoticed.
  */
+import { readFileSync } from 'fs'
 import esbuild from 'esbuild'
 import { pathToFileURL } from 'url'
 
@@ -30,6 +31,12 @@ globalThis.IntersectionObserver = class {
     return []
   }
 }
+
+// The suite asserts computed styles (SEAM-5 stacking) — happy-dom does not pick up `<link>` tags,
+// so install the library stylesheet the way a browser would, before the editor is imported.
+const style = document.createElement('style')
+style.textContent = readFileSync('static/nodditor.css', 'utf8')
+document.head.appendChild(style)
 
 // run from the app root: node smoke/seam.run.mjs
 // NOTE: must mirror the app build's tsconfig (empty) — esbuild would otherwise auto-pick

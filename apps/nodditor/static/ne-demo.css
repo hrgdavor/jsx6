@@ -34,3 +34,34 @@
   outline: solid 1px black;
   contain: strict;
 }
+
+/* the demo's line-layer toggle (SVG ↔ line-render): a small fixed bar, kept in the corner so it
+   never sits on top of the demo graph */
+.ne-demo-line-toggle {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  z-index: 100;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  background: #fff;
+  border: solid 1px gray;
+  border-radius: 5px;
+  font-size: 12px;
+}
+.ne-demo-line-toggle button {
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 5px;
+  outline: solid 1px #ddd;
+  background: #fff;
+}
+.ne-demo-line-toggle button:hover:not(:disabled) {
+  background-color: #eee;
+}
+.ne-demo-line-toggle button:disabled {
+  cursor: default;
+  color: gray;
+}

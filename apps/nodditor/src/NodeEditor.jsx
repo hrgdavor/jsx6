@@ -17,6 +17,7 @@ import { $Or, observeNow } from '@jsx6/signal'
 import { JsxW, define } from '@jsx6/w'
 
 import { ConnectLine } from './ConnectLine.js'
+import { createSvgLineLayer } from './lineLayer.js'
 import { LineInteraction } from './LineInteraction.js'
 import { findConnector, recalcPos, updatePos } from './connectorUtil.js'
 import { getBlocksMinXY } from './getBlocksMinXY.js'
@@ -435,7 +436,7 @@ export class NodeEditor extends JsxW {
     if (idx != -1) {
       if (this.selectedLine == line) this.selectedLine = null
       this.lines.splice(idx, 1)
-      remove(line.el)
+      this.lineLayer.remove(line)
       finalize(line)
       this.historyRecord('remove')
     }
@@ -586,6 +587,7 @@ export class NodeEditor extends JsxW {
           this.realWidth = size[0]
           this.realHeight = size[1]
           this.updateSize()
+          this.lineLayer.onResize(this.realWidth, this.realHeight)
           return
         }
 
@@ -641,6 +643,11 @@ export class NodeEditor extends JsxW {
     // naming this layer the same made the canvas rule land on the block bodies.
     this.contentArea = <div class="ne-canvas">{this.svgLayer}</div>
     this._zoom = 1
+    // The line layer is pluggable: the default is the classic SVG layer above (zero
+    // dependencies). A host with WebGPU can swap in the canvas layer —
+    // `loadLineRender()` + `makeCanvasLineLayer()` in `./canvasLineLayer.js` —
+    // via `setLineLayer` below.
+    this.lineLayer = createSvgLineLayer(this)
     // P3-1: structural changes of the blocks (added/removed connectors) are
     // tracked by one canvas-wide MutationObserver, which is what the memoized
     // connector discovery keys off
@@ -941,7 +948,7 @@ export class NodeEditor extends JsxW {
         return
       }
       let g = findParent(e.target, p => p.tagName == 'g')
-      let line = g && this.lines.find(l => l.el == g)
+      let line = (g && this.lines.find(l => l.el == g)) || this.lineLayer.pick(e.clientX, e.clientY)
       if (line) {
         this.selectConnector(line)
         let menu = this.menuGenerator?.([])
@@ -1008,7 +1015,7 @@ export class NodeEditor extends JsxW {
           return
         }
         let g = findParent(e.target, p => p.tagName == 'g')
-        let line = g && this.lines.find(l => l.el == g)
+        let line = (g && this.lines.find(l => l.el == g)) || this.lineLayer.pick(e.clientX, e.clientY)
         if (line) {
           this.selectConnector(line)
           e.preventDefault()
@@ -1052,6 +1059,7 @@ export class NodeEditor extends JsxW {
     if (this._zoom == zoom) return
     this._zoom = zoom
     this.contentArea.style.setProperty('--ne-zoom', String(zoom))
+    this.lineLayer.onViewport(zoom)
     this.updateSize()
     this.updateZoomUI()
   }
@@ -1304,10 +1312,7 @@ export class NodeEditor extends JsxW {
    * @param {ConnectLine} con
    */
   addConnector(con) {
-    listenUntil(con, con.el, 'click', e => {
-      this.selectConnector(con)
-    })
-    insert(this.svgLayer, con.el)
+    this.lineLayer.add(con)
     this.lines.push(con)
     return con
   }
@@ -1557,8 +1562,7 @@ export class NodeEditor extends JsxW {
       this.setBlockLabel(p, sel)
     })
     this.lines.forEach(l => {
-      classIf(l.el, 'ne-from-sel-block', blockIdMap[l.p1.con?.root.id])
-      classIf(l.el, 'ne-to-sel-block', blockIdMap[l.p2.con?.root.id])
+      this.lineLayer.setStates(l, l.selected, !!blockIdMap[l.p1.con?.root.id], !!blockIdMap[l.p2.con?.root.id])
     })
   }
 
@@ -1567,6 +1571,7 @@ export class NodeEditor extends JsxW {
     this.selectedLine = con
     this.lines.forEach(p => {
       p.setSelected(p == con)
+      this.lineLayer.setStates(p, p == con, false, false)
     })
     //this.focus()
   }
@@ -1574,6 +1579,41 @@ export class NodeEditor extends JsxW {
   deselect() {
     this.selectConnector()
     this.selectBlocks([])
+  }
+
+  /**
+   * Swap the line layer: release the current one, hand the live lines to the
+   * new one and re-apply the current selection states.
+   *
+   * The default layer is the SVG layer created in the constructor. A host with
+   * WebGPU installs the canvas layer like this (both from `./canvasLineLayer.js`):
+   *
+   *   const lr = await loadLineRender()
+   *   if (lr) editor.setLineLayer(makeCanvasLineLayer(editor, lr))
+   *
+   * The swap is immediate; in canvas mode drawing starts when the GPU
+   * initialises (`layer.ready`) and the canvas stays blank until then, but
+   * `pick()` works from the start (pure curve math). Switching back to the
+   * SVG layer is the same call: `editor.setLineLayer(createSvgLineLayer(editor))`.
+   *
+   * @param {LineLayer} layer
+   */
+  setLineLayer(layer) {
+    if (!layer || layer == this.lineLayer || this.destroyed) return
+    // take the lines off the OLD layer first: on the SVG layer that detaches
+    // the line `<g>`s (canvas mode must not draw them a second time), on the
+    // canvas layer it only drops their state
+    const old = this.lineLayer
+    this.lines.forEach(l => old.remove(l))
+    old.dispose()
+    this.lineLayer = layer
+    layer.onViewport(this._zoom)
+    layer.onResize(this.realWidth, this.realHeight)
+    const selIds = new Set((this.selectedBlocks || []).map(b => b.id))
+    this.lines.forEach(l => {
+      layer.add(l)
+      layer.setStates(l, l.selected, !!selIds.has(l.p1.con?.root.id), !!selIds.has(l.p2.con?.root.id))
+    })
   }
 
   /**
@@ -1717,6 +1757,8 @@ export class NodeEditor extends JsxW {
     // are walking, so a forward forEach would skip every second entry
     for (let i = this.lines.length - 1; i >= 0; i--) this.removeLine(this.lines[i])
     for (let i = this.blocks.length - 1; i >= 0; i--) this.removeBlock(this.blocks[i])
+    // release the line layer after the last line went through `remove`
+    this.lineLayer.dispose()
     this.selectedLine = null
     this.selectedBlocks = []
     // P3-4: the menu box cache lives on the menu element with its own

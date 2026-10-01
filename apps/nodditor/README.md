@@ -19,7 +19,9 @@ bun start                    # node src_build/build.js --dev
 That starts **live-server on <http://127.0.0.1:5111>** (`static/` is copied to `build_dev/`, the
 bundle is rebuilt on change and the page live-reloads). The demo graph is the one hardcoded in
 [src/index.jsx](src/index.jsx) — two `Switch` blocks and two `Message` blocks — and it persists to
-`localStorage` (`ne.graph`) on every `ne-move-done` / `ne-remove`.
+`localStorage` (`ne.graph`) on every `ne-move-done` / `ne-remove`. A toggle at the bottom-left
+switches the line rendering between the default SVG layer and the WebGPU canvas layer
+(`@jsx6/line-render`, optional — see [Line layer](#line-layer)).
 
 Other scripts, all run from `apps/nodditor`:
 
@@ -385,6 +387,77 @@ See [Which parts of the backend are essential](#which-parts-of-the-backend-are-e
 [plan/odditor-jsx6-dependency-inventory.md](../../plan/odditor-jsx6-dependency-inventory.md) for the
 per-primitive inventory and the thinning plan.
 
+## Line layer
+
+Lines are drawn by a pluggable **line layer**; the editor talks to it through one small contract
+instead of reaching into the DOM. The default is the SVG layer ([src/lineLayer.js](src/lineLayer.js)):
+line `<g>` elements live in `editor.svgLayer` and selection state lands as classes
+(`selected` / `ne-from-sel-block` / `ne-to-sel-block`) — the pre-refactor behaviour.
+
+```js
+editor.lineLayer          // the active layer
+editor.setLineLayer(layer) // swap the active layer
+```
+
+`setLineLayer` takes every line off the old layer **before** disposing it (on the SVG layer that
+detaches the line `<g>`s, so the replacement layer must not draw them a second time), then
+re-adds the lines on the new layer and replays the current selection and view state
+(`onViewport(zoom)`, `onResize(w, h)`). Swapping to the same layer, or after `destroy()`, is a no-op.
+
+A layer implements:
+
+| Member | Meaning |
+| --- | --- |
+| `kind` | `'svg'` or `'canvas'` |
+| `el` | the layer element (the `svgLayer` for SVG, the canvas for the WebGPU layer) |
+| `add(line)` / `remove(line)` | put a `ConnectLine` on / off the layer |
+| `setStates(line, selected, fromSel, toSel)` | selection state for one line |
+| `pick(clientX, clientY)` → line or `null` | line hit test (client coordinates) |
+| `onViewport(zoom)` | zoom changed (pan is 0 — the canvas scales from its top-left corner) |
+| `onResize(cssW, cssH)` | canvas area changed |
+| `ready` (canvas layers) | promise that resolves when the renderer is usable; rejects if `init()` fails |
+| `dispose()` | tear the layer down |
+
+The editor calls these on every relevant event — `addConnector`/`removeLine`, `selectBlocks` /
+`selectConnector`, the zoom setter, and the resize observer — so a custom layer is all that a host
+has to provide.
+
+### WebGPU canvas layer (optional dependency)
+
+`@jsx6/line-render` is an **optional** dependency: the package works without it. It contributes the
+canvas layer ([src/canvasLineLayer.js](src/canvasLineLayer.js)), which draws every connector on a
+canvas with a WebGPU `LineRenderer` and picks lines with `pickEdge`:
+
+```js
+import { loadLineRender, makeCanvasLineLayer } from '@jsx6/nodditor'
+
+const lr = await loadLineRender() // dynamic import; null (with a console warning) when the
+                                   // package is not installed
+if (lr) {
+  const layer = makeCanvasLineLayer(editor, lr)
+  editor.setLineLayer(layer)
+  await layer.ready.catch(() => editor.setLineLayer(createSvgLineLayer(editor)))
+}
+```
+
+Degradation: if `LineRenderer.init()` rejects (no WebGPU), `ready` rejects, `pick` keeps working
+(the picking is pure curve math), and `dispose()` is quiet — the demo page falls back to the SVG
+layer and shows a disabled toggle. Selection colours mirror the CSS rule order
+(to-selected > from-selected > selected > base black), and the pick radius mirrors the SVG hit
+path (4 px, like half of the 8 px transparent hit stroke).
+
+A line **being connected** is drawn too: while its free end follows the pointer during a drag
+(its `d` is recomputed by `ConnectLine.updatePath`, `p2.con` still null) the canvas layer has
+subscribed to `ConnectLine.onPathChange`, so the temporary connector tracks the pointer exactly
+like the SVG layer does. Redraws are rAF-batched — per frame the cost is one `parseLinePath` per
+line plus one instanced GPU draw, the same budget as the `ne-move`/zoom redraw path: no per-event
+render, no per-line canvas, no buffer churn.
+
+The demo page ([src/index.jsx](src/index.jsx)) ships a **SVG / canvas toggle** (bottom-left) that
+switches the live editor between the two layers with the graph, selection and zoom intact.
+`test/lineLayer.test.jsx` covers both layers and the swap, using the real `parseLinePath` /
+`pickEdge` and a fake `LineRenderer` (happy-dom has no WebGPU).
+
 ## Vanilla demo
 
 [static/vanilla/](static/vanilla/README.md) is a host built with **no JSX, no component framework and
@@ -494,6 +567,10 @@ the package — that is what [scripts/verify.js](../../scripts/verify.js) does. 
   [Replacing the backend](#replacing-the-backend)): `src/runtime-default.js` is the only module
   allowed to import a `@jsx6/*` package, the contract has a fixed surface, and `setRuntime()`
   replaces it.
+- [test/lineLayer.test.jsx](test/lineLayer.test.jsx) — the line layer (see
+  [Line layer](#line-layer)): the default SVG layer, the canvas layer with a fake `LineRenderer`
+  around the real `parseLinePath`/`pickEdge`, picking, viewport/resize flow, and `setLineLayer`
+  swaps.
 - [bunfig.toml](bunfig.toml) sets `jsxImportSource = "@jsx6"` so `bun test` can transform JSX at all
   (the default runtime is react).
 - `smoke/*.smoke.jsx` are script-style suites, deliberately **not** named `*.test.jsx` so that

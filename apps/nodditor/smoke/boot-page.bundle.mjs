@@ -1,3 +1,738 @@
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+};
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+
+// ../../libs/line-render/src/curve.js
+function sampleCubic(edge, t2) {
+  const u = 1 - t2;
+  const uu = u * u;
+  const tt = t2 * t2;
+  return [
+    uu * u * edge.x0 + 3 * uu * t2 * edge.cx0 + 3 * u * tt * edge.cx1 + tt * t2 * edge.x1,
+    uu * u * edge.y0 + 3 * uu * t2 * edge.cy0 + 3 * u * tt * edge.cy1 + tt * t2 * edge.y1
+  ];
+}
+function sampleTangent(edge, t2) {
+  const u = 1 - t2;
+  return [
+    3 * u * u * (edge.cx0 - edge.x0) + 6 * u * t2 * (edge.cx1 - edge.cx0) + 3 * t2 * t2 * (edge.x1 - edge.cx1),
+    3 * u * u * (edge.cy0 - edge.y0) + 6 * u * t2 * (edge.cy1 - edge.cy0) + 3 * t2 * t2 * (edge.y1 - edge.cy1)
+  ];
+}
+function distToSegment(px, py, x0, y0, x1, y1) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const l2 = dx * dx + dy * dy;
+  if (l2 === 0)
+    return Math.hypot(px - x0, py - y0);
+  const t2 = Math.max(0, Math.min(1, ((px - x0) * dx + (py - y0) * dy) / l2));
+  return Math.hypot(px - (x0 + t2 * dx), py - (y0 + t2 * dy));
+}
+function edgeDistance(edge, x, y, samples = 24) {
+  let min2 = Infinity;
+  let [px, py] = sampleCubic(edge, 0);
+  for (let i = 1; i <= samples; i++) {
+    const [cx, cy] = sampleCubic(edge, i / samples);
+    const d = distToSegment(x, y, px, py, cx, cy);
+    if (d < min2)
+      min2 = d;
+    px = cx;
+    py = cy;
+  }
+  return min2;
+}
+function screenToWorld(screenX, screenY, panX = 0, panY = 0, zoom = 1) {
+  return [(screenX - panX) / zoom, (screenY - panY) / zoom];
+}
+function worldToScreen(worldX, worldY, panX = 0, panY = 0, zoom = 1) {
+  return [worldX * zoom + panX, worldY * zoom + panY];
+}
+function pickEdge(edges, screenX, screenY, panX = 0, panY = 0, zoom = 1, samples = 24, radiusPx = 5) {
+  const [wx, wy] = screenToWorld(screenX, screenY, panX, panY, zoom);
+  let best = null;
+  let bestDist = Infinity;
+  for (const edge of edges) {
+    const halfWidthPx = edge.worldWidth === false ? edge.width / 2 : edge.width * zoom / 2;
+    const threshold = Math.max(halfWidthPx, radiusPx) / zoom;
+    const d = edgeDistance(edge, wx, wy, samples);
+    if (d <= threshold && d < bestDist) {
+      best = edge;
+      bestDist = d;
+    }
+  }
+  return best;
+}
+function packEdges(edges) {
+  const out = new Float32Array(edges.length * 16);
+  for (let i = 0; i < edges.length; i++) {
+    const e = edges[i];
+    const o = i * 16;
+    out[o] = e.x0;
+    out[o + 1] = e.y0;
+    out[o + 2] = e.cx0;
+    out[o + 3] = e.cy0;
+    out[o + 4] = e.cx1;
+    out[o + 5] = e.cy1;
+    out[o + 6] = e.x1;
+    out[o + 7] = e.y1;
+    const c = e.color;
+    out[o + 8] = c[0];
+    out[o + 9] = c[1];
+    out[o + 10] = c[2];
+    out[o + 11] = c[3];
+    out[o + 12] = e.width;
+    out[o + 13] = e.worldWidth === false ? 0 : 1;
+  }
+  return out;
+}
+var init_curve = __esm({
+  "../../libs/line-render/src/curve.js"() {
+  }
+});
+
+// ../../libs/line-render/src/shader.js
+var LINE_SHADER, BLIT_SHADER;
+var init_shader = __esm({
+  "../../libs/line-render/src/shader.js"() {
+    LINE_SHADER = `
+struct Uniforms {
+  canvasSize: vec2f,
+  pan: vec2f, // panX, panY (bytes 8..15, same layout as before)
+  zoom: f32, // zoomScale (bytes 16..19, same layout as before)
+  segmentsPerCurve: f32,
+};
+
+struct Edge {
+  p0: vec2f, c0: vec2f, c1: vec2f, p1: vec2f,
+  color: vec4f,
+  width: f32, // WORLD units when worldWidth > 0.5 (default); SCREEN pixels otherwise
+  worldWidth: f32, // 1 = thickness scales with zoom; 0 = zoom-independent screen pixels
+  pad: f32, // 64-byte stride, matching packEdges' 16 floats per edge
+};
+
+@group(0) @binding(0) var<uniform> u: Uniforms;
+@group(0) @binding(1) var<storage, read> edges: array<Edge>;
+
+struct VSOutput {
+  @builtin(position) pos: vec4f,
+  @location(0) color: vec4f
+};
+
+fn sampleCubic(p0: vec2f, c0: vec2f, c1: vec2f, p1: vec2f, t: f32) -> vec2f {
+  let u_t = 1.0 - t;
+  return u_t * u_t * u_t * p0 + 3.0 * u_t * u_t * t * c0 + 3.0 * u_t * t * t * c1 + t * t * t * p1;
+}
+
+fn sampleTangent(p0: vec2f, c0: vec2f, c1: vec2f, p1: vec2f, t: f32) -> vec2f {
+  let u_t = 1.0 - t;
+  return 3.0 * u_t * u_t * (c0 - p0) + 6.0 * u_t * t * (c1 - c0) + 3.0 * t * t * (p1 - c1);
+}
+
+@vertex fn vs(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> VSOutput {
+  let edge = edges[ii];
+
+  let segIndex = f32(vi / 2u);
+  let side = select(-1.0, 1.0, (vi % 2u) == 1u);
+  let t = clamp(segIndex / u.segmentsPerCurve, 0.0, 1.0);
+
+  // 1. Evaluate curve in world space
+  let worldPos = sampleCubic(edge.p0, edge.c0, edge.c1, edge.p1, t);
+  let tan = sampleTangent(edge.p0, edge.c0, edge.c1, edge.p1, t);
+
+  let tanLen = length(tan);
+  let safeTan = select(vec2f(1.0, 0.0), tan / tanLen, tanLen > 0.0001);
+
+  // 2. Apply Pan & Zoom to transform to screen coordinates
+  let pan = u.pan;
+  let zoom = u.zoom;
+  let screenPos = worldPos * zoom + pan;
+
+  // 3. Extrude the stroke width: world units scaled by zoom by default
+  //    (thickness grows with zoom); plain screen pixels when worldWidth == 0.
+  let wPx = select(edge.width, edge.width * u.zoom, edge.worldWidth > 0.5);
+  let normal = vec2f(-safeTan.y, safeTan.x) * (wPx * 0.5);
+  let finalScreenPos = screenPos + normal * side;
+
+  // 4. Convert Screen Space [0..CanvasSize] to Clip Space [-1..1]
+  let clip = (finalScreenPos / u.canvasSize) * 2.0 - 1.0;
+
+  return VSOutput(vec4f(clip.x, -clip.y, 0.0, 1.0), edge.color);
+}
+
+@fragment fn fs(in: VSOutput) -> @location(0) vec4f {
+  // The canvas is configured with alphaMode: premultiplied, so the color
+  // must be premultiplied by its own alpha before it is composited.
+  let c = in.color;
+  return vec4f(c.r * c.a, c.g * c.a, c.b * c.a, c.a);
+}
+`;
+    BLIT_SHADER = `
+@group(0) @binding(0) var src: texture_2d<f32>;
+@group(0) @binding(1) var srcSampler: sampler;
+
+struct BlitOut {
+  @builtin(position) pos: vec4f,
+  @location(0) uv: vec2f,
+};
+
+@vertex fn vs(@builtin(vertex_index) vi: u32) -> BlitOut {
+  const corners = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
+  let p = corners[vi];
+  // The scene is rendered y-down into the buffer (texture row 0 = top of the
+  // screen), so clip-to-UV is a direct 1:1 copy.
+  return BlitOut(vec4f(p.x, p.y, 0.0, 1.0), vec2f((p.x + 1.0) * 0.5, (1.0 - p.y) * 0.5));
+}
+
+@fragment fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
+  // textureSample(texture, sampler, coords) \u2014 explicit linear sampler.
+  return textureSample(src, srcSampler, uv);
+}
+`;
+  }
+});
+
+// ../../libs/line-render/src/renderer.js
+var FLOATS_PER_EDGE, LineRenderer;
+var init_renderer = __esm({
+  "../../libs/line-render/src/renderer.js"() {
+    init_curve();
+    init_shader();
+    FLOATS_PER_EDGE = 16;
+    LineRenderer = class {
+      /** @type {HTMLCanvasElement} */
+      canvas;
+      /** @type {number} */
+      panX;
+      /** @type {number} */
+      panY;
+      /** @type {number} */
+      zoom;
+      /** @type {number} */
+      segmentsPerCurve;
+      /** @type {number[]} */
+      clear;
+      /** @type {any} */
+      device;
+      /** @type {any} */
+      ctx;
+      /** @type {any} */
+      pipeline;
+      /** @type {any} */
+      uniformBuffer;
+      /** @type {any} */
+      edgeBuffer;
+      /** @type {number} */
+      edgeCap;
+      /** @type {string | null} */
+      format;
+      /** @type {any} */
+      msaaTexture;
+      /** @type {number} */
+      msaaW;
+      /** @type {number} */
+      msaaH;
+      /** @type {number} */
+      supersample;
+      /** @type {any} */
+      blitPipeline;
+      /** @type {any} */
+      blitSampler;
+      /** @type {any} */
+      blitBindGroup;
+      /** @type {any} */
+      ssTexture;
+      /** @type {number} */
+      ssW;
+      /** @type {number} */
+      ssH;
+      /**
+       * @param {HTMLCanvasElement} canvas
+       * @param {{segmentsPerCurve?: number, clear?: number[], supersample?: number}} [opts]
+       *   `supersample` (default 1) renders the scene into an offscreen buffer at
+       *   `supersample` times the canvas resolution (with 4x MSAA) and
+       *   linear-downscales it, which gives antialiasing close to the browser's
+       *   SVG rasterizer at a cost of `supersample^2` pixels.
+       */
+      constructor(canvas, { segmentsPerCurve = 32, clear = [0.05, 0.05, 0.08, 1], supersample = 1 } = {}) {
+        if (!(Number.isInteger(supersample) && supersample >= 1)) {
+          throw new Error("supersample must be a positive integer");
+        }
+        this.canvas = canvas;
+        this.panX = 0;
+        this.panY = 0;
+        this.zoom = 1;
+        this.segmentsPerCurve = segmentsPerCurve;
+        this.clear = clear;
+        this.supersample = supersample;
+        this.device = null;
+        this.ctx = null;
+        this.pipeline = null;
+        this.blitPipeline = null;
+        this.blitSampler = null;
+        this.blitBindGroup = null;
+        this.uniformBuffer = null;
+        this.edgeBuffer = null;
+        this.edgeCap = 0;
+        this.format = null;
+        this.msaaTexture = null;
+        this.msaaW = 0;
+        this.msaaH = 0;
+        this.ssTexture = null;
+        this.ssW = 0;
+        this.ssH = 0;
+      }
+      /**
+       * Acquire the WebGPU device, the canvas context and the render pipeline.
+       *
+       * @returns {Promise<LineRenderer>}
+       */
+      async init() {
+        const gpu = navigator.gpu;
+        if (!gpu) {
+          throw new Error(
+            "WebGPU is not available (navigator.gpu) \u2014 use a Chromium-based browser with WebGPU enabled"
+          );
+        }
+        const adapter = await gpu.requestAdapter();
+        if (!adapter)
+          throw new Error("No WebGPU adapter found");
+        this.device = await adapter.requestDevice();
+        this.ctx = this.canvas.getContext("webgpu");
+        if (!this.ctx)
+          throw new Error("Could not acquire the webgpu canvas context");
+        const format = gpu.getPreferredCanvasFormat();
+        this.format = format;
+        this.ctx.configure({ device: this.device, format, alphaMode: "premultiplied" });
+        const module = this.device.createShaderModule({ code: LINE_SHADER });
+        this.pipeline = this.device.createRenderPipeline({
+          layout: "auto",
+          vertex: { module, entryPoint: "vs" },
+          fragment: { module, entryPoint: "fs", targets: [{ format }] },
+          primitive: { topology: "triangle-strip" },
+          multisample: { count: 4 }
+        });
+        this.uniformBuffer = this.device.createBuffer({
+          size: 32,
+          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+        });
+        const blitModule = this.device.createShaderModule({ code: BLIT_SHADER });
+        this.blitPipeline = this.device.createRenderPipeline({
+          layout: "auto",
+          vertex: { module: blitModule, entryPoint: "vs" },
+          fragment: { module: blitModule, entryPoint: "fs", targets: [{ format }] },
+          primitive: { topology: "triangle-list" }
+        });
+        this.blitSampler = this.device.createSampler({
+          addressModeU: "clamp-to-edge",
+          addressModeV: "clamp-to-edge",
+          magFilter: "linear",
+          minFilter: "linear",
+          mipFilterMode: "none"
+        });
+        return this;
+      }
+      /**
+       * Set the pan/zoom viewport (same convention nodditor uses).
+       *
+       * @param {number} panX
+       * @param {number} panY
+       * @param {number} zoom
+       */
+      setViewport(panX, panY, zoom) {
+        this.panX = panX;
+        this.panY = panY;
+        this.zoom = zoom;
+      }
+      /**
+       * Set the supersample factor (1 = plain 4x MSAA path, >1 = supersampled
+       * + linear downscale). The offscreen textures are recreated on the next
+       * `render()` call; no re-initialization is needed.
+       *
+       * @param {number} ss
+       */
+      setSupersample(ss) {
+        if (!(Number.isInteger(ss) && ss >= 1)) {
+          throw new Error("supersample must be a positive integer");
+        }
+        this.supersample = ss;
+      }
+      /**
+       * Clear the canvas and draw all edges in one instanced draw call.
+       *
+       * @param {import('./curve.js').Edge[]} edges
+       */
+      render(edges) {
+        if (!this.device || !this.format) {
+          throw new Error("LineRenderer.init() must be called before render()");
+        }
+        const format = this.format;
+        const ss = this.supersample;
+        const w = this.canvas.width * ss;
+        const h2 = this.canvas.height * ss;
+        const encoder = this.device.createCommandEncoder();
+        if (!this.msaaTexture || this.msaaW !== w || this.msaaH !== h2) {
+          if (this.msaaTexture)
+            this.msaaTexture.destroy();
+          this.msaaTexture = this.device.createTexture({
+            size: [w, h2],
+            format,
+            sampleCount: 4,
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+          });
+          this.msaaW = w;
+          this.msaaH = h2;
+        }
+        let resolveTarget;
+        if (ss > 1) {
+          if (!this.ssTexture || this.ssW !== w || this.ssH !== h2) {
+            if (this.ssTexture)
+              this.ssTexture.destroy();
+            this.ssTexture = this.device.createTexture({
+              size: [w, h2],
+              format,
+              sampleCount: 1,
+              // Rendered into as the MSAA resolve target, then sampled by the
+              // blit shader — hence RENDER_ATTACHMENT | TEXTURE_BINDING.
+              usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+            });
+            this.ssW = w;
+            this.ssH = h2;
+            this.blitBindGroup = this.device.createBindGroup({
+              layout: this.blitPipeline.getBindGroupLayout(0),
+              entries: [
+                { binding: 0, resource: this.ssTexture.createView() },
+                { binding: 1, resource: this.blitSampler }
+              ]
+            });
+          }
+          resolveTarget = this.ssTexture;
+        } else {
+          if (this.ssTexture) {
+            this.ssTexture.destroy();
+            this.ssTexture = null;
+            this.ssW = 0;
+            this.ssH = 0;
+            this.blitBindGroup = null;
+          }
+          resolveTarget = this.ctx.getCurrentTexture();
+        }
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [
+            {
+              view: this.msaaTexture.createView(),
+              loadOp: "clear",
+              clearValue: this.clear,
+              storeOp: "store",
+              resolveTarget: resolveTarget.createView()
+            }
+          ]
+        });
+        if (edges.length) {
+          const needed = edges.length * FLOATS_PER_EDGE;
+          if (!this.edgeBuffer || needed > this.edgeCap) {
+            if (this.edgeBuffer)
+              this.edgeBuffer.destroy();
+            this.edgeCap = Math.max(needed, 256);
+            this.edgeBuffer = this.device.createBuffer({
+              size: this.edgeCap * 4,
+              usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            });
+          }
+          this.device.queue.writeBuffer(this.edgeBuffer, 0, packEdges(edges));
+          this.device.queue.writeBuffer(
+            this.uniformBuffer,
+            0,
+            new Float32Array([
+              this.canvas.width,
+              this.canvas.height,
+              this.panX,
+              this.panY,
+              this.zoom,
+              this.segmentsPerCurve,
+              0,
+              0
+            ])
+          );
+          const bindGroup = this.device.createBindGroup({
+            layout: this.pipeline.getBindGroupLayout(0),
+            entries: [
+              { binding: 0, resource: { buffer: this.uniformBuffer } },
+              { binding: 1, resource: { buffer: this.edgeBuffer } }
+            ]
+          });
+          pass.setPipeline(this.pipeline);
+          pass.setBindGroup(0, bindGroup);
+          pass.draw((this.segmentsPerCurve + 1) * 2, edges.length);
+        }
+        pass.end();
+        if (ss > 1) {
+          const blitPass = encoder.beginRenderPass({
+            colorAttachments: [
+              {
+                view: this.ctx.getCurrentTexture().createView(),
+                loadOp: "clear",
+                clearValue: this.clear,
+                storeOp: "store"
+              }
+            ]
+          });
+          blitPass.setPipeline(this.blitPipeline);
+          blitPass.setBindGroup(0, this.blitBindGroup);
+          blitPass.draw(3);
+          blitPass.end();
+        }
+        this.device.queue.submit([encoder.finish()]);
+      }
+      /** Release the GPU resources. */
+      dispose() {
+        if (this.msaaTexture) {
+          this.msaaTexture.destroy();
+          this.msaaTexture = null;
+        }
+        if (this.ssTexture) {
+          this.ssTexture.destroy();
+          this.ssTexture = null;
+        }
+        this.blitBindGroup = null;
+        if (this.edgeBuffer) {
+          this.edgeBuffer.destroy();
+          this.edgeBuffer = null;
+        }
+        if (this.uniformBuffer) {
+          this.uniformBuffer.destroy();
+          this.uniformBuffer = null;
+        }
+        this.device = null;
+        this.pipeline = null;
+        this.ctx = null;
+      }
+    };
+  }
+});
+
+// ../../libs/line-render/src/path.js
+function parseLinePath(d, { color = [0.2, 0.7, 1, 1], width = 1 } = {}) {
+  const m = PATH_RE.exec(d.trim());
+  if (!m)
+    throw new Error(`not a single M/C cubic segment: ${d}`);
+  const [x0, y0, cx0, cy0, cx1, cy1, x1, y1] = m.slice(1).map(Number);
+  return { x0, y0, cx0, cy0, cx1, cy1, x1, y1, color, width };
+}
+function edgeToPath(edge) {
+  return `M${edge.x0} ${edge.y0} C${edge.cx0} ${edge.cy0} ${edge.cx1} ${edge.cy1} ${edge.x1} ${edge.y1}`;
+}
+function makeConnector(p1, p2, strength) {
+  const [x0, y0] = p1;
+  const [x1, y1] = p2;
+  strength = Math.min(strength, Math.hypot(x0 - x1, y0 - y1) / 2);
+  return `M${x0} ${y0} C${x0 + strength} ${y0} ${x1 - strength} ${y1} ${x1} ${y1}`;
+}
+var PATH_RE;
+var init_path = __esm({
+  "../../libs/line-render/src/path.js"() {
+    PATH_RE = /^M\s*([-+.\deE]+)\s+([-+.\deE]+)\s+C\s*([-+.\deE]+)\s+([-+.\deE]+)\s+([-+.\deE]+)\s+([-+.\deE]+)\s+([-+.\deE]+)\s+([-+.\deE]+)$/;
+  }
+});
+
+// ../../libs/line-render/src/shapes.js
+function lineEdge(x0, y0, x1, y1, { color = [1, 1, 1, 1], width = 1, worldWidth } = {}) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  return {
+    x0,
+    y0,
+    cx0: x0 + dx / 3,
+    cy0: y0 + dy / 3,
+    cx1: x0 + 2 * dx / 3,
+    cy1: y0 + 2 * dy / 3,
+    x1,
+    y1,
+    color,
+    width,
+    ...worldWidth === false ? { worldWidth: false } : {}
+  };
+}
+function circleEdges(cx, cy, r, segments = 4, { color = [1, 1, 1, 1], width = 1, worldWidth } = {}) {
+  if (!Number.isInteger(segments) || segments < 1) {
+    throw new Error("segments must be a positive integer");
+  }
+  const kappa = 4 / 3 * Math.tan(Math.PI / (2 * segments));
+  const edges = [];
+  for (let i = 0; i < segments; i++) {
+    const a0 = 2 * Math.PI * i / segments;
+    const a1 = 2 * Math.PI * (i + 1) / segments;
+    const x0 = cx + r * Math.cos(a0);
+    const y0 = cy + r * Math.sin(a0);
+    const x1 = cx + r * Math.cos(a1);
+    const y1 = cy + r * Math.sin(a1);
+    edges.push({
+      x0,
+      y0,
+      cx0: x0 - kappa * r * Math.sin(a0),
+      cy0: y0 + kappa * r * Math.cos(a0),
+      cx1: x1 + kappa * r * Math.sin(a1),
+      cy1: y1 - kappa * r * Math.cos(a1),
+      x1,
+      y1,
+      color,
+      width,
+      ...worldWidth === false ? { worldWidth: false } : {}
+    });
+  }
+  return edges;
+}
+function polygonEdges(points, { color = [1, 1, 1, 1], width = 1, worldWidth, close = true } = {}) {
+  if (points.length < 2)
+    throw new Error("polygonEdges needs at least two points");
+  const n = close ? points.length : points.length - 1;
+  const edges = [];
+  for (let i = 0; i < n; i++) {
+    const [x0, y0] = points[i];
+    const [x1, y1] = points[(i + 1) % points.length];
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    edges.push({
+      x0,
+      y0,
+      cx0: x0 + dx / 3,
+      cy0: y0 + dy / 3,
+      cx1: x0 + 2 * dx / 3,
+      cy1: y0 + 2 * dy / 3,
+      x1,
+      y1,
+      color,
+      width,
+      ...worldWidth === false ? { worldWidth: false } : {}
+    });
+  }
+  return edges;
+}
+var init_shapes = __esm({
+  "../../libs/line-render/src/shapes.js"() {
+  }
+});
+
+// ../../libs/line-render/src/pixi.js
+function toPixiColor(color) {
+  const r = Math.round(color[0] * 255);
+  const g = Math.round(color[1] * 255);
+  const b = Math.round(color[2] * 255);
+  return r << 16 | g << 8 | b;
+}
+function pixiStroke(edge, zoom) {
+  return {
+    width: edge.worldWidth === false ? edge.width / zoom : edge.width,
+    color: toPixiColor(edge.color),
+    alpha: edge.color[3] ?? 1
+  };
+}
+function drawEdgesPixi(layer, edges, view, Graphics) {
+  layer.x = view.panX;
+  layer.y = view.panY;
+  layer.scale.set(view.zoom);
+  layer.removeChildren();
+  for (const e of edges) {
+    const g = new Graphics();
+    g.setStrokeStyle(pixiStroke(e, view.zoom));
+    g.moveTo(e.x0, e.y0);
+    g.bezierCurveTo(e.cx0, e.cy0, e.cx1, e.cy1, e.x1, e.y1);
+    g.stroke();
+    layer.addChild(g);
+  }
+}
+var init_pixi = __esm({
+  "../../libs/line-render/src/pixi.js"() {
+  }
+});
+
+// ../../libs/line-render/src/two.js
+function toTwoColor(color) {
+  const r = Math.round(color[0] * 255);
+  const g = Math.round(color[1] * 255);
+  const b = Math.round(color[2] * 255);
+  return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, "0")}`;
+}
+function twoStroke(edge) {
+  return {
+    color: toTwoColor(edge.color),
+    width: edge.width,
+    opacity: edge.color[3] ?? 1,
+    strokeAttenuation: edge.worldWidth !== false
+  };
+}
+function edgeAnchors(edge, Two) {
+  return [
+    new Two.Anchor(edge.x0, edge.y0, 0, 0, edge.cx0 - edge.x0, edge.cy0 - edge.y0),
+    new Two.Anchor(edge.x1, edge.y1, edge.cx1 - edge.x1, edge.cy1 - edge.y1, 0, 0, Two.Commands.curve)
+  ];
+}
+function drawEdgesTwo(group, edges, view, Two) {
+  group.position.x = view.panX;
+  group.position.y = view.panY;
+  group.scale = view.zoom;
+  group.remove(group.children);
+  for (const e of edges) {
+    const p = new Two.Path(edgeAnchors(e, Two), false, false, true);
+    const s = twoStroke(e);
+    p.fill = "none";
+    p.stroke = s.color;
+    p.linewidth = s.width;
+    p.opacity = s.opacity;
+    p.strokeAttenuation = s.strokeAttenuation;
+    group.add(p);
+  }
+}
+var init_two = __esm({
+  "../../libs/line-render/src/two.js"() {
+  }
+});
+
+// ../../libs/line-render/index.js
+var line_render_exports = {};
+__export(line_render_exports, {
+  BLIT_SHADER: () => BLIT_SHADER,
+  LINE_SHADER: () => LINE_SHADER,
+  LineRenderer: () => LineRenderer,
+  circleEdges: () => circleEdges,
+  distToSegment: () => distToSegment,
+  drawEdgesPixi: () => drawEdgesPixi,
+  drawEdgesTwo: () => drawEdgesTwo,
+  edgeAnchors: () => edgeAnchors,
+  edgeDistance: () => edgeDistance,
+  edgeToPath: () => edgeToPath,
+  lineEdge: () => lineEdge,
+  makeConnector: () => makeConnector,
+  packEdges: () => packEdges,
+  parseLinePath: () => parseLinePath,
+  pickEdge: () => pickEdge,
+  pixiStroke: () => pixiStroke,
+  polygonEdges: () => polygonEdges,
+  sampleCubic: () => sampleCubic,
+  sampleTangent: () => sampleTangent,
+  screenToWorld: () => screenToWorld,
+  toPixiColor: () => toPixiColor,
+  toTwoColor: () => toTwoColor,
+  twoStroke: () => twoStroke,
+  worldToScreen: () => worldToScreen
+});
+var init_line_render = __esm({
+  "../../libs/line-render/index.js"() {
+    init_renderer();
+    init_shader();
+    init_curve();
+    init_path();
+    init_shapes();
+    init_pixi();
+    init_two();
+  }
+});
+
 // ../../libs/jsx6/src/errorCodes.js
 var JSX6E1_NULL_TAG = 1;
 var JSX6E2_UNSUPPORTED_TAG = 2;
@@ -152,16 +887,16 @@ var markFile = (() => {
     return "";
   }
 })();
-var lineFile = (line2) => line2.match(/\(?([^()\s]+?):\d+:\d+\)?$/)?.[1] || "";
-var isInternal = (line2) => {
-  if (!line2 || line2.includes("new Error"))
+var lineFile = (line) => line.match(/\(?([^()\s]+?):\d+:\d+\)?$/)?.[1] || "";
+var isInternal = (line) => {
+  if (!line || line.includes("new Error"))
     return true;
-  if (markFile && line2.includes(markFile))
+  if (markFile && line.includes(markFile))
     return true;
-  return LIBRARY_FILES.test(line2);
+  return LIBRARY_FILES.test(line);
 };
-var siteOfLine = (line2, raw) => {
-  const m = line2.match(/\(?([^()\s]+?):(\d+):(\d+)\)?$/);
+var siteOfLine = (line, raw) => {
+  const m = line.match(/\(?([^()\s]+?):(\d+):(\d+)\)?$/);
   if (!m)
     return null;
   return { text: `${m[1]}:${m[2]}:${m[3]}`, file: m[1], line: +m[2], column: +m[3], raw };
@@ -170,28 +905,28 @@ var extraInternal = [];
 var captureFrom = (raw, skip = 0) => {
   const stack = String(raw || "");
   const lines = stack.split("\n").slice(1 + skip);
-  for (const line2 of lines) {
-    if (isInternal(line2))
+  for (const line of lines) {
+    if (isInternal(line))
       continue;
     let own = false;
     for (const file of extraInternal) {
-      if (line2.includes(file)) {
+      if (line.includes(file)) {
         own = true;
         break;
       }
     }
     if (own)
       continue;
-    const site = siteOfLine(line2, stack);
+    const site = siteOfLine(line, stack);
     if (site)
       return site;
   }
-  for (const line2 of lines) {
-    if (!line2 || line2.includes("new Error"))
+  for (const line of lines) {
+    if (!line || line.includes("new Error"))
       continue;
-    if (markFile && lineFile(line2) === markFile)
+    if (markFile && lineFile(line) === markFile)
       continue;
-    const site = siteOfLine(line2, stack);
+    const site = siteOfLine(line, stack);
     if (site)
       return site;
   }
@@ -784,8 +1519,8 @@ function walkDispose(node) {
 
 // ../../libs/jsx6/src/directives.js
 var directives = {};
-function addDirective(key2, directive) {
-  directives[key2] = directive;
+function addDirective(key, directive) {
+  directives[key] = directive;
 }
 addDirective("x-if", (el, a, $signal, self) => {
   let updater = (v) => setAttribute(el, "hidden", !v);
@@ -1354,19 +2089,19 @@ function observeIntersect(el, callback, { root, rootMargin, threshold, detail } 
     }
     threshold.push(1);
   }
-  const key2 = JSON.stringify({ rootMargin, threshold });
+  const key = JSON.stringify({ rootMargin, threshold });
   let observerMap;
   if (root) {
     observerMap = root[observerSymbol] = root[observerSymbol] || /* @__PURE__ */ new Map();
   } else {
     observerMap = oberverMapBrowser;
   }
-  let handler = observerMap.get(key2);
+  let handler = observerMap.get(key);
   if (!handler) {
     handler = makeObserverHandler("IntersectionObserver");
     const observer = new IntersectionObserver(handler, { root, rootMargin, threshold });
     handler.observer = observer;
-    observerMap.set(key2, handler);
+    observerMap.set(key, handler);
   }
   return handler.observe(el, callback);
 }
@@ -1552,7 +2287,7 @@ var ConnectLine = class {
       this.updatePath();
   }
   updatePath() {
-    let line2 = makeLineConnector(
+    let line = makeLineConnector(
       this.strength,
       this.p1.pos,
       this.p1.pos,
@@ -1565,10 +2300,10 @@ var ConnectLine = class {
       [100, 100],
       "L"
     );
-    this.d = line2;
-    this.line1.setAttribute("d", line2);
-    this.line2.setAttribute("d", line2);
-    this.pathListeners.forEach((fn) => fn(line2));
+    this.d = line;
+    this.line1.setAttribute("d", line);
+    this.line2.setAttribute("d", line);
+    this.pathListeners.forEach((fn) => fn(line));
   }
   /**
    * Register a callback invoked whenever the path is recomputed, with the new
@@ -1608,29 +2343,29 @@ var ConnectLine = class {
 };
 
 // src/lineLayer.js
-function createSvgLineLayer(editor) {
+function createSvgLineLayer(editor2) {
   return {
     kind: "svg",
     /** @type {SVGElement} */
-    el: editor.svgLayer,
+    el: editor2.svgLayer,
     /**
      * Attach the line's `<g>` and let it select itself on click — the exact
      * pre-seam behaviour.
      * @param {ConnectLine} line
      */
-    add(line2) {
-      listenUntil(line2, line2.el, "click", () => {
-        editor.selectConnector(line2);
+    add(line) {
+      listenUntil(line, line.el, "click", () => {
+        editor2.selectConnector(line);
       });
-      backend.current.insert(editor.svgLayer, line2.el);
+      backend.current.insert(editor2.svgLayer, line.el);
     },
     /**
      * Detach the line's element. (Its listeners are released by the editor's
      * `finalize(line)`; the layer owns only the element.)
      * @param {ConnectLine} line
      */
-    remove(line2) {
-      backend.current.remove(line2.el);
+    remove(line) {
+      backend.current.remove(line.el);
     },
     /**
      * Apply the three visual states with the same `classIf` calls the CSS
@@ -1640,10 +2375,10 @@ function createSvgLineLayer(editor) {
      * @param {boolean} fromSel
      * @param {boolean} toSel
      */
-    setStates(line2, selected, fromSel, toSel) {
-      backend.current.classIf(line2.el, "selected", selected);
-      backend.current.classIf(line2.el, "ne-from-sel-block", fromSel);
-      backend.current.classIf(line2.el, "ne-to-sel-block", toSel);
+    setStates(line, selected, fromSel, toSel) {
+      backend.current.classIf(line.el, "selected", selected);
+      backend.current.classIf(line.el, "ne-from-sel-block", fromSel);
+      backend.current.classIf(line.el, "ne-to-sel-block", toSel);
     },
     /**
      * Never hit: in SVG mode the `<g>`'s own click listener selects the line,
@@ -1672,8 +2407,8 @@ var LineInteraction = class {
   /**
    * @param {NodeEditor} editor
    */
-  constructor(editor) {
-    this.editor = editor;
+  constructor(editor2) {
+    this.editor = editor2;
   }
   /**
    * @param {ConnectorData} con
@@ -1687,21 +2422,21 @@ var LineInteraction = class {
     let isMoving = false;
     let lx = 0;
     let ly = 0;
-    let line2;
+    let line;
     let firstCon;
     let otherCon;
     let freeEnd;
     const setFreePos = (x, y) => {
       if (freeEnd == "p1")
-        line2.setPos1(x, y);
+        line.setPos1(x, y);
       else
-        line2.setPos2(x, y);
+        line.setPos2(x, y);
     };
     const setFreePoint = (c) => {
       if (freeEnd == "p1")
-        line2.setPoint1(c);
+        line.setPoint1(c);
       else
-        line2.setPoint2(c);
+        line.setPoint2(c);
     };
     let lastX = 0;
     let lastY = 0;
@@ -1753,14 +2488,14 @@ var LineInteraction = class {
       let selected = this.editor.selectedLine;
       if (selected) {
         if (selected.p2.con == con) {
-          line2 = selected;
+          line = selected;
           firstCon = con;
           freeEnd = "p2";
           isDown = true;
           return;
         }
         if (selected.p1.con == con) {
-          line2 = selected;
+          line = selected;
           firstCon = con;
           freeEnd = "p1";
           isDown = true;
@@ -1780,12 +2515,12 @@ var LineInteraction = class {
       let x = lastX = e.clientX;
       let y = lastY = e.clientY;
       if (!isMoving) {
-        if (!line2)
-          line2 = this.editor.addConnector(new ConnectLine());
-        this.editor.selectConnector(line2);
-        line2.setSelected(true);
-        if (!line2.p1.con)
-          line2.setPoint1(con);
+        if (!line)
+          line = this.editor.addConnector(new ConnectLine());
+        this.editor.selectConnector(line);
+        line.setSelected(true);
+        if (!line.p1.con)
+          line.setPoint1(con);
         firstCon = con;
         markTarget(con, 1);
         let rect = this.editor.getBoundingClientRect();
@@ -1804,13 +2539,13 @@ var LineInteraction = class {
       markTarget(firstCon);
       markTarget(otherCon);
       if (otherCon) {
-        line2.setSelected(true);
+        line.setSelected(true);
       } else {
-        this.editor.removeLine(line2);
+        this.editor.removeLine(line);
       }
       isDown = false;
       isMoving = false;
-      line2 = null;
+      line = null;
       this.editor.historyRecord("connect");
       this.editor.focus();
     };
@@ -1966,29 +2701,29 @@ function getBlocksBounds(blocks) {
 }
 
 // src/moveMenu.js
-var menuSize = (menu, zoom) => {
-  let size = menu._neMenuSize;
+var menuSize = (menu2, zoom) => {
+  let size = menu2._neMenuSize;
   if (size)
     return size;
-  let rect = menu.getBoundingClientRect();
+  let rect = menu2.getBoundingClientRect();
   size = [rect.width / zoom, rect.height / zoom];
   if (!size[0] || !size[1])
     return size;
-  menu._neMenuSize = size;
-  if (typeof MutationObserver === "function" && !menu._neMenuObs) {
-    menu._neMenuObs = new MutationObserver(() => {
-      menu._neMenuSize = null;
+  menu2._neMenuSize = size;
+  if (typeof MutationObserver === "function" && !menu2._neMenuObs) {
+    menu2._neMenuObs = new MutationObserver(() => {
+      menu2._neMenuSize = null;
     });
-    menu._neMenuObs.observe(menu, { childList: true, subtree: true, characterData: true });
+    menu2._neMenuObs.observe(menu2, { childList: true, subtree: true, characterData: true });
   }
   return size;
 };
-var moveMenu = (blocks, menu, zoom = 1) => {
-  if (menu.moveMenu)
-    return menu.moveMenu(blocks, menu);
-  let [w, h2] = menuSize(menu, zoom);
+var moveMenu = (blocks, menu2, zoom = 1) => {
+  if (menu2.moveMenu)
+    return menu2.moveMenu(blocks, menu2);
+  let [w, h2] = menuSize(menu2, zoom);
   let b = getBlocksBounds(blocks);
-  let { style } = menu;
+  let { style } = menu2;
   style.setProperty("--ne-menu-x", b.x + b.w / 2 - w / 2 + "px");
   style.setProperty("--ne-menu-y", b.y - h2 + "px");
 };
@@ -2338,14 +3073,14 @@ var NodeEditor = class extends JsxW {
     }
     return false;
   }
-  removeLine(line2) {
-    let idx = this.lines.indexOf(line2);
+  removeLine(line) {
+    let idx = this.lines.indexOf(line);
     if (idx != -1) {
-      if (this.selectedLine == line2)
+      if (this.selectedLine == line)
         this.selectedLine = null;
       this.lines.splice(idx, 1);
-      this.lineLayer.remove(line2);
-      finalize(line2);
+      this.lineLayer.remove(line);
+      finalize(line);
       this.historyRecord("remove");
     }
   }
@@ -2365,7 +3100,7 @@ var NodeEditor = class extends JsxW {
     blockData.connectorMap.delete(con.id);
     blockData.resizeSet.delete(con.el);
     this.observer?.unobserve?.(con.el);
-    let lines = this.lines.filter((line2) => line2.p1.con?.idFull == con.idFull || line2.p2.con?.idFull == con.idFull);
+    let lines = this.lines.filter((line) => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull);
     this.fireCustom(con.el, "ne-remove", { ...con });
     lines.forEach((l) => this.removeLine(l));
     con.el.removeObserve?.();
@@ -2429,10 +3164,10 @@ var NodeEditor = class extends JsxW {
    * @param {number} [param.nudgeStep] arrow-key nudge step in content units, Shift multiplies by 5
    * @param {Object<string, Function>} [param.typeMap] block factories, used by `loadGraph` and undo/redo
    */
-  tpl({ menu = null, zoomMin = 0.3, zoomMax = 4, snap = 0, nudgeStep = 10, typeMap: typeMap2 = null, ...attr } = {}) {
+  tpl({ menu: menu2 = null, zoomMin = 0.3, zoomMax = 4, snap = 0, nudgeStep = 10, typeMap: typeMap2 = null, ...attr } = {}) {
     attr.tabindex = "0";
     super.tpl(attr);
-    this.menuGenerator = menu;
+    this.menuGenerator = menu2;
     this.zoomMin = zoomMin;
     this.zoomMax = zoomMax;
     this.snap = snap;
@@ -2556,9 +3291,9 @@ var NodeEditor = class extends JsxW {
       for (let i = 0; i < dragList.length; i++) {
         this._setPos(dragList[i], [dragStart[i][0] + d[0], dragStart[i][1] + d[1]]);
       }
-      let menu2 = this.currentMenu;
-      if (menu2)
-        moveMenu(dragList, menu2, this._zoom);
+      let menu3 = this.currentMenu;
+      if (menu3)
+        moveMenu(dragList, menu3, this._zoom);
       this.fireMove(blockData);
     };
     const applyPan = () => {
@@ -2703,9 +3438,9 @@ var NodeEditor = class extends JsxW {
           }
           dragStart = dragList.map((b) => [b.pos[0], b.pos[1]]);
         } else {
-          let menu2 = this.currentMenu;
-          if (menu2)
-            setVisible(menu2, false);
+          let menu3 = this.currentMenu;
+          if (menu3)
+            setVisible(menu3, false);
           if (downButton === 0 && !e.altKey && !e.ctrlKey && !e.metaKey) {
             marqueeStart = this.contentPoint(lx, ly);
             marqueeCur = [...marqueeStart];
@@ -2718,14 +3453,14 @@ var NodeEditor = class extends JsxW {
         this.focus();
       }
       if (blockData) {
-        let [x0, y02] = dragStart[0];
+        let [x0, y0] = dragStart[0];
         let nx = x0 + (-lx + e.clientX) / this._zoom;
-        let ny = y02 + (-ly + e.clientY) / this._zoom;
+        let ny = y0 + (-ly + e.clientY) / this._zoom;
         if (this.snap) {
           nx = Math.round(nx / this.snap) * this.snap;
           ny = Math.round(ny / this.snap) * this.snap;
         }
-        dragDelta = [nx - x0, ny - y02];
+        dragDelta = [nx - x0, ny - y0];
         if (!dragRaf)
           dragRaf = requestAnimationFrame(() => {
             dragRaf = 0;
@@ -2769,18 +3504,18 @@ var NodeEditor = class extends JsxW {
         return;
       }
       let g = findParent(e.target, (p) => p.tagName == "g");
-      let line2 = g && this.lines.find((l) => l.el == g) || this.lineLayer.pick(e.clientX, e.clientY);
-      if (line2) {
-        this.selectConnector(line2);
-        let menu2 = this.menuGenerator?.([]);
-        if (menu2) {
-          if (this.currentMenu && this.currentMenu != menu2)
+      let line = g && this.lines.find((l) => l.el == g) || this.lineLayer.pick(e.clientX, e.clientY);
+      if (line) {
+        this.selectConnector(line);
+        let menu3 = this.menuGenerator?.([]);
+        if (menu3) {
+          if (this.currentMenu && this.currentMenu != menu3)
             setVisible(this.currentMenu, false);
-          setVisible(menu2, true);
-          if (!menu2.parentNode) {
-            insert(this.contentArea, menu2);
+          setVisible(menu3, true);
+          if (!menu3.parentNode) {
+            insert(this.contentArea, menu3);
           }
-          this.currentMenu = menu2;
+          this.currentMenu = menu3;
           this.placeMenuAtCursor(e);
         }
         return;
@@ -2791,10 +3526,10 @@ var NodeEditor = class extends JsxW {
       let active = document.activeElement;
       if (active && active.isContentEditable)
         return;
-      let key2 = e.key;
+      let key = e.key;
       let mod = e.ctrlKey || e.metaKey;
       if (mod) {
-        switch (key2.toLowerCase()) {
+        switch (key.toLowerCase()) {
           case "z":
             e.preventDefault();
             if (e.shiftKey)
@@ -2825,10 +3560,10 @@ var NodeEditor = class extends JsxW {
             this.zoomTo(1);
             return;
         }
-      } else if (key2 === "Escape") {
+      } else if (key === "Escape") {
         this.deselect();
         return;
-      } else if (key2 === "Enter" || key2 === " ") {
+      } else if (key === "Enter" || key === " ") {
         let bd = e.target !== this ? this.getBlockData(e.target) : null;
         if (bd) {
           this.selectBlocks([bd]);
@@ -2836,21 +3571,21 @@ var NodeEditor = class extends JsxW {
           return;
         }
         let g = findParent(e.target, (p) => p.tagName == "g");
-        let line2 = g && this.lines.find((l) => l.el == g) || this.lineLayer.pick(e.clientX, e.clientY);
-        if (line2) {
-          this.selectConnector(line2);
+        let line = g && this.lines.find((l) => l.el == g) || this.lineLayer.pick(e.clientX, e.clientY);
+        if (line) {
+          this.selectConnector(line);
           e.preventDefault();
         }
         return;
       }
-      if ((key2 === "Delete" || key2 === "Backspace") && this.$focusOrSelecting()) {
+      if ((key === "Delete" || key === "Backspace") && this.$focusOrSelecting()) {
         this.deleteSelection();
         e.preventDefault();
         return;
       }
       if (this.$focusOrSelecting()) {
-        let dx = key2 == "ArrowLeft" ? -1 : key2 == "ArrowRight" ? 1 : 0;
-        let dy = key2 == "ArrowUp" ? -1 : key2 == "ArrowDown" ? 1 : 0;
+        let dx = key == "ArrowLeft" ? -1 : key == "ArrowRight" ? 1 : 0;
+        let dy = key == "ArrowUp" ? -1 : key == "ArrowDown" ? 1 : 0;
         if (dx || dy) {
           e.preventDefault();
           let step = this.nudgeStep * (e.shiftKey ? 5 : 1);
@@ -3117,11 +3852,11 @@ var NodeEditor = class extends JsxW {
    * @param {ConnectorData} con
    */
   reattachLines(con) {
-    this.lines.forEach((line2) => {
-      if (line2.p1.con === con)
-        line2.setPoint(line2.p1, con, true);
-      if (line2.p2.con === con)
-        line2.setPoint(line2.p2, con, true);
+    this.lines.forEach((line) => {
+      if (line.p1.con === con)
+        line.setPoint(line.p1, con, true);
+      if (line.p2.con === con)
+        line.setPoint(line.p2, con, true);
     });
   }
   /**
@@ -3335,28 +4070,28 @@ var NodeEditor = class extends JsxW {
   selectBlocks(blocks) {
     this.selectedBlocks = blocks;
     let old = this.currentMenu;
-    let menu;
+    let menu2;
     let blockIdMap = {};
     if (blocks.length) {
       blocks.forEach((b) => {
         blockIdMap[b.id] = 1;
       });
       this.selectConnector(null);
-      menu = this.menuGenerator?.(blocks);
-      if (old && old != menu)
+      menu2 = this.menuGenerator?.(blocks);
+      if (old && old != menu2)
         setVisible(old, false);
-      if (menu) {
-        setVisible(menu, true);
-        if (menu != old) {
-          insert(this.contentArea, menu);
+      if (menu2) {
+        setVisible(menu2, true);
+        if (menu2 != old) {
+          insert(this.contentArea, menu2);
         }
-        moveMenu(blocks, menu, this._zoom);
+        moveMenu(blocks, menu2, this._zoom);
       }
     } else {
       if (old)
         setVisible(old, false);
     }
-    this.currentMenu = menu;
+    this.currentMenu = menu2;
     let selSet = new Set(blocks);
     this.blocks.forEach((p) => {
       let block = p.block;
@@ -3411,10 +4146,10 @@ var NodeEditor = class extends JsxW {
     this.lineLayer = layer;
     layer.onViewport(this._zoom);
     layer.onResize(this.realWidth, this.realHeight);
-    const selIds2 = new Set((this.selectedBlocks || []).map((b) => b.id));
+    const selIds = new Set((this.selectedBlocks || []).map((b) => b.id));
     this.lines.forEach((l) => {
       layer.add(l);
-      layer.setStates(l, l.selected, !!selIds2.has(l.p1.con?.root.id), !!selIds2.has(l.p2.con?.root.id));
+      layer.setStates(l, l.selected, !!selIds.has(l.p1.con?.root.id), !!selIds.has(l.p2.con?.root.id));
     });
   }
   /**
@@ -3481,15 +4216,15 @@ var NodeEditor = class extends JsxW {
     let sel = this.selectedBlocks;
     if (!sel?.length)
       return;
-    let [x0, y02] = sel[0].pos;
+    let [x0, y0] = sel[0].pos;
     let nx = x0 + dx;
-    let ny = y02 + dy;
+    let ny = y0 + dy;
     if (this.snap) {
       nx = Math.round(nx / this.snap) * this.snap;
       ny = Math.round(ny / this.snap) * this.snap;
     }
     dx = nx - x0;
-    dy = ny - y02;
+    dy = ny - y0;
     sel.forEach((b) => this._setPos(b, [b.pos[0] + dx, b.pos[1] + dy]));
     this.fireMoveDone(sel[0], "nudge");
   }
@@ -3499,13 +4234,13 @@ var NodeEditor = class extends JsxW {
    * @param {MouseEvent} e
    */
   placeMenuAtCursor(e) {
-    let menu = this.currentMenu;
-    if (!menu)
+    let menu2 = this.currentMenu;
+    if (!menu2)
       return;
-    setVisible(menu, true);
+    setVisible(menu2, true);
     let [x, y] = this.contentPoint(e.clientX, e.clientY);
-    menu.style.setProperty("--ne-menu-x", x + "px");
-    menu.style.setProperty("--ne-menu-y", y + "px");
+    menu2.style.setProperty("--ne-menu-x", x + "px");
+    menu2.style.setProperty("--ne-menu-y", y + "px");
   }
   /**
    * Accessible NAME of a block: type + id, and nothing else.
@@ -3554,11 +4289,11 @@ var NodeEditor = class extends JsxW {
     this.lineLayer.dispose();
     this.selectedLine = null;
     this.selectedBlocks = [];
-    let menu = this.currentMenu;
-    if (menu) {
-      menu._neMenuObs?.disconnect();
-      menu._neMenuObs = null;
-      menu._neMenuSize = null;
+    let menu2 = this.currentMenu;
+    if (menu2) {
+      menu2._neMenuObs?.disconnect();
+      menu2._neMenuObs = null;
+      menu2._neMenuSize = null;
     }
     this.currentMenu = null;
     this.observer?.disconnect();
@@ -3625,11 +4360,11 @@ var NodeEditor = class extends JsxW {
   fireMoveDone(blockData, kind = "move") {
     this.fireMove(blockData, "ne-move-done");
     this.historyRecord(kind);
-    let menu = this.currentMenu;
-    if (menu) {
-      setVisible(menu, true);
+    let menu2 = this.currentMenu;
+    if (menu2) {
+      setVisible(menu2, true);
       if (this.selectedBlocks?.length)
-        moveMenu(this.selectedBlocks, menu, this._zoom);
+        moveMenu(this.selectedBlocks, menu2, this._zoom);
     }
   }
   fireMove(blockData, evtName = "ne-move") {
@@ -3699,12 +4434,12 @@ var EditableTitle = (attr = {}) => {
 // src/blocks/Message.js
 function Message(attr) {
   backend.current.addClass(attr, "ne-block");
-  let title2 = EditableTitle();
-  title2.setValue("Message");
+  let title = EditableTitle();
+  title.setValue("Message");
   return /* @__PURE__ */ jsx("div", { ...attr, children: [
     /* @__PURE__ */ jsx("div", { class: "ne-title", "ne-drag": true, "ne-item": true, children: [
       /* @__PURE__ */ jsx("b", { ncid: "i1", "ne-connect": "in" }),
-      title2
+      title
     ] }),
     /* @__PURE__ */ jsx("div", { class: "ne-content", children: [
       /* @__PURE__ */ jsx("div", { "ne-nodrag": true, children: "NO DRAG" }),
@@ -3724,12 +4459,12 @@ function Switch(attr) {
     target.innerHTML += "<br/>-----------";
   }
   backend.current.addClass(attr, "ne-block");
-  let title2 = EditableTitle({ onchange: (e) => console.log("change") });
-  title2.setValue("Block 1");
+  let title = EditableTitle({ onchange: (e) => console.log("change") });
+  title.setValue("Block 1");
   return /* @__PURE__ */ jsx("div", { ...attr, children: [
     /* @__PURE__ */ jsx("div", { class: "ne-title", "ne-drag": true, "ne-item": true, children: [
       /* @__PURE__ */ jsx("b", { ncid: "i1", "ne-connect": "in" }),
-      title2
+      title
     ] }),
     /* @__PURE__ */ jsx("div", { class: "ne-content", children: [
       /* @__PURE__ */ jsx("div", { "ne-nodrag": true, children: "NO DRAG" }),
@@ -3749,289 +4484,358 @@ function Switch(attr) {
   ] });
 }
 
-// smoke/p2.smoke.jsx
-var failures = 0;
-var ok = (cond, msg) => {
-  if (cond)
-    console.log("ok   " + msg);
-  else {
-    failures++;
-    console.error("FAIL " + msg);
+// src/canvasLineLayer.js
+var COLOR_BASE = [0, 0, 0, 1];
+var COLOR_SELECTED = [46 / 255, 167 / 255, 167 / 255, 1];
+var COLOR_FROM = [191 / 255, 194 / 255, 51 / 255, 1];
+var COLOR_TO = [46 / 255, 108 / 255, 167 / 255, 1];
+var PICK_RADIUS_CSS = 4;
+var LINE_WIDTH_CSS = 2;
+async function loadLineRender() {
+  try {
+    return await Promise.resolve().then(() => (init_line_render(), line_render_exports));
+  } catch (err) {
+    console.warn(
+      "NodeEditor: @jsx6/line-render is not installed (it is an optional dependency); keeping the SVG line layer."
+    );
+    return null;
+  }
+}
+function makeCanvasLineLayer(editor2, lr, opts = {}) {
+  const dpr = () => typeof window != "undefined" && window.devicePixelRatio || 1;
+  const canvas = document.createElement("canvas");
+  canvas.className = "ne-canvas-line-layer";
+  editor2.insertBefore(canvas, editor2.contentArea);
+  const states = /* @__PURE__ */ new Map();
+  const pathSubs = /* @__PURE__ */ new Map();
+  let edges = null;
+  let zoom = 1;
+  let renderer = null;
+  let raf = 0;
+  let disposed = false;
+  let ready;
+  let resolveReady;
+  let rejectReady;
+  ready = new Promise((resolve, reject) => {
+    resolveReady = resolve;
+    rejectReady = reject;
+  });
+  const buildEdges = () => {
+    const d = dpr();
+    const out = [];
+    for (const line of editor2.lines) {
+      if (!line.d)
+        continue;
+      const st = states.get(line) || { selected: false, fromSel: false, toSel: false };
+      const color = st.toSel ? COLOR_TO : st.fromSel ? COLOR_FROM : st.selected ? COLOR_SELECTED : COLOR_BASE;
+      const edge = lr.parseLinePath(line.d, { color, width: LINE_WIDTH_CSS * d, worldWidth: false });
+      edge.line = line;
+      out.push(edge);
+    }
+    return out;
+  };
+  const scheduleRender = () => {
+    if (disposed || raf)
+      return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      if (disposed)
+        return;
+      edges = buildEdges();
+      if (renderer)
+        renderer.render(edges);
+    });
+  };
+  const onClick = (e) => {
+    let node = backend.current.findParent(e.target, (p) => p.hasAttribute && p.hasAttribute("nid"));
+    if (node)
+      return;
+    const line = layer.pick(e.clientX, e.clientY);
+    if (line)
+      editor2.selectConnector(line);
+  };
+  const releaseClick = backend.current.listen(editor2, "click", onClick);
+  const releaseMove = backend.current.listenCustom(editor2, "ne-move", () => {
+    scheduleRender();
+  });
+  const layer = {
+    kind: "canvas",
+    /** @type {HTMLCanvasElement} */
+    el: canvas,
+    /** @type {Promise<void>} GPU renderer ready (or rejected) */
+    ready,
+    /**
+     * Register the line; it joins the next redraw.
+     * @param {ConnectLine} line
+     */
+    add(line) {
+      states.set(line, { selected: line.selected || false, fromSel: false, toSel: false });
+      pathSubs.set(
+        line,
+        line.onPathChange(() => scheduleRender())
+      );
+      scheduleRender();
+    },
+    /**
+     * Unregister the line; it drops out of the next redraw. The `<g>` element
+     * was never attached to the DOM in canvas mode, so there is nothing to
+     * remove (its listeners are released by the editor's `finalize(line)`).
+     * @param {ConnectLine} line
+     */
+    remove(line) {
+      states.delete(line);
+      let unsub = pathSubs.get(line);
+      if (unsub) {
+        unsub();
+        pathSubs.delete(line);
+      }
+      scheduleRender();
+    },
+    /**
+     * @param {ConnectLine} line
+     * @param {boolean} selected
+     * @param {boolean} fromSel
+     * @param {boolean} toSel
+     */
+    setStates(line, selected, fromSel, toSel) {
+      states.set(line, { selected, fromSel, toSel });
+      scheduleRender();
+    },
+    /**
+     * Pick a line under the point. Pure curve math — works even before (or
+     * without) the GPU renderer.
+     *
+     * The click is converted to the canvas backing store (client box × dpr)
+     * and handed to `pickEdge` with viewport `zoom * dpr`, pan `(0, 0)` and a
+     * pick radius of 4 CSS px in backing pixels — the same half-width as the
+     * SVG hit path, so picking feels identical in both layers.
+     *
+     * @param {number} clientX
+     * @param {number} clientY
+     * @returns {ConnectLine|null}
+     */
+    pick(clientX, clientY) {
+      if (!edges)
+        edges = buildEdges();
+      if (!edges.length)
+        return null;
+      const d = dpr();
+      const rect = canvas.getBoundingClientRect();
+      const sx = (clientX - rect.left) * d;
+      const sy = (clientY - rect.top) * d;
+      const edge = lr.pickEdge(edges, sx, sy, 0, 0, zoom * d, 24, PICK_RADIUS_CSS * d);
+      return edge ? edgeToLine(edge) : null;
+    },
+    /**
+     * @param {number} z
+     */
+    onViewport(z) {
+      zoom = z;
+      if (renderer)
+        renderer.setViewport(0, 0, zoom * dpr());
+      scheduleRender();
+    },
+    /**
+     * @param {number} cssW
+     * @param {number} cssH
+     */
+    onResize(cssW, cssH) {
+      const d = dpr();
+      canvas.width = Math.max(1, Math.round((cssW || 0) * d));
+      canvas.height = Math.max(1, Math.round((cssH || 0) * d));
+      scheduleRender();
+    },
+    /**
+     * Stop the renderer, release both listeners and remove the canvas.
+     */
+    dispose() {
+      if (disposed)
+        return;
+      disposed = true;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+      releaseClick();
+      releaseMove();
+      if (renderer) {
+        try {
+          renderer.dispose();
+        } catch {
+        }
+        renderer = null;
+      }
+      pathSubs.forEach((unsub) => unsub());
+      pathSubs.clear();
+      states.clear();
+      edges = null;
+      canvas.remove();
+    }
+  };
+  const edgeToLine = (edge) => edge.line;
+  const initRenderer = async () => {
+    try {
+      renderer = new lr.LineRenderer(canvas, {
+        // transparent clear: the editor's own background shows through
+        clear: [0, 0, 0, 0],
+        segmentsPerCurve: opts.segmentsPerCurve || 32
+      });
+      await renderer.init();
+      renderer.setViewport(0, 0, zoom * dpr());
+      resolveReady();
+      scheduleRender();
+    } catch (err) {
+      rejectReady(err);
+      if (renderer) {
+        try {
+          renderer.dispose();
+        } catch {
+        }
+        renderer = null;
+      }
+    }
+  };
+  initRenderer();
+  return layer;
+}
+
+// src/index.jsx
+var saveGraph = () => {
+  localStorage.setItem("ne.graph", JSON.stringify(editor.saveGraph()));
+};
+var moveDone = () => {
+  saveGraph();
+};
+var typeMap = {
+  Switch: () => /* @__PURE__ */ jsx(Switch, {}),
+  Message: () => /* @__PURE__ */ jsx(Message, {})
+};
+function deleteSelection() {
+  editor.deleteSelection();
+}
+function editTitle() {
+  let blockData = editor.selectedBlocks?.[0];
+  let title = blockData?.el.querySelector(".EditableTitle");
+  if (title)
+    title.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, cancelable: true }));
+}
+function toggleSnap() {
+  editor.snap = editor.snap ? 0 : 20;
+}
+var menu = /* @__PURE__ */ jsx("div", { class: "fx ne-menu ne-demo-menu", children: [
+  /* @__PURE__ */ jsx("div", { class: "ne-bt ne-delete", title: "Delete selection", onclick: deleteSelection, children: "X" }),
+  /* @__PURE__ */ jsx("div", { class: "ne-bt", title: "Edit title", onclick: editTitle, children: "E" }),
+  /* @__PURE__ */ jsx("div", { class: "ne-bt", title: "Undo (Ctrl+Z)", onclick: () => editor.undo(), children: "\u21B6" }),
+  /* @__PURE__ */ jsx("div", { class: "ne-bt", title: "Redo (Ctrl+Shift+Z)", onclick: () => editor.redo(), children: "\u21B7" }),
+  /* @__PURE__ */ jsx("div", { class: "ne-bt", title: "Toggle grid snapping (20px)", onclick: toggleSnap, children: "\u25A6" })
+] });
+var editor = /* @__PURE__ */ jsx(
+  NodeEditor,
+  {
+    class: "fxs1 fx1 NodeEditor ne-demo-editor",
+    menu: () => menu,
+    typeMap,
+    zoomMax: 4,
+    onwheel: (e) => {
+      e.preventDefault();
+      editor.changeZoomMouse(e.deltaY > 0 ? -0.1 : 0.1, e);
+    },
+    "onne-move-done": moveDone,
+    "onne-remove": saveGraph
+  }
+);
+backend.current.insert(document.body, /* @__PURE__ */ jsx("div", { class: "fxs1 fx1", children: editor }));
+var lineLayerMode = "svg";
+var switchingLayer = false;
+var toggleLabel = document.createElement("span");
+var toggleButton = document.createElement("button");
+toggleButton.type = "button";
+var toggleBar = document.createElement("div");
+toggleBar.className = "ne-demo-line-toggle";
+toggleBar.append(toggleLabel, toggleButton);
+function updateToggleUi() {
+  if (lineLayerMode == "svg") {
+    toggleLabel.textContent = "line layer: SVG";
+    toggleButton.textContent = "switch to line-render (WebGPU)";
+  } else if (lineLayerMode == "canvas") {
+    toggleLabel.textContent = "line layer: line-render (WebGPU)";
+    toggleButton.textContent = "switch back to SVG";
+  } else {
+    toggleLabel.textContent = "line layer: SVG \u2014 line-render unavailable";
+    toggleButton.disabled = true;
+    toggleButton.textContent = "unavailable";
+  }
+}
+async function switchToCanvas() {
+  if (switchingLayer || lineLayerMode != "svg")
+    return;
+  switchingLayer = true;
+  try {
+    const lr = await loadLineRender();
+    if (!lr) {
+      lineLayerMode = "unavailable";
+      updateToggleUi();
+      return;
+    }
+    const layer = makeCanvasLineLayer(editor, lr);
+    editor.setLineLayer(layer);
+    layer.ready.then(() => {
+      lineLayerMode = "canvas";
+      updateToggleUi();
+    }).catch(() => {
+      editor.setLineLayer(createSvgLineLayer(editor));
+      lineLayerMode = "unavailable";
+      updateToggleUi();
+    });
+  } finally {
+    switchingLayer = false;
+  }
+}
+toggleButton.onclick = () => {
+  if (lineLayerMode == "canvas") {
+    editor.setLineLayer(createSvgLineLayer(editor));
+    lineLayerMode = "svg";
+    updateToggleUi();
+  } else {
+    switchToCanvas();
   }
 };
-var near = (a, b) => Math.abs(a - b) < 1e-9;
-var pev = (target, type, props = {}) => {
-  const e = new Event(type, { bubbles: true, cancelable: true });
-  Object.assign(e, { clientX: 0, clientY: 0, pointerId: 1, button: 0 }, props);
-  target.dispatchEvent(e);
-  return e;
-};
-var key = (target, k, mods = {}) => {
-  const e = new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...mods });
-  target.dispatchEvent(e);
-  return e;
-};
-var ctx = (target, x, y) => {
-  const e = new Event("contextmenu", { bubbles: true, cancelable: true });
-  Object.assign(e, { clientX: x, clientY: y, button: 2 });
-  target.dispatchEvent(e);
-  return e;
-};
-var typeMap = { Switch: () => /* @__PURE__ */ jsx(Switch, {}), Message: () => /* @__PURE__ */ jsx(Message, {}) };
-var mkMenu = () => {
-  const el = /* @__PURE__ */ jsx("div", { class: "ne-menu" });
-  return [el, () => el];
-};
-var graph0 = {
+updateToggleUi();
+backend.current.insert(document.body, toggleBar);
+var defaultGraph = {
   blocks: [
-    { id: "1", type: "Switch", pos: [0, 0] },
-    { id: "2", type: "Switch", pos: [50, 50] },
-    { id: "3", type: "Message", pos: [400, 400] }
+    { id: "1", type: "Switch", pos: [30, 10] },
+    { id: "2", type: "Switch", pos: [30, 220] },
+    { id: "3", type: "Message", pos: [200, 100] },
+    { id: "4", type: "Message", pos: [510, 60] }
   ],
   lines: [
     ["1/o1", "2/i1"],
-    ["2/o1", "3/i1"]
+    ["1/o3", "2/i1"]
   ]
 };
-var [menuEl, menuFn] = mkMenu();
-var ed = new NodeEditor({ menu: menuFn, typeMap });
-document.body.appendChild(ed);
-var ca = ed.contentArea;
-ca.setPointerCapture = () => {
-};
-ca.releasePointerCapture = () => {
-};
-ed.loadGraph(graph0, typeMap);
-ed.blocks.forEach((b) => b.size = [100, 80]);
-var selIds = () => ed.selectedBlocks.map((b) => b.id).join(",");
-ok(ed.blocks.length === 3 && ed.lines.length === 2, "P2 setup: 3 blocks + 2 lines via loadGraph");
-ok(ed.undoStack.length === 0 && ed.redoStack.length === 0, "P2-3 loadGraph resets the history baseline");
-var title = (id) => ed.getBlockData(id).el.querySelector(".ne-title");
-pev(title("1"), "pointerdown");
-pev(title("1"), "pointerup");
-ok(selIds() === "1", "P2-1 plain click selects one block");
-pev(title("2"), "pointerdown");
-pev(title("2"), "pointerup", { ctrlKey: true });
-ok(selIds() === "1,2", "P2-1 Ctrl+click toggles a second block into the selection");
-ok(
-  ed.currentMenu === menuEl && menuEl.style.getPropertyValue("--ne-menu-x") === "75px",
-  `P2-1 menu centered over the group (75px, via --ne-menu-x=${menuEl.style.getPropertyValue("--ne-menu-x")})`
-);
-ok(!menuEl.hasAttribute("hidden"), "P2-1 group menu visible");
-pev(title("1"), "pointerdown");
-pev(title("1"), "pointerup", { shiftKey: true });
-ok(selIds() === "2", "P2-1 Shift+click toggles the first block off");
-pev(ca, "pointerdown");
-pev(ca, "pointerup");
-ok(selIds() === "", "P2-1 click on empty canvas deselects");
-pev(ca, "pointerdown", { clientX: -10, clientY: -10 });
-pev(ca, "pointermove", { clientX: 160, clientY: 160 });
-var marqueeBox = ca.querySelector(".ne-marquee");
-ok(marqueeBox, "P2-1 marquee rectangle shown while dragging on empty canvas");
-if (marqueeBox) {
-  const mcs = getComputedStyle(marqueeBox);
-  ok(!(marqueeBox.getAttribute("style") || "").includes("border"), "P2-1 the marquee carries no inline style");
-  ok(mcs.position === "absolute", `P2-1 the marquee is absolutely positioned (${mcs.position})`);
-  ok(
-    !!mcs.borderTopWidth && mcs.borderTopWidth !== "0px",
-    `P2-1 the marquee has a visible border from the stylesheet (${mcs.borderTopWidth})`
-  );
-  const blockZ = Number(getComputedStyle(ed.getBlockData("1").el).zIndex) || 0;
-  ok(Number(mcs.zIndex) > blockZ, `P2-1 the marquee stacks above the blocks it selects (${mcs.zIndex} > ${blockZ})`);
-}
-pev(ca, "pointerup", { clientX: 160, clientY: 160 });
-ok(!ca.querySelector(".ne-marquee"), "P2-1 marquee removed on release");
-ok(selIds() === "1,2", "P2-1 marquee selects intersecting blocks only (not block 3)");
-pev(ca, "pointerdown");
-pev(ca, "pointermove", { clientX: 300, clientY: 300 });
-pev(ca, "pointerup", { clientX: 560, clientY: 560, shiftKey: true });
-ok(selIds() === "1,2,3", "P2-1 Shift+marquee adds to the selection");
-key(ed, "Escape");
-ok(selIds() === "" && !ed.selectedLine, "P2-2 Esc deselects everything");
-var selBeforeRight = selIds();
-pev(ca, "pointerdown", { button: 2 });
-pev(ca, "pointerup", { button: 2 });
-ok(selIds() === selBeforeRight, "P2-6 right pointerdown/up does not change the selection");
-ed.dispatchEvent(new Event("focus"));
-var pos0 = JSON.stringify(ed.getPos("1"));
-ed.selectBlocks([ed.getBlockData("1")]);
-var eRight = key(ed, "ArrowRight");
-ok(eRight.defaultPrevented, "P2-2 arrows preventDefault (no page scroll)");
-ok(JSON.stringify(ed.getPos("1")) === "[10,0]", "P2-2 ArrowRight nudges by nudgeStep (10)");
-key(ed, "ArrowUp", { shiftKey: true });
-ok(JSON.stringify(ed.getPos("1")) === "[10,-50]", "P2-2 Shift+Arrow uses the coarse step (5x)");
-key(ed, "z", { ctrlKey: true });
-ok(JSON.stringify(ed.getPos("1")) === pos0, "P2-3 Ctrl+Z reverts both merged nudges");
-key(ed, "z", { ctrlKey: true, shiftKey: true });
-ok(JSON.stringify(ed.getPos("1")) === "[10,-50]", "P2-3 Ctrl+Shift+Z redoes the nudges");
-key(ed, "z", { ctrlKey: true });
-ok(JSON.stringify(ed.getPos("1")) === pos0, "P2-3 undo again restores the loaded positions");
-ok(ed.querySelector(".ne-sr-status") === null, "P2-7 the editor no longer injects a selection-status element");
-key(ed, "a", { ctrlKey: true });
-ok(ed.selectedBlocks.length === 3, "P2-2 Ctrl+A selects all blocks");
-ed.selectBlocks([ed.getBlockData("3")]);
-var el3 = ed.getBlockData("3").el;
-var lines0 = ed.lines.length;
-ed.deleteSelection();
-ok(ed.blocks.length === 2 && ed.lines.length === 1, "P2-3 deleteSelection removes block + its line");
-ed.undo();
-ok(ed.blocks.length === 3 && ed.lines.length === 2, "P2-3 undo restores block + line");
-ok(ed.getBlockData("3").el !== el3 && ed.lineExists("2/o1", "3/i1"), "P2-3 undo rebuilds via typeMap factory");
-ed.redo();
-ok(ed.blocks.length === 2, "P2-3 redo deletes again");
-ed.undo();
-ok(ed.blocks.length === 3, "P2-3 undo back to 3 blocks");
-ed.add(/* @__PURE__ */ jsx(Switch, {}), "9", { type: "Switch", pos: [700, 700] });
-ok(ed.blocks.length === 4, "P2-3 add records history");
-ed.undo();
-ok(ed.blocks.length === 3 && !ed.getBlockData("9"), "P2-3 undo removes the added block");
-var l0 = ed.lines.length;
-ed.addConnectorFromTo("1/o2", "3/i1");
-ok(ed.lines.length === l0 + 1, "P2-3 addConnectorFromTo records history");
-ed.undo();
-ok(ed.lines.length === l0, "P2-3 undo removes the added line");
-ed.redo();
-ok(ed.lines.length === l0 + 1 && ed.undo(), "P2-3 redo re-adds the line");
-ed.undo();
-var edNoMap = new NodeEditor();
-document.body.appendChild(edNoMap);
-edNoMap.add(/* @__PURE__ */ jsx(Switch, {}), "a", { type: "Switch" });
-ok(edNoMap.undo() === false, "P2-3 nothing to undo right after the first recorded change");
-edNoMap.add(/* @__PURE__ */ jsx(Switch, {}), "b", { type: "Switch" });
-ok(edNoMap.undo() === false && edNoMap.blocks.length === 2, "P2-3 undo without typeMap is refused");
-ed.changeZoom(10, 50, 50);
-ok(ed.zoom === 4, "P2-4 wheel zoom can exceed 100% (clamped at default max 4)");
-ok(ed.zoomLabel.textContent === "400%", "P2-4 indicator shows 400%");
-ok(ed.zoomUI.classList.contains("at-max"), "P2-4 UI marks the max bound");
-ed.zoomTo(0.01);
-ok(ed.zoom === 0.3 && ed.zoomLabel.textContent === "30%", "P2-4 min zoom 0.3 + indicator");
-ok(ed.zoomUI.classList.contains("at-min"), "P2-4 UI marks the min bound");
-var plusBt = ed.zoomUI.children[2];
-plusBt.dispatchEvent(new Event("click", { bubbles: true }));
-ok(near(ed.zoom, 0.375), "P2-4 zoom-in button (+25%) works");
-ed.zoomTo(1);
-key(ed, "=", { ctrlKey: true });
-ok(near(ed.zoom, 1.25), "P2-4 Ctrl+= zooms in past 100%");
-key(ed, "0", { ctrlKey: true });
-ok(near(ed.zoom, 1) && ed.zoomLabel.textContent === "100%", "P2-4 Ctrl+0 resets to 100%");
-var ed2 = new NodeEditor({ zoomMin: 0.5, zoomMax: 1.5 });
-document.body.appendChild(ed2);
-ed2.zoomTo(9);
-ok(ed2.zoom === 1.5, "P2-4 tpl zoomMax honored");
-ed2.zoom = 0.1;
-ok(ed2.zoom === 0.5, "P2-4 zoom setter clamps to tpl zoomMin");
-ed.snap = 20;
-ed.setPos(ed.getBlockData("1"), [27, 33]);
-ed.selectBlocks([ed.getBlockData("1")]);
-ed.nudgeSelection(1, 1);
-ok(JSON.stringify(ed.getPos("1")) === "[20,40]", "P2-5 snap aligns the nudged block to the grid");
-ed.snap = 0;
-ed.setPos(ed.getBlockData("1"), [27, 33]);
-ed.nudgeSelection(1, 1);
-ok(JSON.stringify(ed.getPos("1")) === "[28,34]", "P2-5 snap=0 leaves moves unsnapped");
-var [menu3, menuFn3] = mkMenu();
-var ed3 = new NodeEditor({ menu: menuFn3, typeMap });
-document.body.appendChild(ed3);
-ed3.contentArea.setPointerCapture = () => {
-};
-ed3.contentArea.releasePointerCapture = () => {
-};
-ed3.loadGraph(graph0, typeMap);
-var sel3 = () => ed3.selectedBlocks.map((b) => b.id).join(",");
-var title3 = (id) => ed3.getBlockData(id).el.querySelector(".ne-title");
-var cmBlock = ctx(title3("1"), 123, 45);
-ok(cmBlock.defaultPrevented, "P2-6 contextmenu prevented (no browser menu)");
-ok(sel3() === "1", "P2-6 right-click selects the block under the cursor");
-ok(ed3.currentMenu === menu3 && !menu3.hasAttribute("hidden"), "P2-6 menu shown for right-click");
-ok(
-  menu3.style.getPropertyValue("--ne-menu-x") === "123px" && menu3.style.getPropertyValue("--ne-menu-y") === "45px",
-  "P2-6 menu positioned at the cursor"
-);
-pev(title3("2"), "pointerdown");
-pev(title3("2"), "pointerup", { shiftKey: true });
-ok(sel3() === "1,2", "P2-6 setup: two blocks selected");
-ctx(title3("2"), 200, 30);
-ok(
-  sel3() === "1,2" && menu3.style.getPropertyValue("--ne-menu-x") === "200px",
-  "P2-6 right-click inside the group keeps it selected"
-);
-var line = ed3.lines.find((l) => l.p1.con?.idFull === "1/o1");
-var cmLine = ctx(line.line2, 50, 60);
-ok(cmLine.defaultPrevented && ed3.selectedLine === line, "P2-6 right-click on a line selects it");
-ok(
-  ed3.currentMenu === menu3 && menu3.style.getPropertyValue("--ne-menu-x") === "50px",
-  "P2-6 menu opens at cursor for lines too"
-);
-ctx(ed3.contentArea, 5, 5);
-ok(sel3() === "" && !ed3.selectedLine, "P2-6 right-click on empty canvas deselects");
-var bA = ed3.getBlockData("1");
-ok(bA.el.getAttribute("role") === "group" && bA.el.getAttribute("tabindex") === "0", "P2-7 blocks are tabbable groups");
-ed3.selectBlocks([bA, ed3.getBlockData("2")]);
-ok(/Switch 1/.test(bA.el.getAttribute("aria-label")), "P2-7 block aria-label has type + id");
-{
-  const priorSelection = (ed3.selectedBlocks || []).slice();
-  const labelUnselected = bA.el.getAttribute("aria-label");
-  ed3.selectBlocks([bA]);
-  const labelSelected = bA.el.getAttribute("aria-label");
-  ok(
-    labelSelected === labelUnselected,
-    `P2-7 the block accessible name does not change with selection ("${labelUnselected}")`
-  );
-  ok(!/selected/i.test(labelSelected), "P2-7 no selection state is written into the block aria-label");
-  ed3.selectBlocks(priorSelection);
-}
-ed3.selectBlocks([bA, ed3.getBlockData("2")]);
-ok(
-  bA.el.getAttribute("selected") === "selected" && ed3.selectedBlocks.length === 2,
-  "P2-7 a multi-selection is expressed through the selected attribute"
-);
-ed3.deselect();
-ok(bA.el.getAttribute("selected") === null, "P2-7 deselect clears the selected attribute");
-ok(ed3.querySelector(".ne-sr-status") === null, "P2-7 no status text element exists on the editor");
-ok(
-  line.el.getAttribute("role") === null && line.el.getAttribute("tabindex") === null,
-  "P2-7 lines are not focusable and carry no role"
-);
-ok(line.el.getAttribute("aria-label") === null, "P2-7 lines carry no aria-label");
-{
-  const hostStyle = document.createElement("style");
-  hostStyle.textContent = "svg g:focus, svg g:focus-visible { outline: 5px auto rgba(0,0,0,.1) !important; }";
-  document.head.appendChild(hostStyle);
-  line.el.focus();
-  ed3.selectConnector(line);
-  const cs = getComputedStyle(line.el);
-  ok(line.el.tabIndex === -1, `P2-7 a line is not in the tab order (tabIndex=${line.el.tabIndex})`);
-  ok(
-    !cs.outlineStyle || cs.outlineStyle === "none",
-    `P2-7 no focus outline on a line even with a host focus rule (${cs.outlineStyle || "none"})`
-  );
-  ok(line.el.classList.contains("selected"), "P2-7 the line still shows selection by stroke");
-  ed3.deselect();
-  document.head.removeChild(hostStyle);
-}
-ed3.selectConnector(line);
-ok(line.el.classList.contains("selected"), "P2-7 a selected line carries the selected class");
-ok(ed3.selectedLine === line, "P2-7 the editor tracks the selected line");
-ed3.deselect();
-ed3.dispatchEvent(new Event("focus"));
-var el1 = bA.el;
-key(el1, "Enter");
-ok(sel3() === "1", "P2-7 Enter on the focused block selects it");
-var y0 = ed3.getPos("1")[1];
-key(el1, "ArrowDown");
-ok(ed3.getPos("1")[1] === y0 + 10, "P2-7 ArrowDown works after keyboard-only selection");
-var lines1 = ed3.lines.length;
-key(el1, "Delete");
-ok(ed3.getBlockData("1") == null && ed3.lines.length === lines1 - 1, "P2-7 Delete removes the selected block + line");
-ok(
-  ed3.undo() && ed3.getBlockData("1") != null && ed3.lines.length === lines1,
-  "P2-7 undo restores the keyboard-deleted block"
-);
-var el1again = ed3.getBlockData("1").el;
-var et = el1again.querySelector(".EditableTitle");
-ok(!!et, "P2-6 Switch title uses EditableTitle");
-et.dispatchEvent(new Event("pointerup", { bubbles: true }));
-ok(et.getAttribute("contenteditable") === "true", "P2-6 title becomes editable on pointerup (E-button flow)");
-console.log(failures ? `
-${failures} FAILURE(S)` : "\nALL SMOKE ASSERTIONS PASSED");
-process.exitCode = failures ? 1 : 0;
+setTimeout(() => {
+  let graph = localStorage.getItem("ne.graph");
+  if (graph) {
+    editor.loadGraph(JSON.parse(graph));
+  } else {
+    let positions = localStorage.getItem("ne.positions");
+    if (positions) {
+      positions = JSON.parse(positions);
+      defaultGraph = {
+        blocks: [
+          { id: "1", type: "Switch", pos: positions["1"] },
+          { id: "2", type: "Switch", pos: positions["2"] },
+          { id: "3", type: "Message", pos: positions["3"] },
+          { id: "4", type: "Message", pos: positions["4"] }
+        ],
+        lines: [
+          ["1/o1", "2/i1"],
+          ["1/o3", "2/i1"]
+        ]
+      };
+    }
+    editor.loadGraph(defaultGraph);
+  }
+  saveGraph();
+}, 1);

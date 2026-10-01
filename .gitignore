@@ -69,4 +69,5 @@ deploy
 dist
 build
 build_dev
+build_vanilla
 coverage

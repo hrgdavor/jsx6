@@ -74,7 +74,10 @@ fn sampleTangent(p0: vec2f, c0: vec2f, c1: vec2f, p1: vec2f, t: f32) -> vec2f {
 }
 
 @fragment fn fs(in: VSOutput) -> @location(0) vec4f {
-  return in.color;
+  // The canvas is configured with alphaMode: premultiplied, so the color
+  // must be premultiplied by its own alpha before it is composited.
+  let c = in.color;
+  return vec4f(c.r * c.a, c.g * c.a, c.b * c.a, c.a);
 }
 `
 

@@ -14,6 +14,15 @@ const FLOATS_PER_EDGE = 16
  * the GPU buffers are created once and grown only when the batch gets
  * bigger, so a frame costs two `writeBuffer` calls and no buffer churn.
  *
+ * The canvas is TRANSPARENT over the page: the context is configured with
+ * `alphaMode: 'premultiplied'` — a WebGPU canvas defaults to `opaque`, which
+ * composites a transparent clear as a black rectangle (see
+ * `docs/webgpu-pitfalls.md`, entry 13). A `clear` of `[0, 0, 0, 0]` (or any
+ * half-transparent color) lets the page background show through; the default
+ * clear `[0.05, 0.05, 0.08, 1]` is opaque and paints a dark background. Edge
+ * colors are still passed as straight `RGBA 0..1` — the fragment shader
+ * premultiplies them by alpha before compositing.
+ *
  * Needs a WebGPU-capable browser (Chromium with WebGPU enabled).
  */
 export class LineRenderer {
@@ -120,7 +129,12 @@ export class LineRenderer {
     if (!this.ctx) throw new Error('Could not acquire the webgpu canvas context')
     const format = gpu.getPreferredCanvasFormat()
     this.format = format
-    this.ctx.configure({ device: this.device, format })
+    // `premultiplied`, not the WebGPU default `opaque`: an opaque canvas
+    // composites its pixels as alpha = 1, so a transparent clear renders as a
+    // black rectangle. With `premultiplied` the canvas is truly transparent
+    // where nothing is drawn — which requires both the clear value and the
+    // fragment output (see LINE_SHADER) to be premultiplied by alpha.
+    this.ctx.configure({ device: this.device, format, alphaMode: 'premultiplied' })
     const module = this.device.createShaderModule({ code: LINE_SHADER })
     this.pipeline = this.device.createRenderPipeline({
       layout: 'auto',

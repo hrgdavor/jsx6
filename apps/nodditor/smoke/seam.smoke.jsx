@@ -53,10 +53,12 @@ const jsx6Imports = source => {
 }
 
 // ---------- SEAM-1: the allowed coupling points ----------
-// Restoring the pre-refactor discovery path means two files import `@jsx6/*` directly on purpose
-// (see test/runtime.test.js). This suite pins that list instead of demanding a single importer, so
-// adding a third direct import still fails here.
-const DIRECT_IMPORTERS = ['NodeEditor.jsx', 'connectorUtil.js']
+// Restoring the pre-refactor discovery path means three files import `@jsx6/*` directly on purpose
+// (see test/runtime.test.js): `connectorUtil.js` statically, and `canvasLineLayer.js` dynamically
+// imports the OPTIONAL `@jsx6/line-render` (unresolvable → warn → the SVG line layer stays). This
+// suite pins that list instead of demanding a single importer, so adding a fourth direct import
+// still fails here.
+const DIRECT_IMPORTERS = ['NodeEditor.jsx', 'canvasLineLayer.js', 'connectorUtil.js']
 const sourceFiles = walk(SRC).filter(f => /\.jsx?$/.test(f))
 const offenders = []
 const direct = []

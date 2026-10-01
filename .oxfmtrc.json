@@ -42,6 +42,7 @@
     "dist",
     "build",
     "build_dev",
+    "build_vanilla",
     "coverage",
     "pnpm-lock.yaml",
     "yarn.lock",

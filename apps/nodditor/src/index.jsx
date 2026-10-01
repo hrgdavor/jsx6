@@ -12,6 +12,9 @@ import { NodeEditor } from './NodeEditor.jsx'
 import { Message } from './blocks/Message.js'
 import { Switch } from './blocks/Switch.js'
 
+import { createSvgLineLayer } from './lineLayer.js'
+import { loadLineRender, makeCanvasLineLayer } from './canvasLineLayer.js'
+
 // click through empty parts of SVG
 // https://stackoverflow.com/questions/22483643/svg-still-receives-clicks-even-if-pointer-events-visible-painted/29319009#29319009
 
@@ -95,6 +98,75 @@ const editor = (
 )
 
 backend.current.insert(document.body, <div class="fxs1 fx1">{editor}</div>)
+
+/* ---- Line layer toggle: SVG (default) ↔ line-render (WebGPU canvas) ----
+
+   The editor's line layer is pluggable (`editor.setLineLayer`); the default is the
+   zero-dependency SVG layer. This toggle swaps in the WebGPU canvas layer from the
+   OPTIONAL dependency `@jsx6/line-render` and back. If the package is not installed,
+   or WebGPU is unavailable, the toggle reports it and the editor keeps the SVG layer. */
+let lineLayerMode = 'svg'
+let switchingLayer = false
+const toggleLabel = document.createElement('span')
+const toggleButton = document.createElement('button')
+toggleButton.type = 'button'
+const toggleBar = document.createElement('div')
+toggleBar.className = 'ne-demo-line-toggle'
+toggleBar.append(toggleLabel, toggleButton)
+
+function updateToggleUi() {
+  if (lineLayerMode == 'svg') {
+    toggleLabel.textContent = 'line layer: SVG'
+    toggleButton.textContent = 'switch to line-render (WebGPU)'
+  } else if (lineLayerMode == 'canvas') {
+    toggleLabel.textContent = 'line layer: line-render (WebGPU)'
+    toggleButton.textContent = 'switch back to SVG'
+  } else {
+    toggleLabel.textContent = 'line layer: SVG — line-render unavailable'
+    toggleButton.disabled = true
+    toggleButton.textContent = 'unavailable'
+  }
+}
+
+async function switchToCanvas() {
+  if (switchingLayer || lineLayerMode != 'svg') return
+  switchingLayer = true
+  try {
+    const lr = await loadLineRender()
+    if (!lr) {
+      lineLayerMode = 'unavailable'
+      updateToggleUi()
+      return
+    }
+    const layer = makeCanvasLineLayer(editor, lr)
+    editor.setLineLayer(layer)
+    // drawing starts when the GPU is ready; if init fails (no WebGPU), go back to SVG
+    layer.ready
+      .then(() => {
+        lineLayerMode = 'canvas'
+        updateToggleUi()
+      })
+      .catch(() => {
+        editor.setLineLayer(createSvgLineLayer(editor))
+        lineLayerMode = 'unavailable'
+        updateToggleUi()
+      })
+  } finally {
+    switchingLayer = false
+  }
+}
+
+toggleButton.onclick = () => {
+  if (lineLayerMode == 'canvas') {
+    editor.setLineLayer(createSvgLineLayer(editor))
+    lineLayerMode = 'svg'
+    updateToggleUi()
+  } else {
+    switchToCanvas()
+  }
+}
+updateToggleUi()
+backend.current.insert(document.body, toggleBar)
 
 // the default demo graph, used on first run and as the migration target for
 // the old position-only `ne.positions` storage

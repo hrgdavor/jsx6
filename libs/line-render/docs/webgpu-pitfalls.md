@@ -209,3 +209,25 @@ the packer unit test.
   y-flip ever changes, the blit UV must change with it.
 - **Sampler for the downscale:** `clamp-to-edge` on both axes, linear
   mag/min, no mips — exactly the filtering a canvas downscale wants.
+
+## 13. WebGPU canvas alpha: `opaque` is the default, and a transparent clear renders black
+
+**Symptom.** The canvas line layer in `apps/nodditor` (clear `[0, 0, 0, 0]`)
+painted an opaque black rectangle instead of a transparent overlay over the
+editor.
+
+**Root cause.** `canvas.getContext('webgpu')` + `configure()` without an
+`alphaMode` defaults to `opaque`: the browser composites the canvas as if
+every pixel had alpha 1, so the clear value's alpha component is ignored and
+`[0,0,0,0]` becomes black. The fragment shader also emitted straight
+(un-premultiplied) colors, which would be wrong even on a transparent canvas.
+
+**Fix.** `configure({ device, format, alphaMode: 'premultiplied' })`, and
+premultiply the color by its alpha in the fragment shader
+(`vec4f(c.rgb * c.a, c.a)`). The blit pass is a straight pass-through — the
+premultiplied values stay premultiplied through the downscale.
+
+**Rule.** A WebGPU canvas is opaque unless you ask for alpha. A canvas that
+must let the page background show through needs `alphaMode: 'premultiplied'`,
+and every color written to it — fragment output AND `clearValue`, which
+WebGPU interprets as premultiplied — must be premultiplied by its own alpha.

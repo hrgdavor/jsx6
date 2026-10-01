@@ -80,6 +80,14 @@ const edge = {
 The viewport convention is `screenPos = worldPos * zoom + pan`, the same
 convention nodditor uses for its pan/zoom.
 
+The canvas is **transparent**: the context is configured with
+`alphaMode: 'premultiplied'` (the WebGPU default `opaque` would composite a
+transparent clear as a black rectangle), so a `clear` of `[0, 0, 0, 0]` — or
+any half-transparent color — lets the page background show through. Edge
+colors are still passed as straight `RGBA 0..1`; the renderer premultiplies
+them by alpha for compositing. The `clear` value goes straight to WebGPU and
+is interpreted as premultiplied (identical for opaque, alpha-1 colors).
+
 ## Other shapes (lines, circles, polygons)
 
 The renderer is a batch of cubic Bezier strokes, and every 2D outline is a
@@ -256,6 +264,16 @@ then open in a WebGPU-capable browser:
   `find`).
 - GPU buffers are created once and grown as the batch grows; a frame costs two
   `writeBuffer` calls and no buffer allocation.
+- **Background / alpha caveat:** a WebGPU canvas defaults to `opaque` — with
+  that setting a transparent `clear` still renders as a black rectangle,
+  because the browser composites every pixel as alpha 1. `LineRenderer`
+  therefore requests `alphaMode: 'premultiplied'`: a `clear` of
+  `[0, 0, 0, 0]` (or any half-transparent color) lets the page background
+  show through, while the default `clear` `[0.05, 0.05, 0.08, 1]` is opaque
+  and paints a dark background. Every color written to the canvas — fragment
+  output and `clearValue` — is premultiplied by its own alpha; edge colors
+  are still passed to the API as straight `RGBA 0..1`.
+  See `docs/webgpu-pitfalls.md`, entry 13.
 - `docs/webgpu-pitfalls.md` — the MSAA/supersampling caveats and every
   initialization error hit along the way (uniform fetch layout, MSAA resolve
   direction, WGSL builtin names, required `layout`, `TEXTURE_BINDING`, ...).

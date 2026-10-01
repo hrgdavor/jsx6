@@ -2,13 +2,17 @@
  * Guard for the backend seam.
  *
  * `src/runtime-default.js` is the module that maps the backend contract onto the real packages, and
- * `backend.current` is how most of the library reaches them. Two files are deliberately **outside**
+ * `backend.current` is how most of the library reaches them. Three files are deliberately **outside**
  * the seam because their pre-refactor behaviour has to be preserved byte for byte:
  *
  *   - `src/NodeEditor.jsx` — the editor's own primitives (class/attr helpers, element creation,
  *     `JsxW`, `$Or`/`observeNow`);
  *   - `src/connectorUtil.js` — connector discovery, which reads `ncid`/`ne-connect` through jsx6's
- *     `getAttr` and observes with `@jsx6/dom-observer`.
+ *     `getAttr` and observes with `@jsx6/dom-observer`;
+ *   - `src/canvasLineLayer.js` — the WebGPU line layer, the integration point for the OPTIONAL
+ *     dependency `@jsx6/line-render`; its one dynamic import is the only such reference outside
+ *     the backend and the two files above, and it is wrapped so the editor degrades to the SVG
+ *     layer when the package is not installed.
  *
  * Anything else must go through `backend.current`, and the demo surface (`src/index.jsx`,
  * `src/blocks/*`) must not import jsx6 at all. Keeping the allow-list explicit is the point: adding
@@ -26,6 +30,8 @@ const DEFAULT_BACKEND = join(ROOT, 'runtime-default.js')
 const DIRECT_IMPORTERS = [
   'NodeEditor.jsx', // editor primitives: restored to direct imports
   'connectorUtil.js', // discovery: getAttr + dom-observer, restored to direct imports
+  // optional-dependency integration point: its single dynamic import is `@jsx6/line-render`
+  'canvasLineLayer.js',
 ]
 /** The JSX demo page and its block components: they must stay jsx6-free. */
 const DEMO_SURFACE = ['index.jsx', 'blocks/Switch.js', 'blocks/Message.js']

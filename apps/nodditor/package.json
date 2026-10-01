@@ -69,5 +69,8 @@
     "@jsx6/signal": "workspace:*",
     "@jsx6/jsx-runtime": "workspace:*",
     "@jsx6/dom-observer": "workspace:*"
+  },
+  "optionalDependencies": {
+    "@jsx6/line-render": "workspace:*"
   }
 }

@@ -100,7 +100,7 @@ var observeNow = ($signal, callback) => observe($signal, callback, true);
 var observe = ($signal, callback, trigger = false) => _observe($signal, callback, trigger, true);
 function _observe(obj, callback, trigger = false, passValue = false) {
   let bindingSub;
-  let value;
+  let value2;
   let unsubscribe;
   if (obj) {
     bindingSub = obj[subscribeSymbol];
@@ -110,7 +110,7 @@ function _observe(obj, callback, trigger = false, passValue = false) {
         unsubscribe = bindingSub(wrapped);
       }
       if (passValue)
-        value = obj();
+        value2 = obj();
     } else {
       bindingSub = obj.then || obj.subscribe;
       if (bindingSub && callback) {
@@ -118,12 +118,12 @@ function _observe(obj, callback, trigger = false, passValue = false) {
         bindingSub.call(obj, wrapped);
       } else {
         if (passValue)
-          value = obj;
+          value2 = obj;
       }
     }
   }
   if (trigger)
-    callback(value);
+    callback(value2);
   return unsubscribe;
 }
 var isObservable = (obj) => !!(obj && (obj[subscribeSymbol] || typeof obj.then === "function" || typeof obj.subscribe === "function"));
@@ -152,16 +152,16 @@ var markFile = (() => {
     return "";
   }
 })();
-var lineFile = (line2) => line2.match(/\(?([^()\s]+?):\d+:\d+\)?$/)?.[1] || "";
-var isInternal = (line2) => {
-  if (!line2 || line2.includes("new Error"))
+var lineFile = (line) => line.match(/\(?([^()\s]+?):\d+:\d+\)?$/)?.[1] || "";
+var isInternal = (line) => {
+  if (!line || line.includes("new Error"))
     return true;
-  if (markFile && line2.includes(markFile))
+  if (markFile && line.includes(markFile))
     return true;
-  return LIBRARY_FILES.test(line2);
+  return LIBRARY_FILES.test(line);
 };
-var siteOfLine = (line2, raw) => {
-  const m = line2.match(/\(?([^()\s]+?):(\d+):(\d+)\)?$/);
+var siteOfLine = (line, raw) => {
+  const m = line.match(/\(?([^()\s]+?):(\d+):(\d+)\)?$/);
   if (!m)
     return null;
   return { text: `${m[1]}:${m[2]}:${m[3]}`, file: m[1], line: +m[2], column: +m[3], raw };
@@ -170,28 +170,28 @@ var extraInternal = [];
 var captureFrom = (raw, skip = 0) => {
   const stack = String(raw || "");
   const lines = stack.split("\n").slice(1 + skip);
-  for (const line2 of lines) {
-    if (isInternal(line2))
+  for (const line of lines) {
+    if (isInternal(line))
       continue;
     let own = false;
     for (const file of extraInternal) {
-      if (line2.includes(file)) {
+      if (line.includes(file)) {
         own = true;
         break;
       }
     }
     if (own)
       continue;
-    const site = siteOfLine(line2, stack);
+    const site = siteOfLine(line, stack);
     if (site)
       return site;
   }
-  for (const line2 of lines) {
-    if (!line2 || line2.includes("new Error"))
+  for (const line of lines) {
+    if (!line || line.includes("new Error"))
       continue;
-    if (markFile && lineFile(line2) === markFile)
+    if (markFile && lineFile(line) === markFile)
       continue;
-    const site = siteOfLine(line2, stack);
+    const site = siteOfLine(line, stack);
     if (site)
       return site;
   }
@@ -227,13 +227,13 @@ function staticSignal(obj) {
   $signal[Symbol.toPrimitive] = $signal.get = $signal;
   return $signal;
 }
-function prepareSignal(value, name) {
+function prepareSignal(value2, name) {
   const listeners = /* @__PURE__ */ new Set();
   const origin = name && signalsTraced ? captureFrom(new Error().stack) : null;
   function setValue2(v) {
-    if (v === value)
+    if (v === value2)
       return;
-    value = v;
+    value2 = v;
     return true;
   }
   const $signal = (...args) => {
@@ -241,7 +241,7 @@ function prepareSignal(value, name) {
       const collector = trackState.collector;
       if (collector !== null)
         collector.add($signal);
-      return value;
+      return value2;
     }
     if (setValue2(args[0])) {
       fireChanged();
@@ -264,7 +264,7 @@ function prepareSignal(value, name) {
     return () => listeners.delete(u);
   };
   $signal[triggerSymbol] = fireChanged;
-  $signal[Symbol.toPrimitive] = $signal.get = () => value;
+  $signal[Symbol.toPrimitive] = $signal.get = () => value2;
   if (origin)
     attachTrace($signal, { kind: "signal", listeners, origin });
   return { $signal, fireChanged, listeners, setValue: setValue2 };
@@ -498,12 +498,12 @@ function createComputed(getValue2, { eager = false, declaredDeps = [], name, col
 // ../../libs/signal/src/state-write-observer.js
 var stateWriteObservers = null;
 var hasStateWriteObservers = () => stateWriteObservers !== null;
-var notifyStateWrite = (child, value) => {
+var notifyStateWrite = (child, value2) => {
   if (stateWriteObservers === null)
     return;
   for (const observer of [...stateWriteObservers]) {
     try {
-      observer(child, value);
+      observer(child, value2);
     } catch (e) {
       console.error(e, observer);
     }
@@ -593,11 +593,11 @@ function $State(initial) {
   specialProps.set(mergeValueSymbol2, updateValue);
   specialProps.set(Symbol.toPrimitive, (hint) => hint === "number" ? NaN : JSON.stringify(getValue2()));
   let statePproxy = new Proxy($state, {
-    set: function(_, prop, value) {
+    set: function(_, prop, value2) {
       const child = getSignal(prop);
-      if (hasStateWriteObservers() && !Object.is(child(), value))
-        notifyStateWrite(child, value);
-      child(value);
+      if (hasStateWriteObservers() && !Object.is(child(), value2))
+        notifyStateWrite(child, value2);
+      child(value2);
       return true;
     },
     get: function(_, prop) {
@@ -670,58 +670,58 @@ function mapProp(obj, callback, asArray) {
 
 // ../../libs/jsx6/src/setValue.js
 var setValueFilterSymbol = Symbol.for("setValueFilterSymbol");
-function applySetValueFilter(value, source) {
+function applySetValueFilter(value2, source) {
   let filter = source[setValueFilterSymbol];
-  return filter ? filter(value) : value;
+  return filter ? filter(value2) : value2;
 }
-function setValue(obj, value) {
+function setValue(obj, value2) {
   if (obj === null || obj === void 0)
     return;
-  value = applySetValueFilter(value, obj);
+  value2 = applySetValueFilter(value2, obj);
   if (isFunc(obj.setValue))
-    return obj.setValue(value);
+    return obj.setValue(value2);
   if (isFunc(obj))
-    return setValue(obj(), value);
+    return setValue(obj(), value2);
   if (isNode(obj)) {
-    if (value === void 0 || value === null)
-      value = "";
+    if (value2 === void 0 || value2 === null)
+      value2 = "";
     if (obj.tagName === "INPUT" && obj.type === "checkbox") {
-      obj.checked = value;
+      obj.checked = value2;
     } else {
-      obj.value = value;
+      obj.value = value2;
     }
   } else {
-    value = value || {};
+    value2 = value2 || {};
     mapProp(obj, (o, p) => {
       if (o)
-        setValue(o, value[p]);
+        setValue(o, value2[p]);
     });
   }
 }
 
 // ../../libs/jsx6/src/getValue.js
 var getValueFilterSymbol = Symbol.for("getValueFilterSymbol");
-function applyGetValueFilter(value, source) {
+function applyGetValueFilter(value2, source) {
   let filter = source[getValueFilterSymbol];
-  return filter ? filter(value) : value;
+  return filter ? filter(value2) : value2;
 }
 function getValue(obj) {
   if (obj === null || obj === void 0)
     return obj;
-  let value = obj.value;
+  let value2 = obj.value;
   if (isFunc(obj.getValue)) {
-    value = obj.getValue();
+    value2 = obj.getValue();
   } else if (isFunc(obj)) {
-    value = getValue(obj());
+    value2 = getValue(obj());
   } else if (isNode(obj)) {
     if (obj.tagName === "INPUT" && obj.type === "checkbox") {
-      value = obj.checked;
+      value2 = obj.checked;
     }
   } else {
     if (isObj(obj))
       return mapProp(obj, getValue);
   }
-  return applyGetValueFilter(value, obj);
+  return applyGetValueFilter(value2, obj);
 }
 
 // ../../libs/jsx6/src/dispose.js
@@ -784,8 +784,8 @@ function walkDispose(node) {
 
 // ../../libs/jsx6/src/directives.js
 var directives = {};
-function addDirective(key2, directive) {
-  directives[key2] = directive;
+function addDirective(key, directive) {
+  directives[key] = directive;
 }
 addDirective("x-if", (el, a, $signal, self) => {
   let updater = (v) => setAttribute(el, "hidden", !v);
@@ -1038,11 +1038,11 @@ function insertAttr(attr, out, self, component) {
   if (!self)
     self = getScope();
   for (let a in attr) {
-    let value = attr[a];
+    let value2 = attr[a];
     if (a[0] === "o" && a[1] === "n") {
-      if (isFunc(value)) {
+      if (isFunc(value2)) {
         const eventName = a.substring(2).toLowerCase();
-        const listener = value.bind(self);
+        const listener = value2.bind(self);
         out.addEventListener(eventName, listener);
         if (typeof out.removeEventListener === "function") {
           addDisposer(out, () => out.removeEventListener(eventName, listener));
@@ -1050,33 +1050,33 @@ function insertAttr(attr, out, self, component) {
       } else {
         throwErr(JSX6E9_LISTENER_MUST_BE_FUNC, attr);
       }
-      value = void 0;
+      value2 = void 0;
     } else if (a === "key") {
-      out.loopKey = value;
+      out.loopKey = value2;
       if (!out.$key) {
-        out.$key = value;
+        out.$key = value2;
       }
       if (component) {
         if (!component.$key) {
-          component.$key = value;
+          component.$key = value2;
         }
-        component.loopKey = value;
+        component.loopKey = value2;
       }
     } else if (a[0] === "x") {
       let directive = directives[a];
       if (directive) {
-        directive(out, a, value, self);
-        value = null;
+        directive(out, a, value2, self);
+        value2 = null;
       }
     } else if (a === "p") {
-      setPropGroup(self, component || out, value);
+      setPropGroup(self, component || out, value2);
     }
-    if (value !== void 0) {
-      if (isFunc(value)) {
-        let updater = makeAttrUpdater(out, a, value);
-        addDisposer(out, observeNow(value, updater));
+    if (value2 !== void 0) {
+      if (isFunc(value2)) {
+        let updater = makeAttrUpdater(out, a, value2);
+        addDisposer(out, observeNow(value2, updater));
       } else if (out.setAttribute) {
-        setAttribute(out, a, value);
+        setAttribute(out, a, value2);
       }
     }
   }
@@ -1153,10 +1153,10 @@ var factories = {
 };
 
 // ../../libs/jsx6/src/setAttrBoolean.js
-function setAttrBoolean(obj, attr, value) {
+function setAttrBoolean(obj, attr, value2) {
   if (obj) {
     if (obj.setAttribute) {
-      if (value) {
+      if (value2) {
         if (!obj.hasAttribute(attr))
           obj.setAttribute(attr, attr);
       } else {
@@ -1164,10 +1164,10 @@ function setAttrBoolean(obj, attr, value) {
           obj.removeAttribute(attr);
       }
     } else if (isNode(obj.el)) {
-      setAttrBoolean(obj.el, attr, value);
+      setAttrBoolean(obj.el, attr, value2);
     } else if (isObj(obj)) {
       for (const p in obj) {
-        setAttrBoolean(obj[p], attr, p === value);
+        setAttrBoolean(obj[p], attr, p === value2);
       }
     }
   }
@@ -1354,19 +1354,19 @@ function observeIntersect(el, callback, { root, rootMargin, threshold, detail } 
     }
     threshold.push(1);
   }
-  const key2 = JSON.stringify({ rootMargin, threshold });
+  const key = JSON.stringify({ rootMargin, threshold });
   let observerMap;
   if (root) {
     observerMap = root[observerSymbol] = root[observerSymbol] || /* @__PURE__ */ new Map();
   } else {
     observerMap = oberverMapBrowser;
   }
-  let handler = observerMap.get(key2);
+  let handler = observerMap.get(key);
   if (!handler) {
     handler = makeObserverHandler("IntersectionObserver");
     const observer = new IntersectionObserver(handler, { root, rootMargin, threshold });
     handler.observer = observer;
-    observerMap.set(key2, handler);
+    observerMap.set(key, handler);
   }
   return handler.observe(el, callback);
 }
@@ -1414,6 +1414,191 @@ var backend = {
     return resolved;
   }
 };
+function setRuntime(implementation) {
+  const previous = replacement;
+  replacement = implementation;
+  resolved = null;
+  return previous;
+}
+
+// static/vanilla/demo.js
+function makeBlock(type, title, ports) {
+  const el = document.createElement("div");
+  el.className = "vb";
+  el.dataset.type = type;
+  const head = document.createElement("div");
+  head.className = "vb-title";
+  head.setAttribute("ne-drag", "");
+  head.textContent = title;
+  el.appendChild(head);
+  const body = document.createElement("div");
+  body.className = "vb-body";
+  for (const { ncid, dir, label } of ports) {
+    const row = document.createElement("div");
+    row.className = "vb-row";
+    row.setAttribute("ne-item", "");
+    row.textContent = label;
+    const port = document.createElement("span");
+    port.className = "vb-port";
+    port.setAttribute("ncid", ncid);
+    port.setAttribute("ne-connect", dir);
+    row.appendChild(port);
+    body.appendChild(row);
+  }
+  el.appendChild(body);
+  return el;
+}
+var PORTS = {
+  Switch: [
+    { ncid: "i1", dir: "in", label: "in" },
+    { ncid: "o1", dir: "out", label: "on" },
+    { ncid: "o2", dir: "out", label: "off" }
+  ],
+  Message: [
+    { ncid: "i1", dir: "in", label: "text" },
+    { ncid: "o1", dir: "out", label: "out" }
+  ],
+  Value: [{ ncid: "o1", dir: "out", label: "value" }]
+};
+var typeMap = Object.fromEntries(
+  Object.keys(PORTS).map((type) => [type, () => makeBlock(type, type, PORTS[type])])
+);
+var defaultGraph = {
+  blocks: [
+    { id: "1", type: "Value", pos: [20, 30] },
+    { id: "2", type: "Switch", pos: [220, 20] },
+    { id: "3", type: "Message", pos: [220, 230] },
+    { id: "4", type: "Message", pos: [470, 230] }
+  ],
+  lines: [
+    ["1/o1", "2/i1"],
+    ["2/o1", "3/i1"],
+    ["2/o2", "4/i1"]
+  ]
+};
+function startVanillaDemo(host2, { persist = true, onStatus } = {}) {
+  const setStatus = (message) => onStatus?.(message);
+  let nextId = 0;
+  const newId = () => `n${++nextId}`;
+  const menu = document.createElement("div");
+  menu.className = "ne-menu";
+  menu.style.cssText = "display:flex;gap:2px;padding:3px;border:solid 1px #bbb;background:#fff;border-radius:6px";
+  const menuButton = (label, title, onClick) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "ne-bt";
+    b.textContent = label;
+    b.title = title;
+    b.addEventListener("click", onClick);
+    return b;
+  };
+  host2.menuGenerator = () => menu;
+  host2.typeMap = typeMap;
+  host2.zoomMin = 0.3;
+  host2.zoomMax = 4;
+  host2.snap = 0;
+  host2.setAttribute("tabindex", "0");
+  const save = () => {
+    if (!persist)
+      return;
+    try {
+      localStorage.setItem("ne.vanilla.graph", JSON.stringify(host2.saveGraph()));
+    } catch (err) {
+      console.warn("vanilla demo: could not persist the graph", err);
+    }
+  };
+  const restore = () => {
+    let stored = null;
+    if (persist) {
+      try {
+        stored = JSON.parse(localStorage.getItem("ne.vanilla.graph") || "null");
+      } catch (err) {
+        console.warn("vanilla demo: stored graph was not JSON, using the default", err);
+      }
+    }
+    host2.loadGraph(stored || defaultGraph);
+    nextId = host2.blocks.reduce((max, b) => Math.max(max, Number(String(b.id).replace(/\D/g, "")) || max), 0);
+    setStatus(`${host2.blocks.length} blocks`);
+  };
+  const addBlock = (type) => {
+    const data = host2.add(typeMap[type](), newId(), {
+      type,
+      pos: [40 + host2.blocks.length % 4 * 30, 40 + host2.blocks.length * 20]
+    });
+    host2.selectBlocks([data]);
+    setStatus(`added ${type} ${data.id}`);
+    save();
+  };
+  const linkSelection = () => {
+    const [a, b] = host2.selectedBlocks || [];
+    if (!a || !b) {
+      setStatus("link needs two selected blocks");
+      return;
+    }
+    const out = [...a.connectorMap.values()].find((c) => c.dir === "out");
+    const inp = [...b.connectorMap.values()].find((c) => c.dir === "in");
+    if (!out || !inp) {
+      setStatus("no free out/in on the selected blocks");
+      return;
+    }
+    host2.addConnectorFromTo(out.idFull, inp.idFull);
+    setStatus(`${out.idFull} -> ${inp.idFull}`);
+    save();
+  };
+  const deleteSelection = () => {
+    if ((host2.selectedBlocks || []).length)
+      host2.selectConnector(null);
+    host2.deleteSelection();
+    save();
+  };
+  menu.replaceChildren(
+    menuButton("\u2715", "Delete selection", deleteSelection),
+    menuButton("\u21B6", "Undo", () => host2.undo()),
+    menuButton("\u21B7", "Redo", () => host2.redo()),
+    menuButton("\u26F6", "Fit", () => host2.resetView())
+  );
+  host2.addEventListener("ne-move-done", save);
+  host2.addEventListener("ne-remove", () => {
+    setStatus(`${host2.blocks.length} blocks`);
+    save();
+  });
+  host2.addEventListener("ne-move", (e) => setStatus(`moved ${e.detail.connectors.length} connectors`));
+  host2.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      host2.changeZoomMouse(e.deltaY > 0 ? -0.1 : 0.1, e);
+    },
+    { passive: false }
+  );
+  host2.addEventListener("keydown", (e) => {
+    if (e.key === "l" && !e.ctrlKey && !e.metaKey && !e.altKey)
+      linkSelection();
+  });
+  document.addEventListener("click", (e) => {
+    const act = e.target.closest?.("[data-act]")?.dataset.act;
+    if (!act)
+      return;
+    if (act === "switch")
+      addBlock("Switch");
+    else if (act === "message")
+      addBlock("Message");
+    else if (act === "link")
+      linkSelection();
+    else if (act === "delete")
+      deleteSelection();
+    else if (act === "undo")
+      host2.undo();
+    else if (act === "redo")
+      host2.redo();
+    else if (act === "fit")
+      host2.resetView();
+    else if (act === "snap")
+      host2.snap = e.target.checked ? 20 : 0;
+  });
+  restore();
+  return host2;
+}
 
 // src/listenUntil.js
 var map = /* @__PURE__ */ new WeakMap();
@@ -1552,7 +1737,7 @@ var ConnectLine = class {
       this.updatePath();
   }
   updatePath() {
-    let line2 = makeLineConnector(
+    let line = makeLineConnector(
       this.strength,
       this.p1.pos,
       this.p1.pos,
@@ -1565,10 +1750,10 @@ var ConnectLine = class {
       [100, 100],
       "L"
     );
-    this.d = line2;
-    this.line1.setAttribute("d", line2);
-    this.line2.setAttribute("d", line2);
-    this.pathListeners.forEach((fn) => fn(line2));
+    this.d = line;
+    this.line1.setAttribute("d", line);
+    this.line2.setAttribute("d", line);
+    this.pathListeners.forEach((fn) => fn(line));
   }
   /**
    * Register a callback invoked whenever the path is recomputed, with the new
@@ -1618,19 +1803,19 @@ function createSvgLineLayer(editor) {
      * pre-seam behaviour.
      * @param {ConnectLine} line
      */
-    add(line2) {
-      listenUntil(line2, line2.el, "click", () => {
-        editor.selectConnector(line2);
+    add(line) {
+      listenUntil(line, line.el, "click", () => {
+        editor.selectConnector(line);
       });
-      backend.current.insert(editor.svgLayer, line2.el);
+      backend.current.insert(editor.svgLayer, line.el);
     },
     /**
      * Detach the line's element. (Its listeners are released by the editor's
      * `finalize(line)`; the layer owns only the element.)
      * @param {ConnectLine} line
      */
-    remove(line2) {
-      backend.current.remove(line2.el);
+    remove(line) {
+      backend.current.remove(line.el);
     },
     /**
      * Apply the three visual states with the same `classIf` calls the CSS
@@ -1640,10 +1825,10 @@ function createSvgLineLayer(editor) {
      * @param {boolean} fromSel
      * @param {boolean} toSel
      */
-    setStates(line2, selected, fromSel, toSel) {
-      backend.current.classIf(line2.el, "selected", selected);
-      backend.current.classIf(line2.el, "ne-from-sel-block", fromSel);
-      backend.current.classIf(line2.el, "ne-to-sel-block", toSel);
+    setStates(line, selected, fromSel, toSel) {
+      backend.current.classIf(line.el, "selected", selected);
+      backend.current.classIf(line.el, "ne-from-sel-block", fromSel);
+      backend.current.classIf(line.el, "ne-to-sel-block", toSel);
     },
     /**
      * Never hit: in SVG mode the `<g>`'s own click listener selects the line,
@@ -1687,21 +1872,21 @@ var LineInteraction = class {
     let isMoving = false;
     let lx = 0;
     let ly = 0;
-    let line2;
+    let line;
     let firstCon;
     let otherCon;
     let freeEnd;
     const setFreePos = (x, y) => {
       if (freeEnd == "p1")
-        line2.setPos1(x, y);
+        line.setPos1(x, y);
       else
-        line2.setPos2(x, y);
+        line.setPos2(x, y);
     };
     const setFreePoint = (c) => {
       if (freeEnd == "p1")
-        line2.setPoint1(c);
+        line.setPoint1(c);
       else
-        line2.setPoint2(c);
+        line.setPoint2(c);
     };
     let lastX = 0;
     let lastY = 0;
@@ -1753,14 +1938,14 @@ var LineInteraction = class {
       let selected = this.editor.selectedLine;
       if (selected) {
         if (selected.p2.con == con) {
-          line2 = selected;
+          line = selected;
           firstCon = con;
           freeEnd = "p2";
           isDown = true;
           return;
         }
         if (selected.p1.con == con) {
-          line2 = selected;
+          line = selected;
           firstCon = con;
           freeEnd = "p1";
           isDown = true;
@@ -1780,12 +1965,12 @@ var LineInteraction = class {
       let x = lastX = e.clientX;
       let y = lastY = e.clientY;
       if (!isMoving) {
-        if (!line2)
-          line2 = this.editor.addConnector(new ConnectLine());
-        this.editor.selectConnector(line2);
-        line2.setSelected(true);
-        if (!line2.p1.con)
-          line2.setPoint1(con);
+        if (!line)
+          line = this.editor.addConnector(new ConnectLine());
+        this.editor.selectConnector(line);
+        line.setSelected(true);
+        if (!line.p1.con)
+          line.setPoint1(con);
         firstCon = con;
         markTarget(con, 1);
         let rect = this.editor.getBoundingClientRect();
@@ -1804,13 +1989,13 @@ var LineInteraction = class {
       markTarget(firstCon);
       markTarget(otherCon);
       if (otherCon) {
-        line2.setSelected(true);
+        line.setSelected(true);
       } else {
-        this.editor.removeLine(line2);
+        this.editor.removeLine(line);
       }
       isDown = false;
       isMoving = false;
-      line2 = null;
+      line = null;
       this.editor.historyRecord("connect");
       this.editor.focus();
     };
@@ -2338,14 +2523,14 @@ var NodeEditor = class extends JsxW {
     }
     return false;
   }
-  removeLine(line2) {
-    let idx = this.lines.indexOf(line2);
+  removeLine(line) {
+    let idx = this.lines.indexOf(line);
     if (idx != -1) {
-      if (this.selectedLine == line2)
+      if (this.selectedLine == line)
         this.selectedLine = null;
       this.lines.splice(idx, 1);
-      this.lineLayer.remove(line2);
-      finalize(line2);
+      this.lineLayer.remove(line);
+      finalize(line);
       this.historyRecord("remove");
     }
   }
@@ -2365,7 +2550,7 @@ var NodeEditor = class extends JsxW {
     blockData.connectorMap.delete(con.id);
     blockData.resizeSet.delete(con.el);
     this.observer?.unobserve?.(con.el);
-    let lines = this.lines.filter((line2) => line2.p1.con?.idFull == con.idFull || line2.p2.con?.idFull == con.idFull);
+    let lines = this.lines.filter((line) => line.p1.con?.idFull == con.idFull || line.p2.con?.idFull == con.idFull);
     this.fireCustom(con.el, "ne-remove", { ...con });
     lines.forEach((l) => this.removeLine(l));
     con.el.removeObserve?.();
@@ -2718,14 +2903,14 @@ var NodeEditor = class extends JsxW {
         this.focus();
       }
       if (blockData) {
-        let [x0, y02] = dragStart[0];
+        let [x0, y0] = dragStart[0];
         let nx = x0 + (-lx + e.clientX) / this._zoom;
-        let ny = y02 + (-ly + e.clientY) / this._zoom;
+        let ny = y0 + (-ly + e.clientY) / this._zoom;
         if (this.snap) {
           nx = Math.round(nx / this.snap) * this.snap;
           ny = Math.round(ny / this.snap) * this.snap;
         }
-        dragDelta = [nx - x0, ny - y02];
+        dragDelta = [nx - x0, ny - y0];
         if (!dragRaf)
           dragRaf = requestAnimationFrame(() => {
             dragRaf = 0;
@@ -2769,9 +2954,9 @@ var NodeEditor = class extends JsxW {
         return;
       }
       let g = findParent(e.target, (p) => p.tagName == "g");
-      let line2 = g && this.lines.find((l) => l.el == g) || this.lineLayer.pick(e.clientX, e.clientY);
-      if (line2) {
-        this.selectConnector(line2);
+      let line = g && this.lines.find((l) => l.el == g) || this.lineLayer.pick(e.clientX, e.clientY);
+      if (line) {
+        this.selectConnector(line);
         let menu2 = this.menuGenerator?.([]);
         if (menu2) {
           if (this.currentMenu && this.currentMenu != menu2)
@@ -2791,10 +2976,10 @@ var NodeEditor = class extends JsxW {
       let active = document.activeElement;
       if (active && active.isContentEditable)
         return;
-      let key2 = e.key;
+      let key = e.key;
       let mod = e.ctrlKey || e.metaKey;
       if (mod) {
-        switch (key2.toLowerCase()) {
+        switch (key.toLowerCase()) {
           case "z":
             e.preventDefault();
             if (e.shiftKey)
@@ -2825,10 +3010,10 @@ var NodeEditor = class extends JsxW {
             this.zoomTo(1);
             return;
         }
-      } else if (key2 === "Escape") {
+      } else if (key === "Escape") {
         this.deselect();
         return;
-      } else if (key2 === "Enter" || key2 === " ") {
+      } else if (key === "Enter" || key === " ") {
         let bd = e.target !== this ? this.getBlockData(e.target) : null;
         if (bd) {
           this.selectBlocks([bd]);
@@ -2836,21 +3021,21 @@ var NodeEditor = class extends JsxW {
           return;
         }
         let g = findParent(e.target, (p) => p.tagName == "g");
-        let line2 = g && this.lines.find((l) => l.el == g) || this.lineLayer.pick(e.clientX, e.clientY);
-        if (line2) {
-          this.selectConnector(line2);
+        let line = g && this.lines.find((l) => l.el == g) || this.lineLayer.pick(e.clientX, e.clientY);
+        if (line) {
+          this.selectConnector(line);
           e.preventDefault();
         }
         return;
       }
-      if ((key2 === "Delete" || key2 === "Backspace") && this.$focusOrSelecting()) {
+      if ((key === "Delete" || key === "Backspace") && this.$focusOrSelecting()) {
         this.deleteSelection();
         e.preventDefault();
         return;
       }
       if (this.$focusOrSelecting()) {
-        let dx = key2 == "ArrowLeft" ? -1 : key2 == "ArrowRight" ? 1 : 0;
-        let dy = key2 == "ArrowUp" ? -1 : key2 == "ArrowDown" ? 1 : 0;
+        let dx = key == "ArrowLeft" ? -1 : key == "ArrowRight" ? 1 : 0;
+        let dy = key == "ArrowUp" ? -1 : key == "ArrowDown" ? 1 : 0;
         if (dx || dy) {
           e.preventDefault();
           let step = this.nudgeStep * (e.shiftKey ? 5 : 1);
@@ -3117,11 +3302,11 @@ var NodeEditor = class extends JsxW {
    * @param {ConnectorData} con
    */
   reattachLines(con) {
-    this.lines.forEach((line2) => {
-      if (line2.p1.con === con)
-        line2.setPoint(line2.p1, con, true);
-      if (line2.p2.con === con)
-        line2.setPoint(line2.p2, con, true);
+    this.lines.forEach((line) => {
+      if (line.p1.con === con)
+        line.setPoint(line.p1, con, true);
+      if (line.p2.con === con)
+        line.setPoint(line.p2, con, true);
     });
   }
   /**
@@ -3411,10 +3596,10 @@ var NodeEditor = class extends JsxW {
     this.lineLayer = layer;
     layer.onViewport(this._zoom);
     layer.onResize(this.realWidth, this.realHeight);
-    const selIds2 = new Set((this.selectedBlocks || []).map((b) => b.id));
+    const selIds = new Set((this.selectedBlocks || []).map((b) => b.id));
     this.lines.forEach((l) => {
       layer.add(l);
-      layer.setStates(l, l.selected, !!selIds2.has(l.p1.con?.root.id), !!selIds2.has(l.p2.con?.root.id));
+      layer.setStates(l, l.selected, !!selIds.has(l.p1.con?.root.id), !!selIds.has(l.p2.con?.root.id));
     });
   }
   /**
@@ -3481,15 +3666,15 @@ var NodeEditor = class extends JsxW {
     let sel = this.selectedBlocks;
     if (!sel?.length)
       return;
-    let [x0, y02] = sel[0].pos;
+    let [x0, y0] = sel[0].pos;
     let nx = x0 + dx;
-    let ny = y02 + dy;
+    let ny = y0 + dy;
     if (this.snap) {
       nx = Math.round(nx / this.snap) * this.snap;
       ny = Math.round(ny / this.snap) * this.snap;
     }
     dx = nx - x0;
-    dy = ny - y02;
+    dy = ny - y0;
     sel.forEach((b) => this._setPos(b, [b.pos[0] + dx, b.pos[1] + dy]));
     this.fireMoveDone(sel[0], "nudge");
   }
@@ -3641,115 +3826,7 @@ var NodeEditor = class extends JsxW {
   }
 };
 
-// src/selectElementText.js
-var selectElementText = (el) => {
-  let range = document.createRange();
-  range.selectNodeContents(el);
-  let sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-};
-
-// src/EditableTitle.js
-var EditableTitle = (attr = {}) => {
-  backend.current.addClass(attr, "EditableTitle");
-  const getValue2 = () => el.textContent;
-  const setValue2 = (v) => el.textContent = v;
-  let old;
-  const commit = () => {
-    el.removeAttribute("contenteditable");
-    let value = el.textContent;
-    if (value != old) {
-      backend.current.fireCustom(el, "change", { value });
-    }
-  };
-  let el = /* @__PURE__ */ jsx(
-    "div",
-    {
-      ...attr,
-      onpointerup: (e) => {
-        if (e.ctrlKey || e.shiftKey || e.altKey)
-          return;
-        old = el.textContent;
-        el.setAttribute("contenteditable", "true");
-        selectElementText(el);
-        el.focus();
-      },
-      onkeydown: (e) => {
-        if (!el.isContentEditable)
-          return;
-        if (e.key === "Enter") {
-          commit();
-          e.preventDefault();
-        } else if (e.key === "Escape") {
-          el.textContent = old;
-          el.removeAttribute("contenteditable");
-          e.preventDefault();
-        }
-      },
-      onblur: (e) => {
-        if (el.isContentEditable)
-          commit();
-      }
-    }
-  );
-  return Object.assign(el, { getValue: getValue2, setValue: setValue2 });
-};
-
-// src/blocks/Message.js
-function Message(attr) {
-  backend.current.addClass(attr, "ne-block");
-  let title2 = EditableTitle();
-  title2.setValue("Message");
-  return /* @__PURE__ */ jsx("div", { ...attr, children: [
-    /* @__PURE__ */ jsx("div", { class: "ne-title", "ne-drag": true, "ne-item": true, children: [
-      /* @__PURE__ */ jsx("b", { ncid: "i1", "ne-connect": "in" }),
-      title2
-    ] }),
-    /* @__PURE__ */ jsx("div", { class: "ne-content", children: [
-      /* @__PURE__ */ jsx("div", { "ne-nodrag": true, children: "NO DRAG" }),
-      /* @__PURE__ */ jsx("div", { "ne-item": true, children: [
-        "bla bla",
-        /* @__PURE__ */ jsx("b", { ncid: "o1", "ne-connect": "out" })
-      ] })
-    ] })
-  ] });
-}
-
-// src/blocks/Switch.js
-function Switch(attr) {
-  function expandClick({ target }) {
-    if (target.hasAttribute("ne-item"))
-      return;
-    target.innerHTML += "<br/>-----------";
-  }
-  backend.current.addClass(attr, "ne-block");
-  let title2 = EditableTitle({ onchange: (e) => console.log("change") });
-  title2.setValue("Block 1");
-  return /* @__PURE__ */ jsx("div", { ...attr, children: [
-    /* @__PURE__ */ jsx("div", { class: "ne-title", "ne-drag": true, "ne-item": true, children: [
-      /* @__PURE__ */ jsx("b", { ncid: "i1", "ne-connect": "in" }),
-      title2
-    ] }),
-    /* @__PURE__ */ jsx("div", { class: "ne-content", children: [
-      /* @__PURE__ */ jsx("div", { "ne-nodrag": true, children: "NO DRAG" }),
-      /* @__PURE__ */ jsx("div", { "ne-item": true, children: [
-        /* @__PURE__ */ jsx("div", { onclick: expandClick, children: "-------------" }),
-        /* @__PURE__ */ jsx("b", { ncid: "o1", "ne-connect": "out" })
-      ] }),
-      /* @__PURE__ */ jsx("div", { "ne-item": true, children: [
-        /* @__PURE__ */ jsx("div", { onclick: expandClick, children: "-------------" }),
-        /* @__PURE__ */ jsx("b", { ncid: "o2", "ne-connect": "out" })
-      ] }),
-      /* @__PURE__ */ jsx("div", { "ne-item": true, children: [
-        /* @__PURE__ */ jsx("div", { onclick: expandClick, children: "-------------" }),
-        /* @__PURE__ */ jsx("b", { ncid: "o3", "ne-connect": "out" })
-      ] })
-    ] })
-  ] });
-}
-
-// smoke/p2.smoke.jsx
+// smoke/essential.smoke.js
 var failures = 0;
 var ok = (cond, msg) => {
   if (cond)
@@ -3759,279 +3836,488 @@ var ok = (cond, msg) => {
     console.error("FAIL " + msg);
   }
 };
-var near = (a, b) => Math.abs(a - b) < 1e-9;
-var pev = (target, type, props = {}) => {
-  const e = new Event(type, { bubbles: true, cancelable: true });
-  Object.assign(e, { clientX: 0, clientY: 0, pointerId: 1, button: 0 }, props);
-  target.dispatchEvent(e);
-  return e;
-};
-var key = (target, k, mods = {}) => {
-  const e = new KeyboardEvent("keydown", { key: k, bubbles: true, cancelable: true, ...mods });
-  target.dispatchEvent(e);
-  return e;
-};
-var ctx = (target, x, y) => {
-  const e = new Event("contextmenu", { bubbles: true, cancelable: true });
-  Object.assign(e, { clientX: x, clientY: y, button: 2 });
-  target.dispatchEvent(e);
-  return e;
-};
-var typeMap = { Switch: () => /* @__PURE__ */ jsx(Switch, {}), Message: () => /* @__PURE__ */ jsx(Message, {}) };
-var mkMenu = () => {
-  const el = /* @__PURE__ */ jsx("div", { class: "ne-menu" });
-  return [el, () => el];
-};
-var graph0 = {
-  blocks: [
-    { id: "1", type: "Switch", pos: [0, 0] },
-    { id: "2", type: "Switch", pos: [50, 50] },
-    { id: "3", type: "Message", pos: [400, 400] }
-  ],
-  lines: [
-    ["1/o1", "2/i1"],
-    ["2/o1", "3/i1"]
-  ]
-};
-var [menuEl, menuFn] = mkMenu();
-var ed = new NodeEditor({ menu: menuFn, typeMap });
-document.body.appendChild(ed);
-var ca = ed.contentArea;
-ca.setPointerCapture = () => {
-};
-ca.releasePointerCapture = () => {
-};
-ed.loadGraph(graph0, typeMap);
-ed.blocks.forEach((b) => b.size = [100, 80]);
-var selIds = () => ed.selectedBlocks.map((b) => b.id).join(",");
-ok(ed.blocks.length === 3 && ed.lines.length === 2, "P2 setup: 3 blocks + 2 lines via loadGraph");
-ok(ed.undoStack.length === 0 && ed.redoStack.length === 0, "P2-3 loadGraph resets the history baseline");
-var title = (id) => ed.getBlockData(id).el.querySelector(".ne-title");
-pev(title("1"), "pointerdown");
-pev(title("1"), "pointerup");
-ok(selIds() === "1", "P2-1 plain click selects one block");
-pev(title("2"), "pointerdown");
-pev(title("2"), "pointerup", { ctrlKey: true });
-ok(selIds() === "1,2", "P2-1 Ctrl+click toggles a second block into the selection");
-ok(
-  ed.currentMenu === menuEl && menuEl.style.getPropertyValue("--ne-menu-x") === "75px",
-  `P2-1 menu centered over the group (75px, via --ne-menu-x=${menuEl.style.getPropertyValue("--ne-menu-x")})`
-);
-ok(!menuEl.hasAttribute("hidden"), "P2-1 group menu visible");
-pev(title("1"), "pointerdown");
-pev(title("1"), "pointerup", { shiftKey: true });
-ok(selIds() === "2", "P2-1 Shift+click toggles the first block off");
-pev(ca, "pointerdown");
-pev(ca, "pointerup");
-ok(selIds() === "", "P2-1 click on empty canvas deselects");
-pev(ca, "pointerdown", { clientX: -10, clientY: -10 });
-pev(ca, "pointermove", { clientX: 160, clientY: 160 });
-var marqueeBox = ca.querySelector(".ne-marquee");
-ok(marqueeBox, "P2-1 marquee rectangle shown while dragging on empty canvas");
-if (marqueeBox) {
-  const mcs = getComputedStyle(marqueeBox);
-  ok(!(marqueeBox.getAttribute("style") || "").includes("border"), "P2-1 the marquee carries no inline style");
-  ok(mcs.position === "absolute", `P2-1 the marquee is absolutely positioned (${mcs.position})`);
-  ok(
-    !!mcs.borderTopWidth && mcs.borderTopWidth !== "0px",
-    `P2-1 the marquee has a visible border from the stylesheet (${mcs.borderTopWidth})`
-  );
-  const blockZ = Number(getComputedStyle(ed.getBlockData("1").el).zIndex) || 0;
-  ok(Number(mcs.zIndex) > blockZ, `P2-1 the marquee stacks above the blocks it selects (${mcs.zIndex} > ${blockZ})`);
+var counts = /* @__PURE__ */ new Map();
+var bump = (name) => counts.set(name, (counts.get(name) || 0) + 1);
+function instrument(real2) {
+  const wrapped = {};
+  for (const name of Object.keys(real2)) {
+    const value2 = real2[name];
+    if (typeof value2 !== "function") {
+      wrapped[name] = value2;
+      continue;
+    }
+    wrapped[name] = function(...args) {
+      bump(name);
+      return value2.apply(this === wrapped ? real2 : this, args);
+    };
+  }
+  return wrapped;
 }
-pev(ca, "pointerup", { clientX: 160, clientY: 160 });
-ok(!ca.querySelector(".ne-marquee"), "P2-1 marquee removed on release");
-ok(selIds() === "1,2", "P2-1 marquee selects intersecting blocks only (not block 3)");
-pev(ca, "pointerdown");
-pev(ca, "pointermove", { clientX: 300, clientY: 300 });
-pev(ca, "pointerup", { clientX: 560, clientY: 560, shiftKey: true });
-ok(selIds() === "1,2,3", "P2-1 Shift+marquee adds to the selection");
-key(ed, "Escape");
-ok(selIds() === "" && !ed.selectedLine, "P2-2 Esc deselects everything");
-var selBeforeRight = selIds();
-pev(ca, "pointerdown", { button: 2 });
-pev(ca, "pointerup", { button: 2 });
-ok(selIds() === selBeforeRight, "P2-6 right pointerdown/up does not change the selection");
-ed.dispatchEvent(new Event("focus"));
-var pos0 = JSON.stringify(ed.getPos("1"));
-ed.selectBlocks([ed.getBlockData("1")]);
-var eRight = key(ed, "ArrowRight");
-ok(eRight.defaultPrevented, "P2-2 arrows preventDefault (no page scroll)");
-ok(JSON.stringify(ed.getPos("1")) === "[10,0]", "P2-2 ArrowRight nudges by nudgeStep (10)");
-key(ed, "ArrowUp", { shiftKey: true });
-ok(JSON.stringify(ed.getPos("1")) === "[10,-50]", "P2-2 Shift+Arrow uses the coarse step (5x)");
-key(ed, "z", { ctrlKey: true });
-ok(JSON.stringify(ed.getPos("1")) === pos0, "P2-3 Ctrl+Z reverts both merged nudges");
-key(ed, "z", { ctrlKey: true, shiftKey: true });
-ok(JSON.stringify(ed.getPos("1")) === "[10,-50]", "P2-3 Ctrl+Shift+Z redoes the nudges");
-key(ed, "z", { ctrlKey: true });
-ok(JSON.stringify(ed.getPos("1")) === pos0, "P2-3 undo again restores the loaded positions");
-ok(ed.querySelector(".ne-sr-status") === null, "P2-7 the editor no longer injects a selection-status element");
-key(ed, "a", { ctrlKey: true });
-ok(ed.selectedBlocks.length === 3, "P2-2 Ctrl+A selects all blocks");
-ed.selectBlocks([ed.getBlockData("3")]);
-var el3 = ed.getBlockData("3").el;
-var lines0 = ed.lines.length;
-ed.deleteSelection();
-ok(ed.blocks.length === 2 && ed.lines.length === 1, "P2-3 deleteSelection removes block + its line");
-ed.undo();
-ok(ed.blocks.length === 3 && ed.lines.length === 2, "P2-3 undo restores block + line");
-ok(ed.getBlockData("3").el !== el3 && ed.lineExists("2/o1", "3/i1"), "P2-3 undo rebuilds via typeMap factory");
-ed.redo();
-ok(ed.blocks.length === 2, "P2-3 redo deletes again");
-ed.undo();
-ok(ed.blocks.length === 3, "P2-3 undo back to 3 blocks");
-ed.add(/* @__PURE__ */ jsx(Switch, {}), "9", { type: "Switch", pos: [700, 700] });
-ok(ed.blocks.length === 4, "P2-3 add records history");
-ed.undo();
-ok(ed.blocks.length === 3 && !ed.getBlockData("9"), "P2-3 undo removes the added block");
-var l0 = ed.lines.length;
-ed.addConnectorFromTo("1/o2", "3/i1");
-ok(ed.lines.length === l0 + 1, "P2-3 addConnectorFromTo records history");
-ed.undo();
-ok(ed.lines.length === l0, "P2-3 undo removes the added line");
-ed.redo();
-ok(ed.lines.length === l0 + 1 && ed.undo(), "P2-3 redo re-adds the line");
-ed.undo();
-var edNoMap = new NodeEditor();
-document.body.appendChild(edNoMap);
-edNoMap.add(/* @__PURE__ */ jsx(Switch, {}), "a", { type: "Switch" });
-ok(edNoMap.undo() === false, "P2-3 nothing to undo right after the first recorded change");
-edNoMap.add(/* @__PURE__ */ jsx(Switch, {}), "b", { type: "Switch" });
-ok(edNoMap.undo() === false && edNoMap.blocks.length === 2, "P2-3 undo without typeMap is refused");
-ed.changeZoom(10, 50, 50);
-ok(ed.zoom === 4, "P2-4 wheel zoom can exceed 100% (clamped at default max 4)");
-ok(ed.zoomLabel.textContent === "400%", "P2-4 indicator shows 400%");
-ok(ed.zoomUI.classList.contains("at-max"), "P2-4 UI marks the max bound");
-ed.zoomTo(0.01);
-ok(ed.zoom === 0.3 && ed.zoomLabel.textContent === "30%", "P2-4 min zoom 0.3 + indicator");
-ok(ed.zoomUI.classList.contains("at-min"), "P2-4 UI marks the min bound");
-var plusBt = ed.zoomUI.children[2];
-plusBt.dispatchEvent(new Event("click", { bubbles: true }));
-ok(near(ed.zoom, 0.375), "P2-4 zoom-in button (+25%) works");
-ed.zoomTo(1);
-key(ed, "=", { ctrlKey: true });
-ok(near(ed.zoom, 1.25), "P2-4 Ctrl+= zooms in past 100%");
-key(ed, "0", { ctrlKey: true });
-ok(near(ed.zoom, 1) && ed.zoomLabel.textContent === "100%", "P2-4 Ctrl+0 resets to 100%");
-var ed2 = new NodeEditor({ zoomMin: 0.5, zoomMax: 1.5 });
-document.body.appendChild(ed2);
-ed2.zoomTo(9);
-ok(ed2.zoom === 1.5, "P2-4 tpl zoomMax honored");
-ed2.zoom = 0.1;
-ok(ed2.zoom === 0.5, "P2-4 zoom setter clamps to tpl zoomMin");
-ed.snap = 20;
-ed.setPos(ed.getBlockData("1"), [27, 33]);
-ed.selectBlocks([ed.getBlockData("1")]);
-ed.nudgeSelection(1, 1);
-ok(JSON.stringify(ed.getPos("1")) === "[20,40]", "P2-5 snap aligns the nudged block to the grid");
-ed.snap = 0;
-ed.setPos(ed.getBlockData("1"), [27, 33]);
-ed.nudgeSelection(1, 1);
-ok(JSON.stringify(ed.getPos("1")) === "[28,34]", "P2-5 snap=0 leaves moves unsnapped");
-var [menu3, menuFn3] = mkMenu();
-var ed3 = new NodeEditor({ menu: menuFn3, typeMap });
-document.body.appendChild(ed3);
-ed3.contentArea.setPointerCapture = () => {
-};
-ed3.contentArea.releasePointerCapture = () => {
-};
-ed3.loadGraph(graph0, typeMap);
-var sel3 = () => ed3.selectedBlocks.map((b) => b.id).join(",");
-var title3 = (id) => ed3.getBlockData(id).el.querySelector(".ne-title");
-var cmBlock = ctx(title3("1"), 123, 45);
-ok(cmBlock.defaultPrevented, "P2-6 contextmenu prevented (no browser menu)");
-ok(sel3() === "1", "P2-6 right-click selects the block under the cursor");
-ok(ed3.currentMenu === menu3 && !menu3.hasAttribute("hidden"), "P2-6 menu shown for right-click");
-ok(
-  menu3.style.getPropertyValue("--ne-menu-x") === "123px" && menu3.style.getPropertyValue("--ne-menu-y") === "45px",
-  "P2-6 menu positioned at the cursor"
-);
-pev(title3("2"), "pointerdown");
-pev(title3("2"), "pointerup", { shiftKey: true });
-ok(sel3() === "1,2", "P2-6 setup: two blocks selected");
-ctx(title3("2"), 200, 30);
-ok(
-  sel3() === "1,2" && menu3.style.getPropertyValue("--ne-menu-x") === "200px",
-  "P2-6 right-click inside the group keeps it selected"
-);
-var line = ed3.lines.find((l) => l.p1.con?.idFull === "1/o1");
-var cmLine = ctx(line.line2, 50, 60);
-ok(cmLine.defaultPrevented && ed3.selectedLine === line, "P2-6 right-click on a line selects it");
-ok(
-  ed3.currentMenu === menu3 && menu3.style.getPropertyValue("--ne-menu-x") === "50px",
-  "P2-6 menu opens at cursor for lines too"
-);
-ctx(ed3.contentArea, 5, 5);
-ok(sel3() === "" && !ed3.selectedLine, "P2-6 right-click on empty canvas deselects");
-var bA = ed3.getBlockData("1");
-ok(bA.el.getAttribute("role") === "group" && bA.el.getAttribute("tabindex") === "0", "P2-7 blocks are tabbable groups");
-ed3.selectBlocks([bA, ed3.getBlockData("2")]);
-ok(/Switch 1/.test(bA.el.getAttribute("aria-label")), "P2-7 block aria-label has type + id");
+var real = backend.current;
+setRuntime(instrument(real));
+ok(backend.current.addClass !== real.addClass, "audit: the recording backend is installed");
 {
-  const priorSelection = (ed3.selectedBlocks || []).slice();
-  const labelUnselected = bA.el.getAttribute("aria-label");
-  ed3.selectBlocks([bA]);
-  const labelSelected = bA.el.getAttribute("aria-label");
+  const props = { class: "host-class" };
+  backend.current.addClass(props, "ne-block");
   ok(
-    labelSelected === labelUnselected,
-    `P2-7 the block accessible name does not change with selection ("${labelUnselected}")`
+    props.class === "host-class ne-block",
+    `audit: addClass merges onto a props object instead of clobbering it (${props.class})`
   );
-  ok(!/selected/i.test(labelSelected), "P2-7 no selection state is written into the block aria-label");
-  ed3.selectBlocks(priorSelection);
+  const el = document.createElement("div");
+  backend.current.addClass(el, "ne-block");
+  ok(el.classList.contains("ne-block"), "audit: addClass also works on a real element");
 }
-ed3.selectBlocks([bA, ed3.getBlockData("2")]);
+var host = new NodeEditor({ menu: () => null });
+host.className = "NodeEditor";
+host.style.cssText = "width:800px;height:600px";
+document.body.appendChild(host);
+ok(host instanceof NodeEditor, "audit: host is the NodeEditor custom element class");
+var statuses = [];
+var demo = startVanillaDemo(host, { persist: false, onStatus: (s) => statuses.push(s) });
+ok(demo === host, "audit: startVanillaDemo wired the host");
+ok(host.blocks.length === 4, `audit: the default graph loaded (${host.blocks.length} blocks)`);
+ok(host.lines.length === 3, `audit: the default lines were restored (${host.lines.length} lines)`);
 ok(
-  bA.el.getAttribute("selected") === "selected" && ed3.selectedBlocks.length === 2,
-  "P2-7 a multi-selection is expressed through the selected attribute"
+  host.blocks.every((b) => b.el.classList.contains("vb")),
+  "audit: blocks are plain DOM elements from the demo factories"
 );
-ed3.deselect();
-ok(bA.el.getAttribute("selected") === null, "P2-7 deselect clears the selected attribute");
-ok(ed3.querySelector(".ne-sr-status") === null, "P2-7 no status text element exists on the editor");
+var beforeOps = new Map(counts);
+var dataTypeMap = (seen) => ({
+  Custom: (data) => {
+    seen.push({ ...data });
+    const el = document.createElement("div");
+    el.className = "host-markup";
+    el.dataset.label = data.label ?? "";
+    for (const [ncid, dir] of [
+      ["in", "in"],
+      ["out", "out"]
+    ]) {
+      const port = document.createElement("span");
+      port.setAttribute("ncid", ncid);
+      port.setAttribute("ne-connect", dir);
+      el.appendChild(port);
+    }
+    return el;
+  }
+});
+var blockEls = host.blocks.map((b) => b.el);
 ok(
-  line.el.getAttribute("role") === null && line.el.getAttribute("tabindex") === null,
-  "P2-7 lines are not focusable and carry no role"
+  blockEls.every((el) => el instanceof HTMLElement && !el.isJsx6 && !el._$s && !el._$v),
+  "AUDIT-1 blocks carry no jsx6 component state (no isJsx6 / $s / $v)"
 );
-ok(line.el.getAttribute("aria-label") === null, "P2-7 lines carry no aria-label");
+var conEls = host.blocks.flatMap((b) => [...b.connectorMap.values()].map((c) => c.el));
+var ncidEls = host.blocks.flatMap((b) => [...b.el.querySelectorAll("[ncid]")]);
+ok(
+  conEls.length === ncidEls.length,
+  `AUDIT-1 every [ncid] element was discovered as a connector (${conEls.length} of ${ncidEls.length})`
+);
+ok(conEls.length > 0 && conEls.length === 8, `AUDIT-1 connectors come from plain spans (${conEls.length})`);
+ok(
+  conEls.every((el) => el.tagName === "SPAN" || el.tagName === "B"),
+  "AUDIT-1 connectors are ordinary elements"
+);
 {
-  const hostStyle = document.createElement("style");
-  hostStyle.textContent = "svg g:focus, svg g:focus-visible { outline: 5px auto rgba(0,0,0,.1) !important; }";
-  document.head.appendChild(hostStyle);
-  line.el.focus();
-  ed3.selectConnector(line);
-  const cs = getComputedStyle(line.el);
-  ok(line.el.tabIndex === -1, `P2-7 a line is not in the tab order (tabIndex=${line.el.tabIndex})`);
+  const late = host.add(document.createElement("div"), "late1", { type: "Value", pos: [0, 400] });
+  ok(late.connectorMap.size === 0, "AUDIT-1b a block added empty has no connectors yet");
+  const port = document.createElement("span");
+  port.setAttribute("ncid", "o1");
+  port.setAttribute("ne-connect", "out");
+  late.el.appendChild(port);
+  host.recheckConnectors(late, true);
   ok(
-    !cs.outlineStyle || cs.outlineStyle === "none",
-    `P2-7 no focus outline on a line even with a host focus rule (${cs.outlineStyle || "none"})`
+    late.connectorMap.has("o1"),
+    `AUDIT-1b recheckConnectors(bd, true) discovers a connector added after the first scan (${[...late.connectorMap.keys()].join(",") || "none"})`
   );
-  ok(line.el.classList.contains("selected"), "P2-7 the line still shows selection by stroke");
-  ed3.deselect();
-  document.head.removeChild(hostStyle);
+  const sinkPort = document.createElement("span");
+  sinkPort.setAttribute("ncid", "late-in");
+  sinkPort.setAttribute("ne-connect", "in");
+  host.getBlockData("2").el.appendChild(sinkPort);
+  host.recheckConnectors(host.getBlockData("2"), true);
+  ok(host.getConnector("2/late-in") != null, "AUDIT-1b the sink block discovered its late connector too");
+  host.addConnectorFromTo("late1/o1", "2/late-in");
+  ok(host.lineExists("late1/o1", "2/late-in") === true, "AUDIT-1b a line to the late connector loads");
+  const rendered = host.add(document.createElement("div"), "rendered1", { type: "Value", pos: [0, 500] });
+  const renderedPort = document.createElement("span");
+  renderedPort.setAttribute("ncid", "o1");
+  renderedPort.setAttribute("ne-connect", "out");
+  rendered.el.appendChild(renderedPort);
+  const sink = host.getBlockData("3");
+  const dataSinkPort = document.createElement("span");
+  dataSinkPort.setAttribute("ncid", "data-in");
+  dataSinkPort.setAttribute("ne-connect", "in");
+  sink.el.appendChild(dataSinkPort);
+  let wired = null;
+  try {
+    wired = host.addConnectorFromTo("rendered1/o1", "3/data-in");
+  } catch (err) {
+    ok(false, `AUDIT-1c addConnectorFromTo wired freshly rendered ports \u2014 ${err.message}`);
+  }
+  ok(
+    wired !== null && host.lineExists("rendered1/o1", "3/data-in"),
+    "AUDIT-1c freshly rendered ports wire without a manual rescan"
+  );
+  host.selectConnector(null);
+  host.selectBlocks([rendered]);
+  host.deleteSelection();
+  host.selectConnector(null);
+  host.selectBlocks([late]);
+  host.deleteSelection();
+  ok(host.getBlockData("late1") == null && host.lines.length === 3, "AUDIT-1b cleanup restored the graph");
 }
-ed3.selectConnector(line);
-ok(line.el.classList.contains("selected"), "P2-7 a selected line carries the selected class");
-ok(ed3.selectedLine === line, "P2-7 the editor tracks the selected line");
-ed3.deselect();
-ed3.dispatchEvent(new Event("focus"));
-var el1 = bA.el;
-key(el1, "Enter");
-ok(sel3() === "1", "P2-7 Enter on the focused block selects it");
-var y0 = ed3.getPos("1")[1];
-key(el1, "ArrowDown");
-ok(ed3.getPos("1")[1] === y0 + 10, "P2-7 ArrowDown works after keyboard-only selection");
-var lines1 = ed3.lines.length;
-key(el1, "Delete");
-ok(ed3.getBlockData("1") == null && ed3.lines.length === lines1 - 1, "P2-7 Delete removes the selected block + line");
+{
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const renderPorts = (blockEl, intents) => {
+    blockEl.querySelectorAll("[ncid]").forEach((p) => p.remove());
+    for (const [ncid, dir] of intents) {
+      const p = document.createElement("b");
+      p.setAttribute("ncid", ncid);
+      p.setAttribute("ne-connect", dir);
+      blockEl.appendChild(p);
+    }
+  };
+  const asyncHost = new NodeEditor({ menu: () => null });
+  asyncHost.className = "NodeEditor";
+  asyncHost.style.cssText = "width:800px;height:600px";
+  document.body.appendChild(asyncHost);
+  const ab1 = document.createElement("div");
+  const ab2 = document.createElement("div");
+  asyncHost.add(ab1, "1", { type: "Bot" });
+  asyncHost.add(ab2, "2", { type: "Bot" });
+  ok(asyncHost.getConnectors("1").size === 0, "AUDIT-1h blocks start with no connectors (ports arrive with the data)");
+  await sleep(20);
+  renderPorts(ab1, [
+    ["onTimeout", "out"],
+    ["finalError", "out"]
+  ]);
+  renderPorts(ab2, [
+    ["i1", "in"],
+    ["i2", "in"]
+  ]);
+  await sleep(20);
+  ok(asyncHost.inspectConnectors().length === 4, "AUDIT-1h inspectConnectors() finds the asynchronously rendered ports");
+  const lineData = [
+    ["1/onTimeout", "2/i1"],
+    ["1/finalError", "2/i2"]
+  ];
+  const firstPass = asyncHost.loadLines(lineData);
+  ok(firstPass.attached === 2, `AUDIT-1h both lines attached (${firstPass.attached})`);
+  await sleep(20);
+  renderPorts(ab1, [
+    ["onTimeout", "out"],
+    ["finalError", "out"]
+  ]);
+  renderPorts(ab2, [
+    ["i1", "in"],
+    ["i2", "in"]
+  ]);
+  await sleep(20);
+  ok(
+    asyncHost.getConnector("1/onTimeout").el === ab1.querySelector('[ncid="onTimeout"]'),
+    "AUDIT-1h after the port re-render the connector points at the LIVE element"
+  );
+  ok(
+    asyncHost.lines.every((l) => l.p1.con?.el?.isConnected && l.p2.con?.el?.isConnected),
+    "AUDIT-1h no line hangs off a detached element"
+  );
+  const dupErrors = [];
+  const origErr = console.error;
+  console.error = (...a) => dupErrors.push(a.join(" "));
+  let secondPass;
+  try {
+    secondPass = asyncHost.loadLines(lineData);
+  } finally {
+    console.error = origErr;
+  }
+  ok(
+    secondPass.skipped === 2 && asyncHost.lines.length === 2,
+    `AUDIT-1h a second pass skips instead of throwing, and does not duplicate (${JSON.stringify(secondPass)})`
+  );
+  ok(
+    dupErrors.length === 2 && dupErrors[0].includes("already connected"),
+    `AUDIT-1h each duplicate is reported once (${dupErrors.length})`
+  );
+  asyncHost.destroy();
+}
+{
+  const ioHandlers = [];
+  const realIO = globalThis.IntersectionObserver;
+  globalThis.IntersectionObserver = class {
+    constructor(cb) {
+      ioHandlers.push(cb);
+      cb.observer = this;
+    }
+    observe() {
+    }
+    unobserve() {
+    }
+    disconnect() {
+    }
+    takeRecords() {
+      return [];
+    }
+  };
+  try {
+    const menu = new NodeEditor({ menu: () => null });
+    menu.className = "NodeEditor";
+    menu.style.cssText = "width:800px;height:600px";
+    document.body.appendChild(menu);
+    const rowEl = document.createElement("div");
+    rowEl.className = "ne-block";
+    rowEl.innerHTML = `
+      <div class="row" hidden="hidden">Retry +<b ncid="finalError" ne-connect="out"></b></div>
+      <div class="row">s -&gt; Timeout<b ncid="onTimeout" ne-connect="out"></b></div>
+      <div class="row">bla<b ncid="0" ne-connect="out"></b></div>`;
+    const menuBlock = menu.add(rowEl, "1", { type: "Menu" });
+    const handler = ioHandlers.find((h2) => typeof h2 === "function");
+    ok(
+      !!handler && menuBlock.connectorMap.size === 3,
+      `AUDIT-1g the menu block discovered its three ports (${[...menuBlock.connectorMap.keys()].join(",")})`
+    );
+    const lateEl = menuBlock.connectorMap.get("onTimeout")?.el;
+    handler([{ target: lateEl, intersectionRatio: 0 }]);
+    ok(menuBlock.connectorMap.has("onTimeout"), "AUDIT-1g a hidden row does not delete its connector from the map");
+    ok(
+      lateEl.getAttribute("ne-nodrag") === "ne-nodrag",
+      "AUDIT-1g the port keeps its ne-nodrag marker (still a connector, not a drag handle)"
+    );
+    const goneEl = menuBlock.connectorMap.get("0").el;
+    goneEl.remove();
+    handler([{ target: goneEl, intersectionRatio: 0 }]);
+    ok(
+      !menuBlock.connectorMap.has("0") && menuBlock.connectorMap.size === 2,
+      `AUDIT-1g a genuinely detached connector is still cleaned up (${[...menuBlock.connectorMap.keys()].join(",")})`
+    );
+    menu.destroy();
+  } finally {
+    globalThis.IntersectionObserver = realIO;
+  }
+}
+{
+  const named = new NodeEditor({ menu: () => null });
+  named.className = "NodeEditor";
+  named.style.cssText = "width:800px;height:600px";
+  document.body.appendChild(named);
+  const el = document.createElement("div");
+  el.className = "ne-block";
+  for (const [ncid, dir] of [
+    ["onTimeout", "out"],
+    ["onError", "in"],
+    ["onSuccess", "out"]
+  ]) {
+    const p = document.createElement("b");
+    p.setAttribute("ncid", ncid);
+    p.setAttribute("ne-connect", dir);
+    el.appendChild(p);
+  }
+  const namedBlock = named.add(el, "N", { type: "T" });
+  ok(
+    ["onTimeout", "onError", "onSuccess"].every((n) => namedBlock.connectorMap.has(n)),
+    `AUDIT-1f camelCase connector names are collected (${[...namedBlock.connectorMap.keys()].join(", ")})`
+  );
+  const dupEl = document.createElement("div");
+  dupEl.className = "ne-block";
+  const first2 = document.createElement("b");
+  first2.setAttribute("ncid", "onTimeout");
+  first2.setAttribute("ne-connect", "out");
+  const second2 = document.createElement("b");
+  second2.setAttribute("ncid", "onTimeout");
+  second2.setAttribute("ne-connect", "out");
+  dupEl.append(first2, second2);
+  const dupBlock = named.add(dupEl, "D", { type: "T" });
+  ok(dupBlock.connectorMap.size === 1, `AUDIT-1f a duplicate ncid yields ONE connector (${dupBlock.connectorMap.size})`);
+  ok(second2.getAttribute("ne-nodrag") === null, "AUDIT-1f the duplicate port did not become a connector");
+  const report = named.explainConnectors("D");
+  ok(
+    report.length === 2 && report[0].collected === true && report[1].collected === false,
+    `AUDIT-1f explainConnectors() reports which element holds the connector (${JSON.stringify(report)})`
+  );
+  ok(String(report[1].note).includes("duplicate"), `AUDIT-1f and names the cause (${report[1].note})`);
+  named.destroy();
+}
+{
+  const seen = [];
+  const dataHost = new NodeEditor({ menu: () => null });
+  dataHost.className = "NodeEditor";
+  dataHost.style.cssText = "width:800px;height:600px";
+  document.body.appendChild(dataHost);
+  dataHost.typeMap = dataTypeMap(seen);
+  dataHost.loadGraph({
+    blocks: [
+      { id: "A", type: "Custom", pos: [10, 20], label: "from data" },
+      // extra key: host's own data
+      { id: "B", type: "Custom", pos: [200, 20], label: "second" }
+    ],
+    lines: []
+  });
+  ok(
+    seen.length === 2 && seen[0].id === "A" && seen[0].label === "from data",
+    `AUDIT-1d the factory received the block's own data (${JSON.stringify(seen[0])})`
+  );
+  ok(
+    dataHost.blocks.every((b) => b.el.dataset.label !== void 0),
+    "AUDIT-1d each block rendered its own markup from that data"
+  );
+  const inspect = dataHost.inspectConnectors();
+  ok(
+    inspect.length === 4 && inspect.every((c) => c.idFull.includes("/")),
+    `AUDIT-1d inspectConnectors() reports every rendered connector (${inspect.map((c) => c.idFull).join(", ")})`
+  );
+  ok(dataHost.getConnectors("A").has("out"), "AUDIT-1d getConnectors(id) exposes one block's connectors");
+  const lines = dataHost.loadLines([
+    ["A/out", "B/in"],
+    ["A/nope", "B/in"],
+    // corrupt: no such connector
+    ["A/out", "B/in"],
+    // corrupt: duplicate
+    ["B/out", "A/in"]
+  ]);
+  ok(
+    lines.attached === 2 && lines.skipped === 2,
+    `AUDIT-1d corrupt line entries are skipped, the rest attach (${lines.attached} attached, ${lines.skipped} skipped)`
+  );
+  ok(dataHost.lines.length === 2, `AUDIT-1d both good lines are on screen (${dataHost.lines.length})`);
+  ok(dataHost.lineExists("B/out", "A/in") === true, "AUDIT-1d the line AFTER a corrupt one still attached");
+  dataHost.selectConnector(null);
+  dataHost.destroy();
+}
+{
+  const robustHost = new NodeEditor({ menu: () => null, typeMap: dataTypeMap([]) });
+  robustHost.className = "NodeEditor";
+  robustHost.style.cssText = "width:800px;height:600px";
+  document.body.appendChild(robustHost);
+  const errors = [];
+  const origError = console.error;
+  console.error = (...args) => errors.push(args.join(" "));
+  try {
+    robustHost.loadGraph({
+      blocks: [
+        { id: "1", type: "Custom", pos: [0, 0] },
+        { id: "2", type: "Custom", pos: [200, 0] }
+      ],
+      lines: [
+        ["1/out", "2/in"],
+        ["1/does-not-exist", "2/in"],
+        // corrupt: the block has no such connector
+        ["9/out", "2/in"],
+        // corrupt: no such block
+        ["2/out", "1/in"]
+      ]
+    });
+  } finally {
+    console.error = origError;
+  }
+  ok(robustHost.lines.length === 2, `AUDIT-1e the valid lines still loaded (${robustHost.lines.length} of 4)`);
+  ok(robustHost.lineExists("2/out", "1/in") === true, "AUDIT-1e the line after the corrupt ones attached");
+  ok(errors.length === 2, `AUDIT-1e each bad line was reported to the console (${errors.length})`);
+  ok(
+    errors[0].includes("skipping line") && errors[0].includes("does-not-exist"),
+    `AUDIT-1e the report names the entry and the reason (${errors[0]})`
+  );
+  robustHost.destroy();
+}
+var first = host.getBlockData("1");
+var second = host.getBlockData("2");
+try {
+  host.selectBlocks([first, second]);
+  ok(host.selectedBlocks.length === 2, "AUDIT-2 selectBlocks() works on vanilla elements");
+  const mounted = host.currentMenu;
+  ok(
+    mounted !== null && mounted !== void 0 && mounted.parentNode !== null,
+    `AUDIT-2 the host-provided menu is mounted on selection (menu=${mounted?.className}, parent=${mounted?.parentNode?.nodeName})`
+  );
+} catch (err) {
+  ok(false, `AUDIT-2 selectBlocks() with a mounted menu threw: ${err.message}
+${err.stack}`);
+}
+var moves = [];
+var moveEvents = [];
+host.addEventListener("ne-move", (e) => moveEvents.push(e));
+host.addEventListener("ne-move-done", (e) => moves.push(e.detail));
+host.setPos("1", [200, 120]);
+host.fireMoveDone(host.getBlockData("1"));
+ok(first.pos[0] === 200 && first.pos[1] === 120, "AUDIT-3 setPos moved the block");
+ok(moves.length === 1, "AUDIT-3 ne-move-done fired for the host to persist on");
 ok(
-  ed3.undo() && ed3.getBlockData("1") != null && ed3.lines.length === lines1,
-  "P2-7 undo restores the keyboard-deleted block"
+  moves[0]?.nid === "1" && moves[0].pos[0] === 200,
+  `AUDIT-3 ne-move-done carries the block id and position (nid=${moves[0]?.nid})`
 );
-var el1again = ed3.getBlockData("1").el;
-var et = el1again.querySelector(".EditableTitle");
-ok(!!et, "P2-6 Switch title uses EditableTitle");
-et.dispatchEvent(new Event("pointerup", { bubbles: true }));
-ok(et.getAttribute("contenteditable") === "true", "P2-6 title becomes editable on pointerup (E-button flow)");
+var batchEvent = moveEvents.find((e) => e.detail?.connectors);
+ok(
+  !!batchEvent && batchEvent.detail.connectors.length > 0,
+  `AUDIT-3 the batched connector ne-move reported ${batchEvent?.detail?.connectors?.length} connectors`
+);
+host.selectBlocks([]);
+var value = host.add(host.typeMap.Value(), "v1", { type: "Value", pos: [0, 300] });
+host.addConnectorFromTo("v1/o1", "2/i1");
+ok(host.lines.length === 4, `AUDIT-4 addConnectorFromTo linked vanilla blocks (${host.lines.length} lines)`);
+ok(host.lineExists("v1/o1", "2/i1") === true, "AUDIT-4 lineExists sees the new line");
+host.undo();
+ok(host.lines.length === 3, `AUDIT-5 undo() removed the added line (${host.lines.length})`);
+host.redo();
+ok(host.lines.length === 4, `AUDIT-5 redo() restored it (${host.lines.length})`);
+var zoomBefore = host.zoom;
+host.addEventListener("wheel", (e) => host.changeZoomMouse(e.deltaY > 0 ? -0.1 : 0.1, e));
+host.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }));
+ok(host.zoom > zoomBefore, `AUDIT-6 wheel zoom changed the zoom (${zoomBefore} -> ${host.zoom})`);
+host.resetView();
+ok(Number.isFinite(host.zoom), "AUDIT-6 resetView() ran");
+var json = JSON.parse(JSON.stringify(host.saveGraph()));
+ok(json.blocks.length === 5 && json.lines.length === 4, "AUDIT-7 saveGraph() round-trips as plain JSON");
+ok(host.blocks.indexOf(value) === -1, "AUDIT-7 BlockData from before an undo/redo is stale");
+var fresh = host.getBlockData("v1");
+ok(fresh !== value && fresh.id === "v1", "AUDIT-7 getBlockData(id) returns the live BlockData");
+host.removeBlock(value);
+ok(
+  host.blocks.some((b) => b.id === "v1"),
+  "AUDIT-7 removeBlock() with a stale BlockData is a silent no-op"
+);
+host.selectConnector(null);
+host.selectBlocks([fresh]);
+host.deleteSelection();
+ok(
+  host.blocks.every((b) => b.id !== "v1"),
+  "AUDIT-7 deleteSelection() removed the block"
+);
+ok(host.lines.length === 3, "AUDIT-7 its line went with it");
+host.destroy();
+ok(host.blocks.length === 0 && host.lines.length === 0, "AUDIT-8 destroy() emptied the editor");
+setRuntime(null);
+var contract = Object.keys(real);
+var used = contract.filter((name) => (counts.get(name) || 0) > 0);
+var unused = contract.filter((name) => !(counts.get(name) || 0));
+console.log("\n=== essential surface: what a real VANILLA session calls (of the backend contract) ===");
+console.log(`contract: ${contract.length} names \u2014 used in this session: ${used.length}, unused: ${unused.length}
+`);
+for (const name of used.sort((a, b) => (counts.get(b) || 0) - (counts.get(a) || 0))) {
+  console.log(`  ${name.padEnd(22)} ${String(counts.get(name)).padStart(5)}`);
+}
+var DIRECT = [
+  "classIf",
+  "findParent",
+  "fireCustom",
+  "getAttr",
+  "hSvg",
+  "insert",
+  "isNode",
+  "listen",
+  "remove",
+  "setAttribute",
+  "setSelected",
+  "setVisible",
+  "toDomNode",
+  "$Or",
+  "observeNow",
+  "JsxW",
+  "define",
+  "observeShowHide"
+];
+var routed = unused.filter((n) => !DIRECT.includes(n));
+console.log("\nnot routed through the seam (called directly by NodeEditor/connectorUtil):");
+for (const name of unused.filter((n) => DIRECT.includes(n)).sort())
+  console.log(`  ${name}`);
+console.log("\nnever called by this session (candidates to move out of the essential path):");
+for (const name of routed.sort())
+  console.log(`  ${name}`);
 console.log(failures ? `
-${failures} FAILURE(S)` : "\nALL SMOKE ASSERTIONS PASSED");
+${failures} FAILURE(S)` : "\nALL AUDIT ASSERTIONS PASSED");
 process.exitCode = failures ? 1 : 0;

@@ -65,6 +65,30 @@ This log was last generated on Thu, 25 Apr 2024 11:46:22 GMT and should not be m
   (`onMove`/`points`, the unused `menu.afterAdd` hook, two unused `index.jsx` imports, two unused
   CSS rules); no public API changed. Styling: `.h50` now sets `height` (it set `width`), and
   `.ne-block [ne-connect]` declares `display` once (`flex`, the value that won before).
+- Pluggable line layer: the editor now draws its lines through `editor.lineLayer` (the default
+  SVG layer keeps the pre-refactor behaviour: line `<g>`s in `editor.svgLayer`, selection as
+  classes). `editor.setLineLayer(layer)` swaps the active layer — it takes the lines off the old
+  layer before disposing it, re-adds them on the new one and replays the current selection. The
+  layer contract is `kind`, `el`, `add`, `remove`, `setStates`, `pick`, `onViewport`, `onResize`,
+  `dispose` (canvas layers additionally expose a `ready` promise).
+- `@jsx6/line-render` is an **optional** dependency: the package works without it. With it,
+  `loadLineRender()` + `makeCanvasLineLayer(editor, lr)` gives a WebGPU canvas line layer
+  (`LineRenderer` draws the connectors, `pickEdge` handles line picking) as an alternative layer;
+  if the renderer `init()` rejects (no WebGPU) the layer degrades — `ready` rejects, picking keeps
+  working (pure curve math) and the demo falls back to the SVG layer. The canvas layer clears
+  with a transparent color; `@jsx6/line-render` now configures its WebGPU context with
+  `alphaMode: 'premultiplied'` (premultiplied fragment output), so that transparent clear
+  renders transparent instead of a black rectangle. The demo page gained a toggle to switch
+  SVG ↔ canvas line rendering. `test/lineLayer.test.jsx` covers both layers and the swap.
+  `build_vanilla/` (vanilla build output) is gitignored like `build/`.
+- The WebGPU line layer now draws a line **while it is being connected**: the free end of
+  the line follows the pointer during a drag (its `d` is recomputed by
+  `ConnectLine.updatePath` with `p2.con` still null), and the canvas layer subscribes to
+  `ConnectLine.onPathChange` so the temporary connector tracks the pointer. Redraws are
+  rAF-batched — per frame the cost is one `parseLinePath` per line plus one instanced GPU
+  draw, the same budget as the `ne-move`/zoom redraw path (no per-event render, no
+  per-line canvas, no buffer churn). `buildEdges` includes any line that has a path,
+  matching what the SVG layer draws.
 
 ## 1.0.40
 Thu, 25 Apr 2024 11:46:22 GMT
