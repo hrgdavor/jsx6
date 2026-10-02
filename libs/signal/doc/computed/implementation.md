@@ -37,7 +37,15 @@ its own subscriber, never this getter. (The reverse direction is solved by
 [../../src/track.js](../../src/track.js#region:track-state)
 
 ```js
-export const trackState = { collector: null }
+/**
+ * `collector` is explicitly typed so both `collector.add(dep)` here and the
+ * `trackState.collector = tracked` assignment in `src/computed.js` are checked against the same
+ * shape. Left untyped, TypeScript 7 infers `collector` as `null` (the only value at declaration),
+ * and every later assignment or property access in the library becomes an error.
+ *
+ * @type {{ collector: Set<Function> | null }}
+ */
+export const trackState = /** @type {{ collector: Set<Function> | null }} */ ({ collector: null })
 ```
 
 `collectStart(set)` swaps the collector in and returns the function that swaps it back; the hot path in

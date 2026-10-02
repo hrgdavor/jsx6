@@ -11,6 +11,17 @@ For building SPA applications by leveraging JSX and signals. Not meant to hide o
 - supports observables and promises out of the box 
 - if there is a popular standalone signals lib will consider integrating 
 
+## Getting started
+
+The instruction set for the base stack — setup (esbuild/tsconfig/JSX config), the signal model, JSX and
+the DOM contract, and the rules that fail silently — is [docs/stack/README.md](docs/stack/README.md). It
+is written for people and for agents, and every sample in it is either injected from a real file or a
+runnable example.
+
+Building a host on the editor: [apps/nodditor/doc/getting-started.md](apps/nodditor/doc/getting-started.md).
+Add-ons: [libs/dom-observer/doc/README.md](libs/dom-observer/doc/README.md) (shared observers) and the
+[API map](docs/api.md). 
+
 
 ## Useful standalone parts of JSX6
 

@@ -22,3 +22,14 @@ in DOM, and is doing this by having direct references to elements,attributes and
 
 https://user-images.githubusercontent.com/2480762/197420342-56ee3381-d9c5-4625-b193-1c2f00178f84.mp4
 
+# Documentation
+
+The instructions live in [`doc/`](doc/README.md) — the API of all four exports, what gets shared and
+keyed by what, the disposer semantics, the traps (`ratio 0` is not "removed", options are first-write-wins,
+nothing is ever disconnected) and how to test a consumer. The samples there are injected from real files
+and [doc/usage.example.mjs](doc/usage.example.mjs) is runnable:
+
+```sh
+node libs/dom-observer/doc/usage.example.mjs   # or: bun run docs:example
+```
+

@@ -65,9 +65,12 @@ the right one of those and keep this file thin.
 
 | topic | load |
 | --- | --- |
+| using the stack: setup, signals, JSX/DOM contract, rules that fail silently | [docs/stack/README.md](docs/stack/README.md) |
 | tests: running them, happy-dom limits, DOM test conventions | skill **`repo-testing`** (`.agents/skills/repo-testing/SKILL.md`) |
 | gate internals, toolchain, versioning, publishing, troubleshooting | [README.dev.md](README.dev.md) |
 | line layers, connectors, WebGPU renderer, picking | [libs/line-render/README.md](libs/line-render/README.md) |
 | the editor: line-layer contract, geometry caches, device sharing | [apps/nodditor/README.md](apps/nodditor/README.md) |
+| the editor's host instructions (install → blocks → lines → persistence) | [apps/nodditor/doc/getting-started.md](apps/nodditor/doc/getting-started.md) |
+| the dom-observer add-on: shared observers, sharing keys, limits | [libs/dom-observer/doc/README.md](libs/dom-observer/doc/README.md) |
 | styling contract (`--ne-*` custom properties, theming both layers) | [apps/nodditor/doc/styling-migration.md](apps/nodditor/doc/styling-migration.md) |
 | open work, decisions taken, sequencing | [plan/line-render-followups.md](plan/line-render-followups.md) |

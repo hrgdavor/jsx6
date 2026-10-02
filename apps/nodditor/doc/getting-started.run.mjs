@@ -1,14 +1,15 @@
-// Runner for `doc/zoom-controls.example.js`.
+// Runner for `doc/getting-started.example.jsx`.
 //
-//   cd apps/nodditor && node doc/zoom-controls.run.mjs
+//   cd apps/nodditor && node doc/getting-started.run.mjs
 //
-// Same shape as `getting-started.run.mjs` and `smoke/*.run.mjs`: the DOM globals, the observer stubs
-// happy-dom 14 needs **and the library stylesheet** must exist before the example is imported — the
-// example asserts computed `z-index`/`pointer-events`, which are stylesheet declarations. The example is
-// bundled because it imports the editor's `.jsx` sources.
+// Same shape as `smoke/*.run.mjs`: the DOM globals (and the library stylesheet) must exist before the
+// editor module is evaluated, and the example imports JSX, so it is bundled first. `setupDom()` is the
+// shared boot — happy-dom, the two observer stubs happy-dom 14 lacks, and `static/nodditor.css`.
 //
-// esbuild runs through its **CLI** with inherited stdio: the JS API talks to a long-lived native service
-// over pipes, which confined environments deny with EPERM (see `scripts/build-docs.js`).
+// esbuild runs through its **CLI** with inherited stdio: the JS API talks to a long-lived native
+// service over pipes, which confined environments deny with EPERM (see `scripts/build-docs.js`).
+//
+// Paths are resolved from this file, so the runner works from any working directory.
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -27,12 +28,14 @@ const esbuildPkg = require.resolve('esbuild/package.json')
 const bin = JSON.parse(readFileSync(esbuildPkg, 'utf8')).bin
 const esbuildBin = join(dirname(esbuildPkg), typeof bin === 'string' ? bin : bin.esbuild)
 
-const outfile = join(appRoot, 'doc/zoom-controls.bundle.mjs')
+// `tsconfig-custom.json` (an empty config) mirrors the app build: esbuild would otherwise pick up
+// `tsconfig.json`, whose `jsx: "preserve"` emits raw JSX.
+const outfile = join(appRoot, 'doc/getting-started.bundle.mjs')
 const res = spawnSync(
   process.execPath,
   [
     esbuildBin,
-    join(here, 'zoom-controls.example.js'),
+    join(here, 'getting-started.example.jsx'),
     `--outfile=${outfile}`,
     '--tsconfig=tsconfig-custom.json',
     '--bundle',

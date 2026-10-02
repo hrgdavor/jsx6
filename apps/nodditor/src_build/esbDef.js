@@ -7,6 +7,7 @@ import * as esbuild from 'esbuild'
  * `loader: { '.js': 'tsx' }` is what lets this package keep `.js` files that contain JSX, and
  * `jsxImportSource: '@jsx6'` is the build-time half of the JSX contract (see `src/runtime.js`).
  */
+// #region esbDef
 export const esbDef = {
   tsconfig: `tsconfig-custom.json`,
   jsx: 'automatic',
@@ -18,6 +19,7 @@ export const esbDef = {
   skipExisting: true,
   sourcemap: true,
 }
+// #endregion esbDef
 
 export async function buildScript(src, to, file, options = {}) {
   let ctx = await runEsbuild(esbuild, {

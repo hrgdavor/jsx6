@@ -75,3 +75,6 @@ coverage
 # personal agent-instruction overlays (loaded after AGENTS.md / CLAUDE.md; never shared)
 AGENTS.local.md
 CLAUDE.local.md
+
+# generated doc-example bundles (rebuilt by the matching *.run.mjs runner)
+apps/nodditor/doc/*.bundle.mjs
