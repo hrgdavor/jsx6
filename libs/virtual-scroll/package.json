@@ -7,14 +7,14 @@
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./index.js",
       "require": "./cjs/index.js",
-      "types": "./dist/index.d.ts",
       "default": "./index.js"
     }
   },
   "types": "dist/index.d.ts",
-  "unpkg": "cjs/index.js",
+  "unpkg": "esm/index.js",
   "files": [
     "index.js",
     "dist",
@@ -41,8 +41,14 @@
   ],
   "author": "Davor hrg",
   "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/hrgdavor/jsx6/blob/master/LICENSE.md"
+    }
+  ],
   "bugs": {
-    "url": "https://hrgdavor/jsx6/issues"
+    "url": "https://github.com/hrgdavor/jsx6/issues"
   },
   "homepage": "https://github.com/hrgdavor/jsx6/blob/master/libs/virtual-scroll/README.md",
   "devDependencies": {

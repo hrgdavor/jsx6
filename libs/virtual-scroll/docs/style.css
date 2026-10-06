@@ -164,3 +164,93 @@ header p {
 nav a {
   color: white;
 }
+
+nav {
+  display: flex;
+  gap: 16px;
+  padding: 8px 16px;
+}
+
+header div {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+header button {
+  font: inherit;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+header button:hover {
+  border-color: var(--accent-color);
+}
+
+/* --- table grid demo: stacked grid rows under a sticky header ---
+   One column template, shared by the header and every row, is what keeps the columns aligned.
+   `minmax(0, 1fr)` and not a bare `1fr`: a bare fr track has a content-based minimum, so one long
+   cell would widen that row's track and break the alignment with the header. */
+:root {
+  --table-cols: 48px minmax(0, 1fr) 88px;
+}
+
+.table-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: var(--table-cols);
+  align-items: center;
+  height: var(--item-height);
+  padding: 0 24px;
+  background: var(--bg-color);
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.table-rows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: var(--table-cols);
+}
+
+/* Every row shares ONE grid area, so rows are not absolutely positioned at all and their columns
+   come from the shared tracks. `grid-area: 1 / 1` would put each row in the first column track
+   only — it has to span all of them. */
+.table-row {
+  grid-area: 1 / 1 / 2 / -1;
+  display: grid;
+  grid-template-columns: var(--table-cols);
+  align-items: center;
+  height: var(--item-height);
+  padding: 0 24px;
+  border-bottom: 1px solid var(--glass-border);
+  pointer-events: auto;
+}
+
+.table-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cell-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cell-price {
+  text-align: right;
+  color: var(--accent-color);
+}

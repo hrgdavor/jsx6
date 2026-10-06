@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Premium Virtual Scrolling</title>
+    <title>Virtual Scrolling - Table Grid with Sticky Header</title>
     <link rel="stylesheet" href="style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,7 +12,7 @@
       rel="stylesheet"
     />
 
-    <script type="module" src="script.js"></script>
+    <script type="module" src="script-page3.js"></script>
   </head>
 
   <body>
@@ -24,21 +24,32 @@
 
     <div id="app">
       <header>
-        <h1>Virtual Scrolling Demo 1</h1>
-        <p>High-speed, smooth element recycling in Vanilla JS</p>
+        <h1>Table Grid Demo</h1>
+        <p>Rows are stacked grid items — no absolute positioning — under a sticky header</p>
         <div>
-          <button data-action="reverse-items">Reverse Items</button>
+          <button data-action="jump">Jump to #5000</button>
+          <button data-action="top">Back to top</button>
         </div>
       </header>
 
-      <main id="scroll-container">
+      <main id="scroll-container" style="--item-height: 40px">
+        <!-- sticky, never virtualized: the library does not know about it -->
+        <div id="table-header" class="table-header">
+          <span>#</span>
+          <span>Product</span>
+          <span class="cell-price">Price</span>
+        </div>
+
         <div id="spacer"></div>
-        <div id="list-items-container">
-          <!-- Items will be injected and recycled here -->
+
+        <div id="list-items-container" class="table-rows">
+          <!-- rows are injected and recycled here, all sharing one grid area -->
         </div>
       </main>
+
       <div id="stats">
         <span>Scroll Position: <span id="scroll-y">0</span>px</span>
+        <span>Active Elements: <span id="element-count">0</span></span>
       </div>
     </div>
   </body>

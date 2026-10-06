@@ -4,6 +4,7 @@ import { ScrollController } from '../examples/scroll-controller.js'
 const container = document.getElementById('scroll-container')
 const itemsContainer = document.getElementById('list-items-container')
 const scrollYDisplay = document.getElementById('scroll-y')
+const elementCountDisplay = document.getElementById('element-count')
 
 const ITEM_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--item-height'))
 const TOTAL_ITEMS = 10000
@@ -40,6 +41,8 @@ function updateItemContent(el, item) {
 
 const onScroll = scrollTop => {
   scrollYDisplay.textContent = Math.floor(scrollTop)
+  // report the live mounted rows: the pool means this stays small however far you scroll
+  elementCountDisplay.textContent = vs.idDomMap.size
 }
 
 // Attach header of ITEM_HEIGHT, so items start below it
@@ -48,7 +51,6 @@ const vs = new VirtualScroll({
   itemHeight: ITEM_HEIGHT,
   items,
   getKey: x => x.id,
-  buffer: 0,
   createItem,
   updateItemContent,
   offsetTop: ITEM_HEIGHT, // Offset by the header height
@@ -57,5 +59,6 @@ const vs = new VirtualScroll({
 const controller = new ScrollController({ virtualScroll: vs, container, onScroll })
 
 controller.start()
+elementCountDisplay.textContent = vs.idDomMap.size
 
 window.vs = vs

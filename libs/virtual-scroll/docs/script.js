@@ -63,13 +63,12 @@ document.addEventListener('change', e => {
   }
 })
 
-// Instantiate the virtual scroll
+// Instantiate the virtual scroll (buffer defaults to 1: one extra row each way phases in smoother)
 const vs = new VirtualScroll({
   itemsContainer,
   itemHeight: ITEM_HEIGHT,
   items,
   getKey: x => x.id,
-  buffer: 0,
   createItem,
   updateItemContent,
 })

@@ -73,4 +73,5 @@ the right one of those and keep this file thin.
 | the editor's host instructions (install → blocks → lines → persistence) | [apps/nodditor/doc/getting-started.md](apps/nodditor/doc/getting-started.md) |
 | the dom-observer add-on: shared observers, sharing keys, limits | [libs/dom-observer/doc/README.md](libs/dom-observer/doc/README.md) |
 | styling contract (`--ne-*` custom properties, theming both layers) | [apps/nodditor/doc/styling-migration.md](apps/nodditor/doc/styling-migration.md) |
+| the virtual-scroll package: decisions, constraints, evidence (compact agent notes; the user-facing [architecture.md](libs/virtual-scroll/architecture.md) is the long-form twin) | [libs/virtual-scroll/architecture.agents.md](libs/virtual-scroll/architecture.agents.md) |
 | open work, decisions taken, sequencing | [plan/line-render-followups.md](plan/line-render-followups.md) |

@@ -22,11 +22,13 @@ describe('Virtual scroll', () => {
   }
 
   beforeEach(() => {
+    // these tests pin the exact mounted set, so they opt out of the default buffer of one
     vs = new VirtualScroll({
       createItem: () => ({ style: {} }),
       updateItemContent: () => ({}),
       itemHeight: ITEM_HEIGHT,
       items,
+      buffer: 0,
       itemsContainer: DUMMY_ITEMS_CONTAINER,
     })
   })
@@ -154,6 +156,7 @@ describe('Virtual scroll', () => {
       updateItemContent,
       itemHeight: 80,
       offsetTop: 80,
+      buffer: 0,
       items,
       itemsContainer: DUMMY_ITEMS_CONTAINER,
     })
@@ -169,6 +172,7 @@ describe('Virtual scroll', () => {
       updateItemContent,
       itemHeight: 80,
       offsetTop: 80,
+      buffer: 0,
       items,
       itemsContainer: DUMMY_ITEMS_CONTAINER,
     })
@@ -182,6 +186,7 @@ describe('Virtual scroll', () => {
       createItem,
       updateItemContent,
       itemHeight: 80,
+      buffer: 0,
       items,
       itemsContainer: DUMMY_ITEMS_CONTAINER,
     })
@@ -191,15 +196,25 @@ describe('Virtual scroll', () => {
     expect(mounted).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
   })
 
-  test('duplicate keys in the visible range throw', () => {
+  test('duplicate keys in the visible range are skipped and reported once', () => {
+    const reported = []
     const dup = new VirtualScroll({
-      createItem,
-      updateItemContent,
+      createItem: () => ({ style: {} }),
+      updateItemContent: () => {},
       itemHeight: ITEM_HEIGHT,
       items: [{ id: 'a' }, { id: 'a' }, { id: 'b' }],
       itemsContainer: DUMMY_ITEMS_CONTAINER,
+      onDuplicateKey: (key, item, index) => reported.push([key, item.id, index]),
     })
-    expect(() => dup.updateViewport(100, 0)).toThrow()
+    dup.updateViewport(100, 0)
+
+    // the first occurrence wins; the second 'a' is ignored
+    expect([...dup.idDomMap.keys()]).toEqual(['a', 'b'])
+    expect(reported).toEqual([['a', 'a', 1]])
+
+    // re-rendering while the data is unchanged reports nothing new
+    dup.render(0)
+    expect(reported.length).toBe(1)
   })
 
   test('destroy() removes all managed elements and clears state', () => {
@@ -213,6 +228,7 @@ describe('Virtual scroll', () => {
       }),
       updateItemContent: () => {},
       itemHeight: ITEM_HEIGHT,
+      buffer: 0,
       items,
       itemsContainer: DUMMY_ITEMS_CONTAINER,
     })
