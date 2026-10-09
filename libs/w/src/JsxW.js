@@ -36,9 +36,34 @@ export class JsxW extends HTMLElement {
    * @type {any}
    */
   form
+  /** @type {any} */
+  __pending
 
   constructor(attr, children, parent, shadow, shadowOptions) {
     super()
+    this.__pending = { attr, children, parent, shadow, shadowOptions }
+    // A custom element's constructor must not add attributes or children: the parser and
+    // `document.createElement` both refuse the upgrade when it does (`The result must not have
+    // attributes` / `must not have children`).
+
+    // `document.createElement(tag, options)`, which connects the element while the constructor runs, and
+    // building there is legal. A detached element waits for `connectedCallback` — where it becomes legal.
+    if (this.isConnected) {
+      this.__buildContent()
+    }
+  }
+
+  connectedCallback() {
+    this.__buildContent()
+  }
+
+  __buildContent() {
+    const pending = this.__pending
+    if (!pending) {
+      return
+    }
+    this.__pending = null
+    const { attr, children, parent, shadow, shadowOptions } = pending
     if (shadow) {
       this.attachShadow({ ...shadowOptions, mode: 'open' })
       globalThis.activateJsxInspector?.(this.shadowRoot) // support for jsx code jump when jsx-dev
