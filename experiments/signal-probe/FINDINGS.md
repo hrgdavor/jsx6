@@ -108,7 +108,7 @@ signal), and the stack walk is not the expensive part of it — `Object.definePr
 So: enable tracing for a **repro**, prefer `traceSignal` on specific signals for long sessions.
 
 Guard against regression: `bun test libs/signal` (104 tests, 22 in `src/trace.test.js`), plus oxlint,
-oxfmt and `tsc --noEmit` on the package.
+oxfmt and `bun check` (run inside the package directory).
 
 ---
 

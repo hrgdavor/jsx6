@@ -10,7 +10,7 @@ The package exports four functions, all of which return a disposer (except the o
 | `observeInit` | `observeInit(el, callback, options?)` | the same entry, **once**, the first time the element is visible; returns `undefined` |
 
 The emitted declarations are the authoritative types: [../dist/index.d.ts](../dist/index.d.ts)
-(`bun run tsc` in the package regenerates them).
+(`bun run types` in the package regenerates them).
 
 [usage.example.mjs](./usage.example.mjs#region:demo)
 

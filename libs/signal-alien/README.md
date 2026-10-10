@@ -171,8 +171,8 @@ keeps that reachable. An app that never interops could avoid it with a separate 
 * **behaviour** — zero regressions on every contract case the shipped package passes, plus the 10
   additional cases only this core can satisfy (its native auto-tracking path, alien batching, and the
   whole interop matrix);
-* **types** — `tsc` with declaration emit and `checkJs` is clean, and the emitted `dist/index.d.ts`
-  loses no declaration from the shipped package's;
+* **types** — `bun check` is clean, and the emitted `dist/index.d.ts` (declarations come from
+  `bun run types`, tsc 7) loses no declaration from the shipped package's;
 * **bundles** — `esm` and `cjs` builds succeed;
 * **tests** — the shipped package's own 7 test files / 30 tests are copied **byte-identically** into
   this package and pass here, alongside 31 new tests for the computed axis and the interop layer

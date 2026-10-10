@@ -20,7 +20,7 @@ in [§0](#0-what-already-landed) so nothing below re-does them and the starting 
    exists to make that catalogue unnecessary.
 
 **House rules that apply to every batch below:** `bun test` per package / `bun run test` at the
-root discovers them; `bun run check:fast` = tests + `tsc --noEmit`; `bun run check` = the full gate.
+root discovers them; `bun run check:fast` = tests + `bun check`; `bun run check` = the full gate.
 `oxfmt` refuses to format `*.md` (ignored) and **fails with `spawn EPERM` on 6 HTML files in a
 sandboxed shell** — that step needs an unrestricted shell, everything else of the gate runs fine
 with `bun run check --no-format`.
@@ -607,8 +607,8 @@ Each batch is one reviewable change set (tests + docs inside it).
 
 ```sh
 bun run test                # every package's tests (root discovers them)
-bun run check:fast          # + tsc --noEmit for every lib with a tsconfig
-(cd apps/nodditor && bun x tsc --noEmit -p tsconfig.json)   # the app is not in the gate
+bun run check:fast          # + bun check in every lib with a tsconfig
+(cd apps/nodditor && bun check)   # the app is not in the gate
 bun run check --no-format   # full gate: declaration emit, oxlint, versions, docs sync, manifests, workspace
 bun x oxfmt                 # format; `--check` needs an unrestricted shell (6 HTML files fail with spawn EPERM)
 ```

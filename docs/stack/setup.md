@@ -55,7 +55,7 @@ esbuild src/index.jsx --bundle --format=esm --outdir=build --jsx=automatic \
 
 ## 3. TypeScript and the editor
 
-The apps keep two tsconfigs. `tsconfig.json` is what the editor and `tsc` read:
+The apps keep two tsconfigs. `tsconfig.json` is what the editor and `tsc` (declaration emit) read:
 
 ```json
 {
@@ -115,14 +115,16 @@ set its properties from JS.
 
 ```sh
 bun run dev                    # or however your app starts; the page should render
-bun x tsc --noEmit -p tsconfig.json
+cd libs/jsx6 && bun check      # type-check the package you are working in
 ```
 
-On Windows a bare `tsc` may be the *Service Control* executable, not TypeScript. Always go through Bun,
-which resolves the workspace copy ([README.md](../../README.md#L91)):
+Type checking is Bun's built-in checker: it reads that directory's `tsconfig.json`, uses all cores, and
+never writes files. Declaration emit is the only thing left for `tsc`, and on Windows a bare `tsc` may
+be the *Service Control* executable, not TypeScript — so always go through Bun, which resolves the
+workspace copy ([README.md](../../README.md#L91)):
 
 ```sh
-bun x tsc --noEmit -p libs/jsx6/tsconfig.json
+cd libs/jsx6 && bun run types  # tsc, emits dist/*.d.ts only
 ```
 
 If the page renders but nothing is reactive, the usual causes are a `jsxImportSource` that points at

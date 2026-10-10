@@ -87,7 +87,8 @@ into each candidate (nothing in `libs/` is touched), and then the real publish s
 
 ```bash
 cd experiments/signal-directions/<candidate>/signal
-bun x tsc -p tsconfig.json     # declaration emit + checkJs type checking
+bun x tsc -p tsconfig.json     # declaration emit
+bun check                       # type check
 bun run build && bun run build-cjs
 ```
 

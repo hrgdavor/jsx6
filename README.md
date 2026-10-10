@@ -80,14 +80,20 @@ gate is the only thing standing between a mistake and a published package:
 
 ```bash
 bun run check        # the full local gate — must pass before committing and before `bun pub`
-bun run check:fast   # faster subset: tests + JSDoc type check
+bun run check:fast   # faster subset: tests + `bun check` for every lib (no tsc, no bundling)
 bun run test         # tests only, discovered across every package
 ```
 
-`bun run check` runs, in order: unit tests in **every** package that has them, declaration emit
-(`tsc`), the `checkJs` type check, ESLint (including the custom `jsx6/signal-dependencies` rule),
-the dependency-catalog check, and a package-manifest audit that dry-runs `npm pack` for every
-publishable package. `scripts/publish.js` runs the gate itself and refuses to publish if it fails.
+`bun run check` runs, in order: unit tests in **every** package that has them, an assertion that the
+declaration emitter really is TypeScript 7.x, declaration emit (`tsc` — the only job `tsc` still has
+here), the `checkJs` type check (`bun check`), Oxlint (including the custom
+`jsx6/signal-dependencies` rule), Oxfmt, the dependency-catalog check, the docs-sync check, and a
+package-manifest audit that dry-runs `npm pack` for every publishable package. `scripts/publish.js`
+runs the gate itself and refuses to publish if it fails.
+
+Type checking is Bun's own checker: `bun check`, run **inside** a package (at the repository root
+that name is this gate script, so `bun check` there runs the gate). `bun check` never writes files,
+which is why `tsc` is still around to emit the declarations.
 
 Make sure `bun run check` passes before `bun pub`. There is no CI; this command is the only gate.
 
@@ -101,13 +107,20 @@ I do not want any ugly compromises to suport SSR (that I luckily never personall
 
 # TSC troubleshooting
 
+`tsc` has exactly one job left in this repository: emitting the `dist/*.d.ts` declarations. Type
+*checking* is `bun check` and never involves `tsc`.
+
 If `tsc` reports `This is not the tsc command you are looking for`, you are running the Windows
 "Service Control" `tsc.exe` instead of TypeScript's CLI. In this repository always run TypeScript
 through Bun, which resolves the workspace copy:
 
 ```bash
-bun x tsc --noEmit -p libs/jsx6/tsconfig.json
+bun check                                 # inside a package: the type check (no tsc involved)
+bun run types                             # inside a package: declaration emit
+bun x tsc -p libs/jsx6/tsconfig.json      # the same emit, from the repository root
 ```
 
-The same applies to package scripts: declare `"tsc": "tsc"` in the package and run it with
-`bun run tsc` (or `bun x tsc`), never by calling a globally installed `tsc` directly.
+The same applies to package scripts: the declaration emitter is declared as `"types": "tsc"` and run
+with `bun run types` (or `bun x tsc`), never by calling a globally installed `tsc` directly. The
+version is pinned to TypeScript 7.x in the root `catalog`, and the gate fails if the installed
+`tsc` is not 7.x.

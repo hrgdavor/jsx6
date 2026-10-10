@@ -18,7 +18,7 @@ This plan is **evidence-based on this repository**, not on vendor documentation.
 | **O4** | **Drop `@trivago/prettier-plugin-sort-imports` — it is dead weight and Oxfmt cannot run it.** | *Measured:* it is declared in the root `package.json` but referenced by **no config**; `.prettierrc.js` has no `plugins` field. Nothing sorts imports today, so nothing is lost. This matches the owner's call that import sorting is not important to keep. |
 | **O5** | **Treat Oxlint's JS-plugin support as alpha, and keep an exit path.** | Oxlint itself is stable (v1.x), but JS plugins reached **alpha in March 2026** and the custom rule depends on them. The plan keeps ESLint installable for one release so a regression is a config flip, not a rewrite. |
 
-**Explicitly out of scope:** import sorting (O4), type-aware linting (this repo is JS + JSDoc and the gate's `tsc --checkJs` already covers that ground), and enabling Oxlint's default extras (`unicorn`, `oxc`, `typescript` plugins) as a *new* source of findings — see O2/Y3.
+**Explicitly out of scope:** import sorting (O4), type-aware linting (this repo is JS + JSDoc and the gate's `bun check` already covers that ground), and enabling Oxlint's default extras (`unicorn`, `oxc`, `typescript` plugins) as a *new* source of findings — see O2/Y3.
 
 ---
 

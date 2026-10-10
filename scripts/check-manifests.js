@@ -8,7 +8,7 @@
  *
  * Checks, per non-private package:
  *   1. every path in exports/main/module/unpkg/types exists on disk, or is produced by that
- *      package's own build/build-cjs/tsc script;
+ *      package's own build/build-cjs/types script (the declaration emitter, `bun run types`);
  *   2. every directory those paths live in is covered by `files`;
  *   3. every bare import in index.js + src/** resolves to a runtime dependency;
  *   4. `version` agrees with MODULE_VERSIONING.md and, where present, jsr.json;
@@ -129,16 +129,25 @@ function readTsconfigOutDir(dir) {
   }
 }
 
+/**
+ * Scripts that write files into the package: everything named `build*`, plus the declaration-emit
+ * script. That script is called `types` (`"types": "tsc"`) since `bun check` took over checking;
+ * `tsc` stays recognised so a package that still names it that way is not silently unaudited.
+ */
+const EMIT_SCRIPTS = new Set(['types', 'tsc'])
+
 /** Output roots this package's own scripts are able to produce. */
 function buildOutputs(pkg, dir) {
   const outs = new Set()
   for (const [name, cmd] of Object.entries(pkg.scripts || {})) {
     if (typeof cmd !== 'string') continue
-    if (!name.startsWith('build') && name !== 'tsc') continue
+    if (!name.startsWith('build') && !EMIT_SCRIPTS.has(name)) continue
     for (const m of cmd.matchAll(/--out(?:dir|file|base)[= ]([^\s"']+)/g)) {
       outs.add(m[1].replace(/^\.\//, ''))
     }
-    if (name === 'tsc' || /(^|\s)tsc(\s|$)/.test(cmd)) {
+    // The declaration emitter's body is just `tsc`, so its output directory lives in the tsconfig
+    // (`outDir`), not on the command line.
+    if (EMIT_SCRIPTS.has(name) || /(^|\s)tsc(\s|$)/.test(cmd)) {
       const outDir = readTsconfigOutDir(dir)
       if (outDir) outs.add(outDir)
     }

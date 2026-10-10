@@ -29,7 +29,7 @@ Other scripts, all run from `apps/nodditor`:
 | --- | --- |
 | `bun start` | dev server on :5111 (watch + live reload) |
 | `bun run build` | production bundle + `static/` copy into `build/` (`BUILD SUCCESS` on stdout) |
-| `bun run tsc` | regenerate `dist/` (declarations only — `emitDeclarationOnly`) |
+| `bun run types` | regenerate `dist/` (declarations only — `emitDeclarationOnly`) |
 | `bun test` | unit tests in [test/](test/), DOM globals from happy-dom (see [Testing](#testing)) |
 
 ## Usage
@@ -736,4 +736,4 @@ backend is a replacement and asserts the editor's calls actually arrive there.
 Format with `bun run format` from the repository root (Oxfmt is canonical). `bun run check` is the
 full local gate; note that it type-checks and lints `libs/`, `tools/` and `scripts/` only —
 `apps/nodditor` is verified by `bun run build`, `bun test` and the demo. After any public API change
-regenerate the declarations with `bun run tsc`.
+regenerate the declarations with `bun run types`.

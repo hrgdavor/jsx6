@@ -9,8 +9,9 @@ signal-clock 4, w 4, jsx-dev-runtime 3, signal-dom 2, repl 1), zero TypeScript d
 12 libs, ESLint clean, manifest audit clean.
 
 Timing: **~26 s** on an idle machine. It is dominated by the manifest audit (17 `npm pack --dry-run`
-invocations, ~12 s) and 24 `tsc` runs (~12 s); under load / with a cold disk cache the same gate has
-been observed at ~90 s, so treat 26 s as the warm figure rather than a guarantee.
+invocations, ~12 s) and the per-package declaration-emit / type-check runs (~12 s); under load / with a
+cold disk cache the same gate has been observed at ~90 s, so treat 26 s as the warm figure rather than a
+guarantee.
 
 This document records what was implemented, what changed relative to the plan's assumptions, and
 what is deliberately left open. The plan itself (§0 decisions) is unchanged and still binding.
@@ -25,8 +26,8 @@ machine, non-zero exit on any failure.
 | Step | Implementation |
 |---|---|
 | tests | `bun test` in every package that has tests, discovered by glob (9 packages today) |
-| declaration emit | `tsc -p tsconfig.json` per lib — **runs before the type check** so dependents are checked against freshly emitted `dist/*.d.ts` |
-| type check | `tsc --noEmit` per lib with `checkJs: true` |
+| declaration emit | `bun x tsc -p tsconfig.json` per lib (the package's `types` script) — **runs before the type check** so dependents are checked against freshly emitted `dist/*.d.ts` |
+| type check | `bun check` in each lib with a tsconfig — Bun's built-in checker, all cores, never writes files |
 | build (optional) | `--build` runs each lib's `build`/`build-cjs`, which also makes the tarball audit strict |
 | lint | ESLint, executed through Bun (see §5 below) |
 | versions | `scripts/check-versions.js` (repaired, P1-4) |
@@ -34,8 +35,9 @@ machine, non-zero exit on any failure.
 | manifests | `scripts/check-manifests.js` — new, §2.3 |
 | browser smoke | `libs/jsx6/src/browser.test.js` — new, §2.4 (part of the test step) |
 
-Flags: `--quick`, `--tests-only`, `--build`, `--require-built`, `--no-tests`, `--no-types`,
-`--no-declarations`, `--no-lint`, `--no-versions`, `--no-docs`, `--no-manifests`, `--no-pack`.
+Flags: `--quick`, `--tests-only`, `--build`, `--require-built`, `--no-tests`, `--no-typecheck`
+(`--no-types` is kept as an accepted alias), `--no-declarations`, `--no-lint`, `--no-versions`,
+`--no-docs`, `--no-manifests`, `--no-pack`.
 
 `scripts/publish.js` now runs the gate with `--require-built` in Phase 1b (after building each
 package) and aborts publishing on failure (P1-5).
@@ -94,7 +96,7 @@ tsconfig, and the test files are excluded where they live in `src/`.
 ## 3. P1 — published packages vs. their manifests (done)
 
 - P1-1 `@jsx6/jsx6`: `files` now includes `dist`/`esm` and excludes `!src/**/*.test.js`.
-- P1-2 `@jsx6/nodditor`: phantom `exports.require`/`unpkg` (`cjs/`) removed, `tsc` script added. The
+- P1-2 `@jsx6/nodditor`: phantom `exports.require`/`unpkg` (`cjs/`) removed, `types` script added. The
   package's real artifact is the bundled app in `build/`, so a library CJS bundle was not invented.
 - P1-3 `@jsx6/repl`: phantom `main` removed; decision recorded — it stays published as part of the
   lockstep group because it is the engine behind the *demistify* tutorial (note added to
@@ -104,7 +106,7 @@ tsconfig, and the test files are excluded where they live in `src/`.
 - P1-5 `publish.js`: gate in Phase 1b, `node_modules` copies skipped in version discovery, and
   manifest rewrites are snapshotted/restored from `process.on('exit')` + signal handlers.
 - P1-6 `minimatch` moved to `dependencies` in `tools/build`.
-- P1-7 `@jsx6/virtual-scroll`: `tsc` script added and `happy-dom` moved to `catalog:` (its tests were
+- P1-7 `@jsx6/virtual-scroll`: `types` script added and `happy-dom` moved to `catalog:` (its tests were
   failing only because its dependencies had never been installed — they now pass, 10/10).
 - P1-8 `versions.js` also rewrites `jsr.json`.
 - P1-9 `MODULE_VERSIONING.md` lists `@jsx6/virtual-scroll` and `eslint-plugin-jsx6`; `@jsx6/scloop`

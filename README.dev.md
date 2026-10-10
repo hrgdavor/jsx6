@@ -44,7 +44,7 @@ local gate is the only gate there is:
 
 ```bash
 bun run check        # full gate — required before committing and before `bun pub`
-bun run check:fast   # tests + JSDoc type check only
+bun run check:fast   # tests + `bun check` only (no tsc, no bundling)
 bun run test         # tests only, discovered across every package
 ```
 
@@ -62,8 +62,9 @@ The full gate (`scripts/verify.js`) runs, in order:
 | Step                | What it does                                                                       |
 | ------------------- | ---------------------------------------------------------------------------------- |
 | tests               | `bun test` in **every** package that has tests (discovered by glob, not hardcoded) |
-| declaration emit    | `tsc -p tsconfig.json` per lib, so `dist/*.d.ts` is always producible              |
-| type check          | `tsc --noEmit` per lib with `checkJs` on (catches undefined-identifier bugs)       |
+| typescript version  | the installed `typescript` and the root `catalog` range must both be 7.x — `tsc` only emits now, and the emit is verified against TS 7 |
+| declaration emit    | `tsc -p tsconfig.json` per lib, so `dist/*.d.ts` is always producible — **the one remaining `tsc` use**, because `bun check` never writes files |
+| type check          | `bun check` per lib with `checkJs` on (catches undefined-identifier bugs; Bun's built-in checker, TypeScript 7 semantics, every core) |
 | oxlint              | `libs/`, `tools/` and `scripts/` with `--deny-warnings`, including the custom `jsx6/signal-dependencies` JS-plugin rule (loaded via `jsPlugins`; warning-severity findings stop the gate) |
 | oxfmt               | `oxfmt --check` — every file in the tree is already canonically formatted, so `bun run format` stays a no-op |
 | dependency versions | `scripts/check-versions.js` — every catalog-managed dependency must use `catalog:` |
@@ -72,9 +73,11 @@ The full gate (`scripts/verify.js`) runs, in order:
 | workspace integrity | `scripts/check-workspace.js` — no Rush artifacts, exactly one lockfile, internal deps are `workspace:*`, and no dependency is pinned to two different versions across the workspace |
 
 Useful flags: `--quick`, `--tests-only`, `--build` (build every lib bundle first, so the tarball
-assertions become strict, and rebuild-compare the docs site), `--no-pack`, `--no-lint`, `--no-format`, `--no-types`,
-`--no-declarations`, `--no-versions`, `--no-docs`, `--no-manifests`, `--no-workspace`, and
-`--require-built` (every declared build output must already exist — used by the publish path).
+assertions become strict, and rebuild-compare the docs site), `--no-pack`, `--no-lint`, `--no-format`,
+`--no-typecheck` (skip the `bun check` step; `--no-types` is its historical spelling),
+`--no-declarations` (skip the `tsc` declaration emit), `--no-versions`, `--no-docs`, `--no-manifests`,
+`--no-workspace`, and `--require-built` (every declared build output must already exist — used by the
+publish path).
 
 The individual checks can also be run directly:
 
@@ -117,15 +120,29 @@ bun run build
 bun run build-cjs
 ```
 
-### tsc (Type Declarations)
-We use JSDoc for typing (`checkJs` is enabled in every lib's `tsconfig.json`). To generate `.d.ts`
-files for consumers:
+### types (Type Declarations)
+
+We use JSDoc for typing (`checkJs` is enabled in every lib's `tsconfig.json`). Checking that JSDoc —
+and every other type in the tree — is Bun's built-in checker, run from the package directory:
+
 ```bash
-bun run tsc
+bun check
 ```
-*Note: always run TypeScript through Bun (`bun run tsc` / `bun x tsc`) so the workspace copy is used
+
+It reads the same `tsconfig.json` as `tsc --noEmit`, prints the same diagnostics in the
+`tsc --pretty false` format, exits non-zero on any error, writes nothing, and uses every core. It is
+what `bun run check:fast` and the gate's type-check step run.
+
+`tsc` is still needed for exactly one thing: emitting the `.d.ts` files consumers resolve through each
+manifest's `types` field. That is the `types` script (declaration emit, TypeScript 7):
+
+```bash
+bun run types
+```
+
+*Note: always run TypeScript through Bun (`bun run types` / `bun x tsc`) so the workspace copy is used
 instead of a globally installed `tsc`, which on Windows may resolve to the unrelated system
-`tsc.exe`.*
+`tsc.exe`. The gate asserts the resolved TypeScript is 7.x before it emits.*
 
 ---
 
@@ -207,7 +224,9 @@ fails the gate if one comes back.
 If you encounter `ENOENT` when spawning `npm` or `tsc` in scripts, ensure you are using `shell: true` in your spawn options. The `publish.js` script is already configured for this.
 
 ### TypeScript Resolution
-If `tsc` is not recognized, run `bun install` at the root to link the workspace dependencies.
+If `tsc` is not recognized, run `bun install` at the root to link the workspace dependencies. `bun
+check` needs none of that: the checker is built into Bun, which also brings its own copy of
+TypeScript's `lib.*.d.ts` files.
 
 ### Oxlint and Oxfmt run through `bun x`
 Both ship native binaries that the Node-based `.bin` shims do not wrap, so the gate

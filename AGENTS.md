@@ -10,10 +10,14 @@ Bun-workspace monorepo: `libs/*` (publishable `@jsx6/*` packages), `apps/*` (`no
 ## The gate
 
 ```sh
-bun run check        # full gate: tests, tsc, oxlint, oxfmt, versions, docs, manifests, workspace
-bun run check:fast   # tests + JSDoc type check
+bun run check        # full gate: tests, tsc 7 declarations, bun check, oxlint, oxfmt, versions, docs, manifests, workspace
+bun run check:fast   # tests + bun check (no tsc, no bundling)
 bun run test         # tests only, discovered across every package
 ```
+
+Type checking is `bun check`, run **inside** a package (`cd libs/jsx6 && bun check`) — at the root
+that name is the gate script, so a root-level `bun check` runs the gate. `tsc` (7.x, pinned in the
+root `catalog`) survives only to emit `dist/*.d.ts`: `bun run types` in a package.
 
 `README.dev.md` documents what each step does, the flags, lint scope, versioning and publishing —
 read it there instead of duplicating it here.

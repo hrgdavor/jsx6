@@ -88,12 +88,13 @@ const buildCandidate = (id, coreDir) => {
   const run = (cmd, args) =>
     spawnSync(cmd, args, { cwd: signalDir, stdio: 'inherit', shell: process.platform === 'win32' }).status
   const tsc = run('bun', ['x', 'tsc', '-p', 'tsconfig.json'])
+  const check = run('bun', ['check'])
   const esm = tsc === 0 ? run('bun', ['run', 'build']) : null
   const cjs = esm === 0 ? run('bun', ['run', 'build-cjs']) : null
   const dtsPath = join(signalDir, 'dist/index.d.ts')
   const dts = existsSync(dtsPath) ? readFileSync(dtsPath, 'utf8') : null
   void id
-  return { tsc, esm, cjs, dts }
+  return { tsc, check, esm, cjs, dts }
 }
 
 /** Declaration names exported by a `.d.ts` file (enough to detect a surface change). */
@@ -218,6 +219,7 @@ for (const { id, dir, entry, capabilities } of CANDIDATES) {
       regressions.length === 0 &&
       tests.status === 0 &&
       build.tsc === 0 &&
+      build.check === 0 &&
       build.esm === 0 &&
       build.cjs === 0 &&
       dtsMissing.length === 0,
@@ -236,14 +238,15 @@ w('suite. A single behavioural regression fails the verdict.')
 w('')
 w('## Verdict')
 w('')
-w('| candidate | surface | behaviour | source paths | types (`tsc`) | bundles | shipped tests | verdict |')
-w('|---|---|---|---|---|---|---|---|')
+w('| candidate | surface | behaviour | source paths | types (`tsc`) | check (`bun check`) | bundles | shipped tests | verdict |')
+w('|---|---|---|---|---|---|---|---|---|')
 for (const r of rows) {
   w(
     `| \`${r.id}\` | ${r.missingNames.length || r.typeMismatch.length ? `**${r.missingNames.length} missing, ${r.typeMismatch.length} type mismatch**` : `${SHIPPED_ENTRY_EXPORTS.length} names, all matching`} | ` +
       `${r.regressions.length ? `**${r.regressions.length} regressions**` : `${r.contractPassed} cases pass, 0 regressions`} | ` +
       `${r.deep.every(d => d.ok) ? 'all present' : '**missing**'} | ` +
       `${r.build.tsc === 0 ? 'clean' : `**exit ${r.build.tsc}**`}${r.dtsMissing.length ? `, **${r.dtsMissing.length} declarations lost**` : ', no declarations lost'} | ` +
+      `${r.build.check === 0 ? 'clean' : `**exit ${r.build.check}**`} | ` +
       `${r.build.esm === 0 && r.build.cjs === 0 ? 'esm + cjs built' : '**build failed**'} | ` +
       `${r.testsExit === 0 ? 'green (exit 0)' : `**exit ${r.testsExit}**`} | ` +
       `${r.dropIn ? '✅ **drop-in**' : '❌ **not drop-in**'} |`,
@@ -301,14 +304,16 @@ w('into each candidate (nothing in `libs/` is touched), and then the real publis
 w('')
 w('```bash')
 w('cd experiments/signal-directions/<candidate>/signal')
-w('bun x tsc -p tsconfig.json     # declaration emit + checkJs type checking')
+w('bun x tsc -p tsconfig.json     # declaration emit')
+w('bun check                       # type check')
 w('bun run build && bun run build-cjs')
 w('```')
 w('')
 for (const r of rows) {
   w(`#### \`${r.id}\``)
   w('')
-  w(`* \`tsc\` (declarations **and** `+'`checkJs`'+` type checking): ${r.build.tsc === 0 ? 'clean' : `**exit ${r.build.tsc}**`}`)
+  w(`* \`tsc\` (declaration emit): ${r.build.tsc === 0 ? 'clean' : `**exit ${r.build.tsc}**`}`)
+  w(`* \`bun check\` (type checking): ${r.build.check === 0 ? 'clean' : `**exit ${r.build.check}**`}`)
   w(`* \`build\` (esm) / \`build-cjs\`: ${r.build.esm === 0 ? 'ok' : `exit ${r.build.esm}`} / ${r.build.cjs === 0 ? 'ok' : `exit ${r.build.cjs}`}`)
   w(`* declarations the shipped package has and the candidate's emitted \`dist/index.d.ts\` lacks: ${r.dtsMissing.length ? r.dtsMissing.map(n => `\`${n}\``).join(', ') : '**none**'} (${baseNames.size} baseline declarations)`)
   w(`* declarations **added** by the candidate: ${r.dtsAdded.length ? r.dtsAdded.map(n => `\`${n}\``).join(', ') : '— none'}`)

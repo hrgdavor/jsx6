@@ -45,11 +45,25 @@ If using `JSX` and not `React` then you need a copy of `tsconfig.json` called fo
 ## TypeScript 7
 
 The repo is on TypeScript 7 (the native Go compiler, `typescript@^7.0.2`), pinned once in the root
-`catalog` and consumed as `catalog:` by every package. Run it the same way as before:
+`catalog` and consumed as `catalog:` by every package.
+
+Type **checking** is Bun's built-in checker, `bun check`, which behaves like TypeScript 7 whichever
+`typescript` version happens to be installed:
 
 ```
-bun x tsc --noEmit -p tsconfig.json    # per lib, as `bun run check` does
+bun check                              # inside a package; reads that package's tsconfig.json,
+                                       # never writes files, uses every core
 ```
+
+`bun check` cannot be used from the repository root: the root manifest has a script named `check`
+(the gate), and Bun prefers a package.json script over its built-in subcommand — so a root-level
+`bun check` silently runs the whole gate. From the root use `bun run check:fast` (tests + `bun check`
+for every lib that has a tsconfig).
+
+`tsc` is still installed and still pinned to 7.x, but it has exactly one job now: **declaration
+emit** into `dist/` (`bun run types` inside a package, `bun x tsc -p tsconfig.json` in the gate and
+in `scripts/publish.js`). `bun check` never writes files, so the `.d.ts` files have to come from
+somewhere. The gate asserts that the installed TypeScript is 7.x before it emits.
 
 Two things about TS 7 matter for a JSDoc-typed codebase. Both are silent under TS 5, and both are
 worked around in each lib's `tsconfig.json` rather than by annotating everything:
@@ -59,7 +73,7 @@ worked around in each lib's `tsconfig.json` rather than by annotating everything
    the historical checking strength. Raise them per-lib if you ever want that stricter checking.
 
    `apps/repl` needs the same two flags for a different reason: its `paths` point at the libs'
-   *sources*, so its `tsc` (run by `scripts/publish.js`) type-checks those files through the app's
+   *sources*, so its type check (run by `scripts/publish.js`) walks those files through the app's
    config and reports every unannotated parameter. `bun run pub` fails on this if they are missing.
 
 2. **A `@param` bracket no longer makes a parameter optional for call sites.** TS 7 computes a

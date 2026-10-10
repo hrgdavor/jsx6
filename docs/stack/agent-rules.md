@@ -13,9 +13,9 @@ pages explain the why — [setup.md](./setup.md), [signals.md](./signals.md), [c
 2. **JSX must resolve to the jsx6 runtime**: `jsx: 'automatic'` with `jsxImportSource: '@jsx6'` (→
    `@jsx6/jsx-runtime`; `jsxDev: true` in dev → `@jsx6/jsx-dev-runtime`). A React runtime compiles fine
    and then fails at runtime.
-3. **Keep the two tsconfigs separate**: the editor/`tsc` config uses `"jsx": "preserve"`; esbuild is
-   pointed at an (essentially empty) `tsconfig-custom.json`. If esbuild reads `jsx: "preserve"` it emits
-   raw JSX.
+3. **Keep the two tsconfigs separate**: the editor config that `bun check` and `tsc` read uses
+   `"jsx": "preserve"`; esbuild is pointed at an (essentially empty) `tsconfig-custom.json`. If esbuild
+   reads `jsx: "preserve"` it emits raw JSX.
 4. **`loader: { '.js': 'tsx' }`** is required in any package that keeps JSX in `.js` files.
 5. **`bun test` reads `bunfig.toml` from the process cwd** — run it per package (what the root gate does),
    never `bun test apps/nodditor` from the root, or the JSX transform is not configured.
@@ -77,9 +77,10 @@ pages explain the why — [setup.md](./setup.md), [signals.md](./signals.md), [c
 | the whole stack's examples | `bun run docs:examples` |
 | one example | `node docs/stack/signals.example.mjs`, `node docs/stack/components.run.mjs`, `node libs/dom-observer/doc/usage.example.mjs`, `cd apps/nodditor && node doc/getting-started.run.mjs` |
 | tests (discovered per package) | `bun run test` |
-| fast gate: tests + JSDoc type check | `bun run check:fast` |
+| fast gate: tests + `bun check` | `bun run check:fast` |
 | full local gate (no CI exists) | `bun run check` — in a confined sandbox use `bun run check --no-format` |
-| type check one package | `bun x tsc --noEmit -p libs/jsx6/tsconfig.json` |
+| type check one package | `cd libs/jsx6 && bun check` (at the repository root `bun check` would run the gate script) |
+| declaration emit one package | `cd libs/jsx6 && bun run types` |
 | docs injected blocks | `bun run docs:inject:check` |
 | format | `bun run format` (Oxfmt; `*.md` is not formatted) |
 
@@ -95,7 +96,7 @@ pages explain the why — [setup.md](./setup.md), [signals.md](./signals.md), [c
 | a derived value is stale after a branch appears | the dependency was not declared and the read set was collected once |
 | a `$State` field appears out of nowhere | an unknown key was read, or `$s.value`/`$s.dispose` was touched |
 | `JSX6E15` warning, broken `p`/handler scope | two copies of `@jsx6/jsx6` in the bundle |
-| `tsc` says "This is not the tsc command you are looking for" | a Windows `tsc.exe` on `PATH`; use `bun x tsc` |
+| `tsc` says "This is not the tsc command you are looking for" | a Windows `tsc.exe` on `PATH`; this affects declaration emit, so use `bun run types` (or `bun x tsc`) |
 | esbuild fails with `spawn EPERM` | the JS API needs a piped service; use the CLI with `stdio: 'inherit'` (see [components.run.mjs](./components.run.mjs)) |
 | `bunx` fails with "unable to write files to tempdir: EPERM" | restricted sandbox; run the tool from Bun's cache or with unrestricted file access |
 

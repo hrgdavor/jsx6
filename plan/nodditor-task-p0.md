@@ -45,7 +45,7 @@
      `getBlocksBounds` at L18).
    - [index.js](../apps/nodditor/index.js) L9: after the rename the `export *` is unambiguous; you may
      switch to an explicit `export { getBlocksBounds } from './src/getBlocksBounds.js'` for clarity.
-   - Regenerate `dist`: `cd apps/nodditor && bun run tsc` so [dist/index.d.ts](../apps/nodditor/dist/index.d.ts)
+   - Regenerate `dist`: `cd apps/nodditor && bun run types` so [dist/index.d.ts](../apps/nodditor/dist/index.d.ts)
      L8–L9 stay in sync.
 4. **Dragging a selected line's endpoint duplicates the line.**
    [LineInteraction.js](../apps/nodditor/src/LineInteraction.js):

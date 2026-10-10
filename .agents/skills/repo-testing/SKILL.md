@@ -18,7 +18,7 @@ pipelines) are in the root [AGENTS.md](../../../AGENTS.md) — read that too.
 | every package | `bun run test` (root) — runs `bun test` per package **with the cwd set to that package** |
 | one package | `cd apps/nodditor && bun test` |
 | one file / one test | `cd apps/nodditor && bun test test/lineLayer.test.jsx -t "pick band"` |
-| types for an APP | `cd apps/nodditor && bun x tsc --noEmit -p tsconfig.json` — the gate's `tsc` steps cover `libs/` only |
+| type check an APP | `cd apps/nodditor && bun check` — the gate's `bun check` step covers `libs/` only |
 | smoke suites | `apps/nodditor/smoke/*.smoke.jsx` are **not** tests and **not** in the gate; they are committed bundles run by their `*.run.mjs` siblings |
 
 Two rules that are easy to trip over:

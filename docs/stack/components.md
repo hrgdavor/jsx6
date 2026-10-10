@@ -210,7 +210,7 @@ validation state. The full API map is [docs/api.md](../api.md).
 ```sh
 node docs/stack/components.run.mjs                 # this page's example
 bun test                                           # the jsx6/w suites, from the repository root
-bun x tsc --noEmit -p libs/jsx6/tsconfig.json      # JSDoc type check
+cd libs/jsx6 && bun check                          # type check (never writes files)
 ```
 
 The rule of thumb for this layer: if a DOM change is not happening, check whether the binding was created

@@ -27,7 +27,7 @@
     "docs:example": "node doc/zoom-controls.run.mjs",
     "docs:feeding-data": "node doc/feeding-data.run.mjs",
     "docs:getting-started": "node doc/getting-started.run.mjs",
-    "tsc": "tsc"
+    "types": "tsc"
   },
   "repository": {
     "type": "git",

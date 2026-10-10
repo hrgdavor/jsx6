@@ -96,9 +96,19 @@ async function run() {
         await runCommand('bun', ['run', 'build-cjs'], relPath)
       }
 
-      // 2. TSC if tsconfig exists
-      if (await file(tsconfigPath).exists()) {
-        await runCommand('bun', ['x', 'tsc'], relPath)
+      // 2. Declarations (`types`) and/or the type check.
+      //    - `types` is the declaration-emit script (`"types": "tsc"`, TypeScript 7): the one job
+      //      `tsc` is still needed for, since `bun check` never writes files.
+      //    - A package whose tsconfig only checks (`noEmit`, e.g. apps/repl, libs/w) has nothing to
+      //      emit, so it gets `bun check` — Bun's built-in checker, run from the package directory
+      //      (a root-level `bun check` would run the root gate script of the same name instead).
+      if (scripts.types) {
+        await runCommand('bun', ['run', 'types'], relPath)
+      }
+      if (scripts.check) {
+        await runCommand('bun', ['run', 'check'], relPath)
+      } else if (await file(tsconfigPath).exists()) {
+        await runCommand('bun', ['check'], relPath)
       }
 
       // 3. Test

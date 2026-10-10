@@ -49,7 +49,7 @@ README.
      (`inline-block` then `flex`) → keep one.
    - [package.json](../apps/nodditor/package.json) L64 `@jsx6/dom-observer`: **keep if P1-3 uses it
      (check the P3 summary — it states this explicitly), remove otherwise.**
-   - `dist/` is generated — regenerate after any API change (`cd apps/nodditor && bun run tsc`).
+   - `dist/` is generated — regenerate after any API change (`cd apps/nodditor && bun run types`).
 3. **Docs.** Write [apps/nodditor/README.md](../apps/nodditor/README.md) (currently absent;
    `notes.md` only covers zoom): what it is, how to run the demo (`bun start` → :5111), the public
    API (`add`, `getConnector`, `addConnectorFromTo`, `selectBlocks`, `changeZoom*`, `resetView`), the

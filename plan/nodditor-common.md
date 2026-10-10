@@ -16,7 +16,7 @@ App root: `apps/nodditor` (package `@jsx6/nodditor`).
 - Dev server: `cd apps/nodditor && bun start` → `node src_build/build.js --dev` (port 5111,
   live reload) → open `http://127.0.0.1:5111`.
 - Production build: `cd apps/nodditor && bun build` → output in `build/`.
-- Declarations: `cd apps/nodditor && bun run tsc` (emits `dist/index.d.ts`,
+- Declarations: `cd apps/nodditor && bun run types` (emits `dist/index.d.ts`,
   `emitDeclarationOnly`) — run after any public API change.
 - Formatting: `bun run format` from the repo root (oxfmt is canonical).
 - Local gate: `bun run check` at the root. Note it type-checks `libs/` only —
@@ -79,7 +79,7 @@ information relevant to the next step**:
 2. **Changes** — a table: `file → what changed → line numbers AFTER the change`, limited to the
    files/symbols the *next* task references.
 3. **Verification** — commands actually run + outcome (e.g. `bun start` → `:5111`, what was
-   exercised in the browser; `bun run format`; `bun run tsc` if `dist` changed).
+   exercised in the browser; `bun run format`; `bun run types` if `dist` changed).
 4. **Impact on next step** — line-number shifts for the next task's referenced locations;
    renamed/added symbols the next task should reuse; open items deferred to later tasks.
 
