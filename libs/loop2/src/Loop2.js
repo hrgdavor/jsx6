@@ -547,11 +547,10 @@ export class Loop2 {
         if (this.strictKeys && wanted[i] !== undefined) continue
         const item = all[i]
         if (!item || used.has(item)) continue
-        // a datum that *declares its own key* may only take the item at its index when that item is
-        // not itself the slot of a key this pass still wants — otherwise the keyed item would be
-        // stranded while a new key rides on it. (Keyed data normally matches in pass 1; this is the
-        // duplicate-key path.) Without a key of its own, unkeyed data keeps the positional reuse.
-        if (wanted[i] !== undefined && wanted.includes(this._slotKeys.get(item))) continue
+        // No key check is needed here, and none is made: pass 1 claims the item that owns each key the
+        // list still renders, so an item that owns a wanted key is already in `used` by now. Whatever
+        // is left at this index is a genuinely free slot — which is exactly the reuse `Loop` documents
+        // ("the freed slot is recycled, state included"), with `strictKeys` above as the opt-out.
         // and it never crosses a type boundary: a typed row keeps asking for its own kind of item
         const type = typeAt(i)
         if (type !== undefined && this._itemTypes.get(item) !== type) continue
@@ -566,7 +565,6 @@ export class Loop2 {
         // item whose old key is not one this pass still renders may be recycled
         const freeOnly = this.strictKeys && wanted[i] !== undefined
         const parked = this._takeFree(typeAt(i), used, legacyKeys, pools, freeOnly)
-        // @ts-ignore TEMP
         if (parked) {
           next[i] = parked
           continue
@@ -591,23 +589,12 @@ export class Loop2 {
 
       // `next` is the new visible order; where the leftovers live is the pools' business (see
       // `_finishPass`), so the commit only has to record the visible half of the state
-      // @ts-ignore TEMP
       this.count = n
       reconciled = true
 
       const claimedKeys = new Map()
       for (let i = 0; i < n; i++) {
         const item = next[i]
-        // @ts-ignore TEMP
-        globalThis.__sk &&
-          console.log(
-            'TMPSET pos',
-            i,
-            'item slotBefore=',
-            this._slotKeys.get(item),
-            'wantedKey=',
-            String(wanted[i]),
-          )
         // an item reused by index keeps the key it was built/claimed with (its element key is frozen
         // anyway); a datum with a key always wins
         const wantedKey = wanted[i]

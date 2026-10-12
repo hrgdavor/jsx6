@@ -225,19 +225,24 @@ other by a dev-only integration test.
 | per-frame hooks a recycling host needs: `onPark`/`onRestore` (the `onItemPooled` equivalent), `onDuplicateKey` (once per key per reconciliation), `onBeforeMove`/`onAfterMove` (FLIP), `domMoves` (the mutation metric) | `Loop2` options |
 | one key function handed to both, 100 000 rows, bounded node count, identity on the way home | [libs/loop2/test/virtual-scroll.integration.test.js](../libs/loop2/test/virtual-scroll.integration.test.js) |
 
-Findings that shaped the implementation (all measured, all now pinned by tests):
+Findings that shaped the implementation:
 
 1. **A windowed "scroll" usually builds nothing.** The items that leave the window are reused for the
    rows that enter it, so a one-row scroll of a 5-row window costs **0 builds and 1 DOM move**; the
    loop holds `count + maxPooled` items for the whole journey (100 000 rows, `maxPooled: 2`, never more
-   than the window plus 2).
+   than the window plus 2). Pinned by the windowed suite.
 2. **A recycled row is not "parked".** `onPark`/`onRestore` report items entering and leaving the
    visible set, so a row that is handed straight to the next one is reported as neither — that is the
    same rule `virtual-scroll` applies with `onItemPooled`. The row each hook saw is passed as the
    hook's second argument, because the pass has already renamed the item by the time a hook runs.
-3. **A keyed datum must not inherit another key's item by index.** The index fallback now serves only
-   data that is *not* claiming a key of its own, otherwise a new key could take over the item of a key
-   still in the list and strand it (the invariant `virtual-scroll` enforces with its `idDomMap`).
+3. **The index fallback may reuse a freed slot only.** This was investigated and needs no extra guard:
+   pass 1 claims the item that owns every key the new list still renders, so by the time the index
+   fallback runs, an item that owns a wanted key is already spoken for. What is left at a position is a
+   genuinely free slot, and reusing it (state included) is `Loop`'s documented behaviour, with
+   `strictKeys` as the opt-out. A guard was written here first and then **removed**: an instrumented run
+   of every suite plus six adversarial keyed scenarios (insert-new-key-at-taken-index, drop-and-replace,
+   full key replacement, move-plus-new-key, shrink-regrow, keyed→unkeyed) recorded **zero** hits, so it
+   was dead code, not a fix. See §8 "claims checked and withdrawn".
 4. **Windowing requires keys.** With unkeyed data the index fallback renumbers a slice of a slice, so
    `setWindow` documents the requirement and the mutation API refuses to run on a window.
 
@@ -263,13 +268,15 @@ render one kind into an item built for another.
 
 Findings worth keeping:
 
-1. **`strictKeys` needed a pre-pass notion of "still spoken for".** The strict rule ("a new key never
-   inherits another key's item") was being checked against the *live* key map, which the same pass had
-   already rewritten while renaming items. A pass now collects the keys it dropped (`legacyKeys`) right
-   after the keyed pass and rejects an item parked under one of them — what the rule always meant.
-2. **A pass draws from everything the loop owns, not only from what was already parked.** That is what
-   lets a scroll recycle the row it took off screen in the same pass; the "pool = already parked"
-   version rebuilt that row instead (caught by the P5 one-row-scroll test).
+1. **`strictKeys` compares against a pre-pass snapshot, not the live key map.** The rule ("a new key
+   never inherits another key's item") has to be checked against the keys owned *before* the pass,
+   because the pass renames items while it works — the live key map no longer describes the state the
+   rule is about. A pass collects the keys it dropped (`legacyKeys`) right after the keyed pass and
+   rejects an item parked under one of them. Pinned by the `strictKeys` case in
+   [libs/loop2/src/Loop2.test.js](../libs/loop2/src/Loop2.test.js).
+2. **The pool must start from everything the loop owns.** An earlier version built it from "already
+   parked items" only, which made a scroll rebuild the row it had just taken off screen instead of
+   recycling it — caught by the P5 one-row-scroll test (`built.length` was 6 where 5 is correct).
 3. **`virtual-scroll` still does not support types** (one fixed `itemHeight`, one row factory): the
    loop keeps the grouping, and a mixed-kind window is the host's problem. `keepTypes` is the one call
    a windowed host needs when a window stops containing a type, so those items do not occupy pool slots
@@ -451,7 +458,36 @@ costs and what it would prove.
 | **`maxPooled: 0` as the default**                                 | it trades the documented reuse semantics (state survives remove/re-add) for memory; it must be opt-in, with `releasePool()` available for the "reclaim now" case |
 | **Keyed primitives by value with no extractor**                   | the same primitive can legitimately appear twice, which would introduce ambiguous duplicate keys and change existing `primitive: true` behaviour (this is `§7.6`'s open question, answered by requiring `keyBy`) |
 
-## 9. Open questions for the maintainer
+## 9. Claims checked and withdrawn
+
+While building P6/P7 an audit tried to re-derive the defects this plan attributes to the existing
+`Loop`. Five of those claims **did not reproduce** against the code as it stands. They are recorded here
+so nobody re-reports them as open bugs — and so the wording below, where this file used to state them as
+findings, is not trusted:
+
+| claim                                                             | what the code actually does                                    |
+| ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| `todomNode` typo in `moveItem`                                    | no such identifier exists anywhere in the tree — already fixed |
+| `this.itemNextSibling` assigned nowhere, causing wasted mutations | no such identifier exists — already fixed                      |
+| a keyed reorder loses item state                                  | instances and their state survive a reorder, an insert of a new key mid-list, and remove-then-re-add (`setValue` only calls `setter` on items it already owns) |
+| class-component items are rebuilt by `setValue`                   | 3 constructions for 3 rows, still 3 after a reorder *and* after remove/re-add; a state field set on a live instance survived both |
+| the index fallback lets a new key steal a visible key's item      | pass 1 claims every still-present key first, so only genuinely free slots are reused — the documented `Loop` behaviour, with `strictKeys` as the opt-in that forbids it |
+
+A pass-2 key guard in `Loop2._reconcile` was written on the strength of that last claim and has since
+been **removed**: an instrumented run of every suite plus six adversarial keyed scenarios
+(insert-new-key-at-a-taken-index, drop-and-replace, full key replacement, move-plus-new-key,
+shrink-regrow, keyed→unkeyed) recorded **zero** firings. The remaining `used` check is the real
+protection and costs one `Set.has` per position.
+
+The only defect in the existing `Loop` that **did** reproduce, by DOM inspection alone: a fragment item
+template (one returning an array of nodes) leaves a stray stringified text node —
+`"[object Object]<b>1</b><i>a</i>"`, 5 child nodes instead of 3. Content still renders, which is why it
+does not surface in normal use. See §6 item 1.
+
+Also corrected during this work, both real and both visible in §5 P7's table: a duplicated `keyBy` call
+in the type path (the extractor ran twice per row) and a pool scan that made a typed list O(n²).
+
+## 10. Open questions for the maintainer
 
 1. Is `@jsx6/loop2` the intended destination, or should the keyed work land in `@jsx6/w` and this
    package be folded there before P1? (§7.4 — decide before P2.)
