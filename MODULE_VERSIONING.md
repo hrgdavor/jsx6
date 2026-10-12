@@ -29,6 +29,9 @@ The following modules are versioned independently.
 - `@jsx6/editor-monaco` (libs/editor-monaco)
 - `@jsx6/dom-observer` (libs/dom-observer)
 - `@jsx6/line-render` (libs/line-render)
+- `@jsx6/loop2` (libs/loop2) — Loop v2: keyed, disposable list rendering as a separate package, so the
+  two existing `Loop` implementations (`@jsx6/jsx6`, `@jsx6/w`) keep their behaviour unchanged. See
+  `libs/loop2/README.md` and `plan/loop2-plan.md`
 - `@jsx6/popover` (libs/popover)
 - `@jsx6/url-util` (libs/url-util)
 - `@jsx6/virtual-scroll` (libs/virtual-scroll)

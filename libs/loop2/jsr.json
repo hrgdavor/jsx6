@@ -1,0 +1,9 @@
+{
+  "name": "@jsx6/loop2",
+  "version": "1.0.0",
+  "exports": "./index.js",
+  "publish": {
+    "include": ["README.md", "index.js", "src/Loop2.js"],
+    "exclude": []
+  }
+}

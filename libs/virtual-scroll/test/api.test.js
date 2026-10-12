@@ -347,3 +347,57 @@ describe('edge cases a host can hit', () => {
     expect([...vs.idDomMap.values()].map(el => el.__vsIndex).sort((a, b) => a - b)).toEqual([0, 1, 2])
   })
 })
+
+describe('getKey', () => {
+  // `@jsx6/loop2` calls its equivalent option `keyBy` with the same two arguments and the same index
+  // meaning, so one function serves both packages and they cannot disagree about a row's identity.
+  // This test is the contract on this side of the pair; the matching one lives in
+  // `libs/loop2/test/virtual-scroll.integration.test.js`.
+  test('receives the item and its absolute index', () => {
+    const seen = []
+    const container = stubContainer()
+    const vs = new VirtualScroll({
+      itemsContainer: container,
+      itemHeight: 10,
+      buffer: 0,
+      items: items(100),
+      getKey: (item, index) => {
+        seen.push([item.id, index])
+        return item.id
+      },
+      createItem: stubRow,
+      updateItemContent: () => {},
+    })
+
+    vs.updateViewport(20, 500) // rows 50 and 51
+    // each of the two rows is asked for its key twice per frame — once to claim the rows that stay
+    // mounted, once to mount what is missing — and every call sees the absolute index
+    expect(seen).toEqual([
+      ['item-50', 50],
+      ['item-51', 51],
+      ['item-50', 50],
+      ['item-51', 51],
+    ])
+    expect([...vs.idDomMap.values()].map(el => el.__vsIndex).sort((a, b) => a - b)).toEqual([50, 51])
+
+    // the index follows the row, not the mount order: a scroll re-asks for the rows it claims
+    seen.length = 0
+    vs.render(510) // rows 51 and 52; 51 is claimed from the previous frame
+    expect(seen).toContainEqual(['item-52', 52])
+  })
+
+  test('the index argument is optional for existing extractors', () => {
+    const container = stubContainer()
+    const vs = new VirtualScroll({
+      itemsContainer: container,
+      itemHeight: 10,
+      buffer: 0,
+      items: items(10),
+      getKey: item => item.id, // the pre-alignment signature still works
+      createItem: stubRow,
+      updateItemContent: () => {},
+    })
+    vs.updateViewport(20, 0)
+    expect(vs.idDomMap.size).toBe(2)
+  })
+})

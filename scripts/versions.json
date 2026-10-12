@@ -17,6 +17,7 @@
     "libs/editor-monaco": "0.48.0",
     "libs/dom-observer": "2.0.1",
     "libs/line-render": "1.0.0",
+    "libs/loop2": "1.0.0",
     "libs/popover": "1.0.1",
     "libs/url-util": "1.0.1",
     "libs/virtual-scroll": "1.0.0",

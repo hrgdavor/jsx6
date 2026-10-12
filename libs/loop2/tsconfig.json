@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    // Tells TypeScript to read JS files, as
+    // normally they are ignored as source files
+    "allowJs": true,
+    "checkJs": true,
+    // TypeScript 7 defaults `noImplicitAny` to true for `checkJs`; TypeScript 5 did not.
+    // This repo is JSDoc-typed, so keep the historical (looser) behaviour: otherwise every
+    // unannotated JS parameter becomes an error and the gate stops being meaningful.
+    "noImplicitAny": false,
+    // Same story for `this`: TypeScript 7 defaults `noImplicitThis` to true for `checkJs`.
+    "noImplicitThis": false,
+    // Workspace imports resolve through package.json "exports" maps, and DOM types are needed
+    // for the browser-facing code.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["esnext", "dom"],
+    "skipLibCheck": true,
+    // Types should go into this directory.
+    // Removing this would place the .d.ts files
+    // next to the .js files
+    "outDir": "dist",
+    // Generate d.ts files
+    "declaration": true,
+    // only declarations are emitted: `bun check` is what checks the types, `tsc` exists to produce
+    // the `dist/*.d.ts` consumers resolve through the manifest
+    "emitDeclarationOnly": true,
+    // go to js file when using IDE functions like
+    // "Go to Definition" in VSCode
+    "declarationMap": true
+  },
+  "include": ["index.js", "src/**/*.js"],
+  // test files are run by `bun test` and are not part of the published types (same as libs/jsx6)
+  "exclude": ["**/*.test.js"]
+}

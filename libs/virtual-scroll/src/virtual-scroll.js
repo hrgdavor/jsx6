@@ -57,9 +57,12 @@ const showRow = (el, hiddenClass) => {
  * @property {(el: HTMLElement, item: any) => void} updateItemContent - Function to bind data to a
  *   recycled DOM element. Called when a row (re)mounts; a row that stays mounted under the same key
  *   is repositioned but NOT re-bound.
- * @property {(item: any) => string|number} [getKey] - Function to get a unique identifier for an
- *   item. Defaults to item.id. Keys must be unique: a key that repeats within the rendered range is
- *   ignored (see `onDuplicateKey`).
+ * @property {(item: any, index: number) => string|number} [getKey] - Function to get a unique
+ *   identifier for an item. Defaults to `item.id`. `index` is the item's **absolute** position in
+ *   `items`, so the extractor has the same shape `@jsx6/loop2` accepts as `keyBy` and one function can
+ *   serve a keyed list renderer and this windowing layer (the two packages do not depend on each
+ *   other; they agree on the call signature). Keys must be unique: a key that repeats within the
+ *   rendered range is ignored (see `onDuplicateKey`).
  * @property {(key: any, item: any, index: number) => void} [onDuplicateKey] - Called when a key
  *   repeats within the rendered range. The first occurrence is rendered, the later ones are skipped
  *   and reported once per key while that key stays duplicated. Defaults to `console.warn`.
@@ -174,7 +177,7 @@ export class VirtualScroll {
       //    which also places each of them at *its own* index — the marker step 3 uses to tell a
       //    claimed key from a repeated one.
       for (let i = start; i < end; i++) {
-        const key = this.getKey(this.items[i])
+        const key = this.getKey(this.items[i], i)
         const el = oldDomMap.get(key)
         if (!el) continue
 
@@ -192,7 +195,7 @@ export class VirtualScroll {
       //    other index is a repeated key — ignore it (its slot stays empty) and report it.
       for (let i = start; i < end; i++) {
         const item = this.items[i]
-        const key = this.getKey(item)
+        const key = this.getKey(item, i)
         const claimed = idDomMap.get(key)
         if (claimed) {
           if (claimed.__vsIndex !== i) this.reportDuplicate(key, item, i, claimed.__vsIndex, frame)

@@ -22,6 +22,22 @@ root `catalog`) survives only to emit `dist/*.d.ts`: `bun run types` in a packag
 `README.dev.md` documents what each step does, the flags, lint scope, versioning and publishing —
 read it there instead of duplicating it here.
 
+**Markdown tables:** the `@hrg/dsh-md-fix-tables` Harness bundle (installed in the `web` profile)
+realigns the tables of every `.md` a `write`/`edit` call touched, in place, and appends a one-line note
+of changed line counts — never the markdown — to that tool result, so read its report, not the file. A
+markdown file changed *another* way (shell command, another profile, an unlisted tool) still needs the
+CLI run on it by hand: `md-fix-tables <file>`, in place. Never pipe file content through pwsh (a pipe
+goes through the code page and mangles non-ASCII), and read the file back afterwards so you know the
+changed output — a BOM, CRLF or non-ASCII damage means stop, not commit. The CLI's no-argument form
+(stdin → stdout) is for inspection only.
+
+**Never edit a source file in place with pwsh** — `Get-Content`/`Set-Content`, `[IO.File]::ReadAllText`
++ `WriteAllText`, a `-split`/`-join` rebuild: all of them **truncated `libs/loop2/src/Loop2.js` to 0
+bytes** (a 1200-line file), and nothing recovered it (no editor local history, build output not
+tracked). Use the `edit` tool for changes and `write` for a rewrite; pwsh is for commands, not file
+surgery. If a file is already damaged and untracked, check for a stale copy in `dist/`+`*.js.map`
+(`sourcesContent`), an editor history folder, or a bundler cache *before* reconstructing by hand.
+
 ## Sandbox limits that change how you verify (expected, not bugs)
 
 - **Browser checks depend on the session's file policy.** Under the confined modes headless Chrome
@@ -67,15 +83,16 @@ the right one of those and keep this file thin.
 
 ## Where the rest of the knowledge lives
 
-| topic | load |
-| --- | --- |
-| using the stack: setup, signals, JSX/DOM contract, rules that fail silently | [docs/stack/README.md](docs/stack/README.md) |
-| tests: running them, happy-dom limits, DOM test conventions | skill **`repo-testing`** (`.agents/skills/repo-testing/SKILL.md`) |
-| gate internals, toolchain, versioning, publishing, troubleshooting | [README.dev.md](README.dev.md) |
-| line layers, connectors, WebGPU renderer, picking | [libs/line-render/README.md](libs/line-render/README.md) |
-| the editor: line-layer contract, geometry caches, device sharing | [apps/nodditor/README.md](apps/nodditor/README.md) |
-| the editor's host instructions (install → blocks → lines → persistence) | [apps/nodditor/doc/getting-started.md](apps/nodditor/doc/getting-started.md) |
-| the dom-observer add-on: shared observers, sharing keys, limits | [libs/dom-observer/doc/README.md](libs/dom-observer/doc/README.md) |
-| styling contract (`--ne-*` custom properties, theming both layers) | [apps/nodditor/doc/styling-migration.md](apps/nodditor/doc/styling-migration.md) |
+| topic                                                                                | load                                                                                     |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| using the stack: setup, signals, JSX/DOM contract, rules that fail silently          | [docs/stack/README.md](docs/stack/README.md)                                             |
+| tests: running them, happy-dom limits, DOM test conventions                          | skill **`repo-testing`** (`.agents/skills/repo-testing/SKILL.md`)                        |
+| gate internals, toolchain, versioning, publishing, troubleshooting                   | [README.dev.md](README.dev.md)                                                           |
+| line layers, connectors, WebGPU renderer, picking                                    | [libs/line-render/README.md](libs/line-render/README.md)                                 |
+| the editor: line-layer contract, geometry caches, device sharing                     | [apps/nodditor/README.md](apps/nodditor/README.md)                                       |
+| the editor's host instructions (install → blocks → lines → persistence)              | [apps/nodditor/doc/getting-started.md](apps/nodditor/doc/getting-started.md)             |
+| the dom-observer add-on: shared observers, sharing keys, limits                      | [libs/dom-observer/doc/README.md](libs/dom-observer/doc/README.md)                       |
+| styling contract (`--ne-*` custom properties, theming both layers)                   | [apps/nodditor/doc/styling-migration.md](apps/nodditor/doc/styling-migration.md)         |
 | the virtual-scroll package: decisions, constraints, evidence (compact agent notes; the user-facing [architecture.md](libs/virtual-scroll/architecture.md) is the long-form twin) | [libs/virtual-scroll/architecture.agents.md](libs/virtual-scroll/architecture.agents.md) |
-| open work, decisions taken, sequencing | [plan/line-render-followups.md](plan/line-render-followups.md) |
+| keyed list rendering: `Loop2` options/API, the two old `Loop`s and the adoption plan | [libs/loop2/README.md](libs/loop2/README.md), [plan/loop2-plan.md](plan/loop2-plan.md)   |
+| open work, decisions taken, sequencing                                               | [plan/line-render-followups.md](plan/line-render-followups.md)                           |

@@ -95,20 +95,20 @@ controller from [Wiring](#wiring), and see [docs/](docs) for runnable demos.
 
 `new VirtualScroll(config)`
 
-| config | type | description |
-| --- | --- | --- |
-| `itemsContainer` | `HTMLElement` | container element that holds the rows |
-| `scroller` | `HTMLElement` | the element that actually scrolls — only needed for `scrollToIndex()`; the library never goes looking for it |
-| `itemHeight` | `number` | fixed row height in px |
-| `items` | `Array` | full array of data items |
-| `buffer` | `number` (default `1`) | extra rows kept mounted above/below the viewport — see [Buffer and phasing](#buffer-and-phasing) |
-| `offsetTop` | `number` (default `0`) | px offset of the list start (e.g. a header above the items) |
-| `createItem` | `() => HTMLElement` | row factory |
-| `updateItemContent` | `(el, item) => void` | binds data to a row |
-| `getKey` | `(item) => string\|number` | unique item key (default `item.id`) |
-| `onDuplicateKey` | `(key, item, index) => void` | called when a key repeats in the rendered range (default: `console.warn`) |
-| `onItemPooled` | `(el) => void` | called when a bound row is parked in the pool, so you can release per-row state — see [Not `destroyItem`](#not-destroyitem) |
-| `hiddenClass` | `string` | class toggled on pooled rows instead of the built-in hiding, so your CSS picks the mechanism — see [Hiding pooled rows](#hiding-pooled-rows) |
+| config              | type                              | description                                                                                      |
+| ------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `itemsContainer`    | `HTMLElement`                     | container element that holds the rows                                                            |
+| `scroller`          | `HTMLElement`                     | the element that actually scrolls — only needed for `scrollToIndex()`; the library never goes looking for it |
+| `itemHeight`        | `number`                          | fixed row height in px                                                                           |
+| `items`             | `Array`                           | full array of data items                                                                         |
+| `buffer`            | `number` (default `1`)            | extra rows kept mounted above/below the viewport — see [Buffer and phasing](#buffer-and-phasing) |
+| `offsetTop`         | `number` (default `0`)            | px offset of the list start (e.g. a header above the items)                                      |
+| `createItem`        | `() => HTMLElement`               | row factory                                                                                      |
+| `updateItemContent` | `(el, item) => void`              | binds data to a row                                                                              |
+| `getKey`            | `(item, index) => string\|number` | unique item key (default `item.id`); `index` is the item's absolute position in `items`, so the same function can be passed to `@jsx6/loop2`'s `keyBy` |
+| `onDuplicateKey`    | `(key, item, index) => void`      | called when a key repeats in the rendered range (default: `console.warn`)                        |
+| `onItemPooled`      | `(el) => void`                    | called when a bound row is parked in the pool, so you can release per-row state — see [Not `destroyItem`](#not-destroyitem) |
+| `hiddenClass`       | `string`                          | class toggled on pooled rows instead of the built-in hiding, so your CSS picks the mechanism — see [Hiding pooled rows](#hiding-pooled-rows) |
 
 Methods:
 
@@ -161,13 +161,13 @@ The library writes only `transform` (and, unless you set `hiddenClass`, `display
 never measures anything — that is what keeps it small and testable without a browser. The geometry is
 therefore your half of the contract, and it fails **silently** when a rule is missed:
 
-| requirement | why |
-| --- | --- |
+| requirement                                                                                 | why                                                                                           |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | the scroller (not `itemsContainer`) is the scrolling box: known height + `overflow-y: auto` | you pass that height to `updateViewport(containerHeight, …)`; the library never reads the DOM |
 | the scroller's content height is `items.length * itemHeight + offsetTop` — `getTotalHeight()` returns it; normally a spacer element (see `docs/style.css`) | the rows are moved with `transform` only, so they add no height of their own: without the spacer nothing scrolls, or the tail is unreachable |
-| rows must not contribute to that height, in **either** of two ways — see below | `translate3d` moves a row relative to `itemsContainer`, so a row that also sits at its flowed position is offset twice and inflates the container |
-| row content is clamped to `itemHeight` (`overflow: hidden`, ellipsis or a line clamp) | content that wraps makes the row taller than `itemHeight`, and every row below it drifts |
-| `itemsContainer` itself contributes no height (`position: absolute; top: 0` in the demos) | it must not add to the scroller's content height |
+| rows must not contribute to that height, in **either** of two ways — see below              | `translate3d` moves a row relative to `itemsContainer`, so a row that also sits at its flowed position is offset twice and inflates the container |
+| row content is clamped to `itemHeight` (`overflow: hidden`, ellipsis or a line clamp)       | content that wraps makes the row taller than `itemHeight`, and every row below it drifts      |
+| `itemsContainer` itself contributes no height (`position: absolute; top: 0` in the demos)   | it must not add to the scroller's content height                                              |
 
 Two row layouts satisfy that, and the library works with both because it only ever writes `transform`:
 
@@ -240,13 +240,13 @@ new VirtualScroll({
 
 Measured in Blink (`docs/table-grid.html` is the runnable demo):
 
-| check | result |
-| --- | --- |
-| rows are grid items, not positioned | `position: static`, all in `grid-area: 1 / 1 / 2 / -1` |
-| row positions still exact | max error **0.000 px** at fractional and large scroll offsets |
-| header/row columns align | header cells at `x = 0, 40, 256`, row cells at `0, 40, 256` |
-| the header stays put | pinned to the scrollport top at every offset tested, rows passing under it |
-| scroll extent unchanged | `scroller.scrollHeight === getTotalHeight()` (header height included) |
+| check                               | result                                                                     |
+| ----------------------------------- | -------------------------------------------------------------------------- |
+| rows are grid items, not positioned | `position: static`, all in `grid-area: 1 / 1 / 2 / -1`                     |
+| row positions still exact           | max error **0.000 px** at fractional and large scroll offsets              |
+| header/row columns align            | header cells at `x = 0, 40, 256`, row cells at `0, 40, 256`                |
+| the header stays put                | pinned to the scrollport top at every offset tested, rows passing under it |
+| scroll extent unchanged             | `scroller.scrollHeight === getTotalHeight()` (header height included)      |
 
 **Why the header is a plain sibling element.** The library never touches it, and it must not: because
 every row shares one grid area, `position: sticky` on a *row* would apply to all of them at once, and
@@ -321,11 +321,11 @@ clicks. The alternative — worth reading about even if you never switch — is 
 Measured in Blink, on an absolutely positioned row with an opaque background, a border and a nested
 element:
 
-| mechanism | subtree layout | row's own box painted | hit-testable | focusable | toggle cost |
-| --- | --- | --- | --- | --- | --- |
-| `display: none` *(default)* | **discarded** (nested element `0x0`) | no | no | no | baseline |
-| `content-visibility: hidden` alone | kept (`60x8`) | **yes** | **yes** | no | — |
-| `content-visibility: hidden` + `visibility: hidden` | kept (`60x8`) | no | no | no | equal on the re-bind path |
+| mechanism                                           | subtree layout                       | row's own box painted | hit-testable | focusable | toggle cost               |
+| --------------------------------------------------- | ------------------------------------ | --------------------- | ------------ | --------- | ------------------------- |
+| `display: none` *(default)*                         | **discarded** (nested element `0x0`) | no                    | no           | no        | baseline                  |
+| `content-visibility: hidden` alone                  | kept (`60x8`)                        | **yes**               | **yes**      | no        | —                         |
+| `content-visibility: hidden` + `visibility: hidden` | kept (`60x8`)                        | no                    | no           | no        | equal on the re-bind path |
 
 So the pair is not "`display: none` but fancier", and `content-visibility` is not safe on its own:
 

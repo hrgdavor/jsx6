@@ -19,16 +19,17 @@ green.
 
 ## Decisions (do not reverse without re-measuring)
 
-| decision | why | pinned by |
-| --- | --- | --- |
-| duplicate keys ignored and reported, never thrown | a throw escaped the host's rAF handler, wedged the loop permanently, and orphaned already-mounted rows | `test/faults.test.js` |
+| decision                                                                             | why                                                                                     | pinned by                     |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ----------------------------- |
+| duplicate keys ignored and reported, never thrown                                    | a throw escaped the host's rAF handler, wedged the loop permanently, and orphaned already-mounted rows | `test/faults.test.js` |
 | `display: none` is the default hiding; `hiddenClass` hands the mechanism to the host | `content-visibility: hidden` alone leaves the row's own box painted **and** hit-testable; the layout-preserving pair measures no faster on the re-bind path (117 vs 117 µs at 30×8; 469 vs 507 at 60×24) and ~20 % slower at 4× subtree without a re-bind | `test/geometry.test.js` |
-| `buffer` defaults to 1 | rows are bound/laid out/painted on mount; one row each way gives the entering row lead time. UX choice, not a measured win | `test/api.test.js` |
-| no `destroyItem`; `onItemPooled(el)` | pooled rows are reused, not destroyed — the name would lie. Hook fires once per bound row after parking; `destroy()` calls no per-row hook | `test/api.test.js` |
-| `scrollToIndex(index)` needs `scroller` in the config | the offset must match the rendered range (row `i` is at `i * itemHeight + offsetTop`); the core must not search the DOM | `test/api.test.js` |
-| rows need not be absolutely positioned | only `transform` is written, so a grid stack works — that is what enables table columns | `test/geometry.test.js` |
-| one sticky header (a sibling element), no per-section headers | all rows share one grid area, so per-row `position: sticky` cannot be correct | browser probe |
-| `render()` never orphans a row | plan keys before DOM work, evict before mounting, recycle in a `finally` | `test/faults.test.js` |
+| `buffer` defaults to 1                                                               | rows are bound/laid out/painted on mount; one row each way gives the entering row lead time. UX choice, not a measured win | `test/api.test.js` |
+| no `destroyItem`; `onItemPooled(el)`                                                 | pooled rows are reused, not destroyed — the name would lie. Hook fires once per bound row after parking; `destroy()` calls no per-row hook | `test/api.test.js` |
+| `scrollToIndex(index)` needs `scroller` in the config                                | the offset must match the rendered range (row `i` is at `i * itemHeight + offsetTop`); the core must not search the DOM | `test/api.test.js` |
+| rows need not be absolutely positioned                                               | only `transform` is written, so a grid stack works — that is what enables table columns | `test/geometry.test.js`       |
+| one sticky header (a sibling element), no per-section headers                        | all rows share one grid area, so per-row `position: sticky` cannot be correct           | browser probe                 |
+| `render()` never orphans a row                                                       | plan keys before DOM work, evict before mounting, recycle in a `finally`                | `test/faults.test.js`         |
+| `getKey(item, index)` — the index is the absolute item position                      | one function then serves this windowing layer **and** `@jsx6/loop2`'s `keyBy(data, index)`; the packages stay independent (no import either way), the pairing is pinned only by `libs/loop2/test/virtual-scroll.integration.test.js` | `test/api.test.js` ("getKey") |
 
 **Do not:** throw or per-frame-log on duplicate keys · force `position: absolute` on rows · use
 `content-visibility: hidden` without `visibility: hidden` · add a per-row destroy hook · make the core
@@ -41,12 +42,12 @@ widens that track for that row alone (use `minmax(0, 1fr)`).
 
 ## Evidence inventory
 
-| area | where |
-| --- | --- |
-| range math: 12,600 placements, 5 item heights (incl. fractional), both list edges, overscroll | `test/geometry.test.js` |
-| duplicates, faults, failed-frame atomicity | `test/faults.test.js` |
-| buffer, `refreshVisible`, `getTotalHeight`, `getScrollTopForIndex`, `scrollToIndex`, `onItemPooled`, empty list, destroyed instance | `test/api.test.js` |
-| pool identity/reuse, hide mechanism, `destroy()` | `test/geometry.test.js`, `test/virtual-scroll.test.js` |
+| area                                                                                          | where                                                                 |
+| --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| range math: 12,600 placements, 5 item heights (incl. fractional), both list edges, overscroll | `test/geometry.test.js`                                               |
+| duplicates, faults, failed-frame atomicity                                                    | `test/faults.test.js`                                                 |
+| buffer, `refreshVisible`, `getTotalHeight`, `getScrollTopForIndex`, `scrollToIndex`, `onItemPooled`, empty list, destroyed instance | `test/api.test.js`              |
+| pool identity/reuse, hide mechanism, `destroy()`                                              | `test/geometry.test.js`, `test/virtual-scroll.test.js`                |
 | real layout and paint (Blink probes, pixel-decoded): geometry 30/30, hide 7/7 in both modes, grid+sticky 8/8, `scrollToIndex` 6/6, observer wiring 4/4, README quick start 6/6 | probe pages under `.tmp/vs-browser/` — method in the root `AGENTS.md` |
 
 **Other files here:** [README.md](README.md) (user-facing API/CSS/recipes, injected snippets),

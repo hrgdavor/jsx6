@@ -1,0 +1,69 @@
+{
+  "name": "@jsx6/loop2",
+  "version": "1.0.0",
+  "type": "module",
+  "sideEffects": false,
+  "description": "Keyed, disposable list renderer (Loop v2) for jsx6",
+  "main": "index.js",
+  "types": "dist/index.d.ts",
+  "unpkg": "cjs/index.js",
+  "module": "./index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./cjs/index.js",
+      "default": "./index.js",
+      "import": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "src",
+    "!src/**/*.test.js",
+    "dist",
+    "esm",
+    "cjs"
+  ],
+  "scripts": {
+    "types": "tsc",
+    "build": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=esm --bundle --sourcemap --minify --loader:.js=jsx --format=esm",
+    "build-cjs": "esbuild index.js --jsx-factory=h --jsx-fragment=null --outdir=cjs --bundle --sourcemap --minify --loader:.js=jsx --format=cjs",
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hrgdavor/jsx6.git"
+  },
+  "keywords": [
+    "DOM",
+    "JSX",
+    "list",
+    "loop",
+    "keyed",
+    "reconciliation",
+    "virtual-dom"
+  ],
+  "author": "Davor hrg",
+  "license": "MIT",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/hrgdavor/jsx6/blob/master/LICENSE.md"
+    }
+  ],
+  "bugs": {
+    "url": "https://hrgdavor/jsx6/issues"
+  },
+  "homepage": "https://github.com/hrgdavor/jsx6/blob/master/libs/loop2/README.md",
+  "dependencies": {
+    "@jsx6/jsx6": "workspace:*",
+    "@jsx6/signal": "workspace:*"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "catalog:",
+    "@jsx6/virtual-scroll": "workspace:*",
+    "esbuild": "catalog:",
+    "happy-dom": "catalog:",
+    "typescript": "catalog:"
+  }
+}
