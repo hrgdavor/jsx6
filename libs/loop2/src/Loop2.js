@@ -484,8 +484,9 @@ export class Loop2 {
 
     for (let i = 0; i < n; i++) wanted[i] = this._keyOf(v[i], start + i)
 
-    // the key is always resolved (matching needs it); the type is resolved on demand, so a loop
-    // without `typeBy` never asks the app for a type it did not configure
+    // the key is always resolved (matching needs it); the type only when the loop can *have* types:
+    // without `typeBy` a datum that is not an object cannot declare one, so a single-type list pays one
+    // compare per row and never calls `_typeOf` at all
     const typeAt = i => {
       let type = wantedTypes[i]
       if (type === undefined && !typesResolved[i]) {
@@ -497,19 +498,6 @@ export class Loop2 {
       return type
     }
 
-    // everything the loop owns, grouped by type, as the pool this pass draws from. Starting from *all*
-    // of it (not just what was parked last time) is what lets a pass recycle an item the same pass
-    // took off screen — the ordinary case for a scroll, where the row that left is the row that
-    // entered. `_finishPass` keeps whatever this pass did not claim.
-    const pools = new Map()
-    for (const item of this._owned) {
-      const itemType = this._itemTypes.get(item)
-      const pool = pools.get(itemType)
-      if (pool) pool.push(item)
-      else pools.set(itemType, [item])
-    }
-    /** the items this pass has already put on screen (`pools` starts as everything the loop owns) */
-    const taken = new Set()
     /**
      * The keys that were owned *before* this pass and are no longer wanted. `strictKeys` must treat an
      * item parked under one of them as still spoken for: without this, the item that held `b` would be
@@ -518,6 +506,20 @@ export class Loop2 {
      * @type {Set<any>}
      */
     const legacyKeys = new Set()
+    /**
+     * The pool pass 3 draws from, grouped by type, in the loop's parking order. It contains everything
+     * the loop owns: pass 2 is what speaks for the items it keeps, and an item it did not take stays
+     * here for any later position. Grouping is what makes a typed lookup O(1) — a `header` position
+     * reads the `header` pool, with no scan through the rows.
+     * @type {Map<any, any[]>}
+     */
+    const pools = new Map()
+    for (const item of this._owned) {
+      const itemType = this._itemTypes.get(item)
+      const pool = pools.get(itemType)
+      if (pool) pool.push(item)
+      else pools.set(itemType, [item])
+    }
 
     try {
       // pass 1 — keyed match: a datum that declares a key claims the item that owns that key
@@ -563,7 +565,7 @@ export class Loop2 {
         // `strictKeys`: a datum whose key is new must not inherit the state of another key, so only an
         // item whose old key is not one this pass still renders may be recycled
         const freeOnly = this.strictKeys && wanted[i] !== undefined
-        const parked = this._takeFree(typeAt(i), taken, used, legacyKeys, pools, freeOnly)
+        const parked = this._takeFree(typeAt(i), used, legacyKeys, pools, freeOnly)
         // @ts-ignore TEMP
         if (parked) {
           next[i] = parked
@@ -853,22 +855,26 @@ export class Loop2 {
    *  recycled — otherwise the item that held `b` would be handed to a brand-new key `n` in the very
    *  pass that dropped `b`.
    *
+   *  The pool is in parking order and the **oldest** item goes first, so the common case checks its head
+   *  and only scans when that one is spoken for (`used`) or rejected by `strictKeys`.
+   *
    *  @param {any} type the type the position needs (`undefined` = untyped)
-   *  @param {Set<any>} taken items this pass already put on screen
-   *  @param {Set<any>} used items pass 1 and pass 2 claimed by key or by index
+   *  @param {Set<any>} used the items this pass has already claimed (by key, by index or by reuse)
    *  @param {Set<any>} legacyKeys keys this pass dropped (still owned by the items parked under them)
    *  @param {Map<any, any[]>} [pools] the pool to draw from
    *  @param {boolean} [strictKeysOnly] reject an item whose old key is in `legacyKeys`
    *  @returns {any} the item, or undefined when no parked item qualifies
    */
-  _takeFree(type, taken, used, legacyKeys, pools = this._pools, strictKeysOnly = false) {
-    /** @type {any} */
-    let takenItem
+  _takeFree(type, used, legacyKeys, pools = this._pools, strictKeysOnly = false) {
     /** @type {any[]|undefined} */
     let owner
     if (type !== undefined) {
       // a typed position is served by its own pool only
       owner = pools.get(type)
+      if (!owner || owner.length === 0) return undefined
+    } else if (pools.size === 1) {
+      // the single-slot case (a list without `typeBy`): the only pool, with no scan to find it
+      owner = pools.values().next().value
       if (!owner || owner.length === 0) return undefined
     } else {
       // an untyped position takes the first parked item of any type: the pre-`typeBy` behaviour
@@ -881,14 +887,14 @@ export class Loop2 {
       if (!owner) return undefined
     }
     /** the pool holds item objects; a primitive here means the pool itself is corrupt */
-    const free = item => isWeakKey(item) && !taken.has(item) && !used.has(item)
-    const at = strictKeysOnly
-      ? owner.findIndex(item => free(item) && !legacyKeys.has(this._slotKeys.get(item)))
-      : owner.findIndex(free)
+    const free = item => isWeakKey(item) && !used.has(item)
+    const at =
+      strictKeysOnly || !free(owner[0])
+        ? owner.findIndex(item => free(item) && !legacyKeys.has(this._slotKeys.get(item)))
+        : 0
     if (at === -1) return undefined
-    // the pool is in parking order, and the *oldest* item goes first — the pre-`typeBy` pool order
-    takenItem = owner.splice(at, 1)[0]
-    taken.add(takenItem)
+    const takenItem = owner.splice(at, 1)[0]
+    used.add(takenItem)
     return takenItem
   }
 

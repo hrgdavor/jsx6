@@ -275,6 +275,65 @@ Findings worth keeping:
    a windowed host needs when a window stops containing a type, so those items do not occupy pool slots
    forever.
 
+### P7 — one implementation or two? (decided, 2026-10-12)
+
+The question was whether the typed loop should be a **separate component/class** from the single-type
+one. Decision: **no — one `Loop2`, `typeBy` opt-in**, and the single-type path pays for it only in
+proportion to what it uses. That is what this repository already does with every strategy option
+(`primitive`, `worldWidth`, `hiddenClass`, `eager`, `device`), and the survey below found no package
+that ships a second class for a strategy.
+
+**Measured**, `bun run bench` — [bench/run.mjs](../libs/loop2/bench/run.mjs), each case in its own
+process, median of 5-20 runs, real DOM in a detached container; 10 000 rows, 1 000-row rotation, a
+20-row window over 10 000 rows:
+
+| case                                              | untyped  | typed    | delta   |
+| ------------------------------------------------- | -------- | -------- | ------- |
+| `build` (10 000 rows)                             | 217 ms   | 219 ms   | +0.6 %  |
+| `rotate1k` (keyed reorder)                        | 39.1 ms  | 39.9 ms  | +2.0 %  |
+| `window` (400 window shifts)                      | 19.9 ms  | 21.0 ms  | +5.4 %  |
+| `unkeyed` (same kinds land on the same positions) | 1 008 ms | 979 ms   | -2.8 %  |
+| `unkeyedRetyped` (each rotation moves the kinds)  | 984 ms   | 3 065 ms | +211 %  |
+| `push` (1 000 appends)                            | 4 885 ms | 4 771 ms | -2.3 %  |
+| `shrink` (10 000 → 100)                           | 0.23 ms  | 0.24 ms  | +4.4 %  |
+
+So: with the type axis opted into but the types **not moving**, the overhead is **≤ 3 %** on every case
+(`window`'s +5 % is inside this machine's run-to-run noise) — the machinery is a few WeakMap reads and a
+`Map.get` per row off the derived key, not a scan. The one large number is the *feature*: when data
+changes type at a position, the item there was built for the old type and is correctly **rebuilt**, so
+retyping a whole list costs what building it costs. Two earlier measurements drove real fixes:
+
+- `_typeOf` used to run for every row even without `typeBy` (one avoidable WeakMap read per row); the
+  type is now resolved only when the loop can *have* types.
+- The pool used to be scanned per position (`findIndex`), which made a typed list O(n²) once the index
+  fallback stopped matching; the free check is now the `used` set at the pool head, with a scan only
+  when that head is spoken for.
+
+**Why not split**, in order of weight:
+
+1. **The type axis is not a separate algorithm.** Every mutation, the DOM ordering, the pool trimming,
+   the hooks, the disposal contract and windowing are shared. Only *which item a position may take*
+   differs — one guard in the index fallback and one lookup in the pool. Two classes mean duplicating
+   1 200 lines or introducing a shared base class, which is more surface than the guard it removes.
+2. **Integration must not depend on the class.** A host that switches between single-type and
+   multi-type data (the common case: a virtual-scroll list that later grows a header row) would have to
+   swap components and re-mount every row, and `loop2`+`virtual-scroll` would need two hosts.
+3. **The single-type path is measurably untouched** (table above), so the usual reason to split —
+   "the fast path must not pay for the feature" — does not apply here.
+4. **It is the repository's convention** (20 manifests, one `.` entry each; strategy options read by one
+   runtime guard; a second class only when the *host or lifecycle* differs, e.g. `@jsx6/w`'s Loop as an
+   `HTMLElement`).
+
+What would justify a split (none is true today): the typed path growing its own DOM or lifecycle story;
+a measurable regression on the untyped path; or the type machinery becoming a substantial part of the
+bundle. The option boundary stays reversible — `Loop2` is unpublished, so a later split costs a wrapper,
+not a migration.
+
+**Single-type mode is what pairs with `@jsx6/virtual-scroll`**, exactly as P5 describes: `setWindow`,
+`keepTypes` unneeded, `maxPooled` at the window size, and one key function for both. The integration
+test drives that pairing over 100 000 rows; the type axis is transparent to it (`typeOf` is `undefined`
+for every item, no `typeBy` is called).
+
 ---
 
 ## 6. Measurements taken for this plan
