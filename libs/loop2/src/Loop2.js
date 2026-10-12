@@ -129,8 +129,6 @@ const nodesOf = item => {
  * A falsy type — `undefined`, `null`, `''` or `0` — means "untyped" and shares the one default slot,
  * which is also what a loop without `typeBy` uses for every row: existing behaviour, unchanged.
  */
-const IGNORED_TYPE = undefined
-
 /** Is `type` a real type (a non-falsy value)? Every falsy value falls into the default slot. */
 const hasType = type => !!type
 
@@ -255,6 +253,10 @@ export class Loop2 {
   _itemKeys = new WeakMap()
   /** item → the type it was built for; a WeakMap so a dropped item stays collectable */
   _itemTypes = new WeakMap()
+  /** item → the key it was built or claimed for, kept while it is parked (the *slot* it was made
+   *  for). `strictKeys` needs it to tell a slot whose key is still rendered from a free one.
+   *  @type {WeakMap<any, any>} */
+  _slotKeys = new WeakMap()
   /** type → the parked items of that type, in parking order; empty (and unused) without `typeBy` */
   _pools = new Map()
   /** every item the loop owns, visible or parked. `allItems` is the ordered view of it (visible
@@ -486,20 +488,36 @@ export class Loop2 {
     // without `typeBy` never asks the app for a type it did not configure
     const typeAt = i => {
       let type = wantedTypes[i]
-      // no extractor and no promise of a type on the datum: an ungrouped loop pays one property read
       if (type === undefined && !typesResolved[i]) {
-        if (this.typeBy || isWeakKey(v[i])) {
-          type = this._typeOf(v[i], start + i, wanted[i])
-          wantedTypes[i] = type
-        }
+        // the key here is the one this pass already resolved: `keyBy` is never asked twice per row
+        if (this.typeBy || isWeakKey(v[i])) type = this._typeOf(v[i], start + i, wanted[i])
+        wantedTypes[i] = type
         typesResolved[i] = true
       }
       return type
     }
 
-    // the parked items of the previous state, grouped by the type they were built for, and the
-    // visible ones (a local view, so the pass cannot half-update the loop's own state)
-    const pools = this._partition(this.items)
+    // everything the loop owns, grouped by type, as the pool this pass draws from. Starting from *all*
+    // of it (not just what was parked last time) is what lets a pass recycle an item the same pass
+    // took off screen — the ordinary case for a scroll, where the row that left is the row that
+    // entered. `_finishPass` keeps whatever this pass did not claim.
+    const pools = new Map()
+    for (const item of this._owned) {
+      const itemType = this._itemTypes.get(item)
+      const pool = pools.get(itemType)
+      if (pool) pool.push(item)
+      else pools.set(itemType, [item])
+    }
+    /** the items this pass has already put on screen (`pools` starts as everything the loop owns) */
+    const taken = new Set()
+    /**
+     * The keys that were owned *before* this pass and are no longer wanted. `strictKeys` must treat an
+     * item parked under one of them as still spoken for: without this, the item that held `b` would be
+     * handed to a new key `n` in the same pass that dropped `b`, which is exactly what `strictKeys`
+     * forbids. Computed after pass 1, before the commit loop renames anything.
+     * @type {Set<any>}
+     */
+    const legacyKeys = new Set()
 
     try {
       // pass 1 — keyed match: a datum that declares a key claims the item that owns that key
@@ -513,18 +531,25 @@ export class Loop2 {
         }
       }
 
-      // pass 2 — index fallback: unkeyed data keeps the item that sits at the same index
+      // the keys that were owned before this pass: the commit loop below renames items, so the live
+      // key map can no longer tell which keys the items in the pool used to hold
+      for (const item of all) {
+        const key = this._slotKeys.get(item)
+        if (key !== undefined && !wanted.includes(key)) legacyKeys.add(key)
+      }
+
+      // pass 2 — index fallback: data at a position keeps the item that sits at that position
       for (let i = 0; i < n; i++) {
         if (next[i]) continue
         // strictKeys: the item at this index belongs to another key, so a new key must not inherit it
         if (this.strictKeys && wanted[i] !== undefined) continue
         const item = all[i]
         if (!item || used.has(item)) continue
-        // the index fallback only serves data that is *not* claiming a key of its own: a datum whose
-        // key is new would otherwise take over the item of a key it does not own, and the item of the
-        // key that is still in the list would be stranded (the keyed-match invariant, and the reason
-        // `@jsx6/virtual-scroll` maps a key to exactly one row)
-        if (wanted[i] !== undefined && this._itemKeys.get(item) !== undefined) continue
+        // a datum that *declares its own key* may only take the item at its index when that item is
+        // not itself the slot of a key this pass still wants — otherwise the keyed item would be
+        // stranded while a new key rides on it. (Keyed data normally matches in pass 1; this is the
+        // duplicate-key path.) Without a key of its own, unkeyed data keeps the positional reuse.
+        if (wanted[i] !== undefined && wanted.includes(this._slotKeys.get(item))) continue
         // and it never crosses a type boundary: a typed row keeps asking for its own kind of item
         const type = typeAt(i)
         if (type !== undefined && this._itemTypes.get(item) !== type) continue
@@ -535,11 +560,17 @@ export class Loop2 {
       // pass 3 — reuse a parked item *of this row's type* (or build one), for the remaining positions
       for (let i = 0; i < n; i++) {
         if (next[i]) continue
-        const parked = this._takeFree(typeAt(i), this.strictKeys && wanted[i] !== undefined, pools)
+        // `strictKeys`: a datum whose key is new must not inherit the state of another key, so only an
+        // item whose old key is not one this pass still renders may be recycled
+        const freeOnly = this.strictKeys && wanted[i] !== undefined
+        const parked = this._takeFree(typeAt(i), taken, used, legacyKeys, pools, freeOnly)
+        // @ts-ignore TEMP
         if (parked) {
           next[i] = parked
           continue
         }
+        // the type is resolved first, so it is handed to the builder instead of `makeItem` asking for
+        // the key again (`keyBy` is called once per row per pass)
         const type = typeAt(i)
         const built = this.makeItem(v[i], start + i, type)
         next[i] = built
@@ -558,12 +589,23 @@ export class Loop2 {
 
       // `next` is the new visible order; where the leftovers live is the pools' business (see
       // `_finishPass`), so the commit only has to record the visible half of the state
+      // @ts-ignore TEMP
       this.count = n
       reconciled = true
 
       const claimedKeys = new Map()
       for (let i = 0; i < n; i++) {
         const item = next[i]
+        // @ts-ignore TEMP
+        globalThis.__sk &&
+          console.log(
+            'TMPSET pos',
+            i,
+            'item slotBefore=',
+            this._slotKeys.get(item),
+            'wantedKey=',
+            String(wanted[i]),
+          )
         // an item reused by index keeps the key it was built/claimed with (its element key is frozen
         // anyway); a datum with a key always wins
         const wantedKey = wanted[i]
@@ -585,15 +627,14 @@ export class Loop2 {
       }
     } finally {
       // a builder, setter or hook that threw must not leave a half-built item in the DOM: an aborted
-      // pass never took over the items it built, so those are released here and the previous state is
-      // restored — items, data, keys and index origin alike. (After a completed pass the items it
-      // built are the visible ones; releasing them would empty the list.)
+      // pass never took over the items it built, so those are released here and the previous visible
+      // set is restored. (After a completed pass they are the visible items — releasing them would
+      // empty the list.)
       if (!reconciled) {
         for (const item of created) this._releaseItem(item)
         created.length = 0
-        this.count = previousVisible.size
         this.allItems = previous
-        this.items = previous.slice(0, this.count)
+        this.count = previousVisible.size
         // the pass never took over the data it was asked to render either, so `getWindow()`,
         // `getData()` and the next report all describe what the loop still shows
         if (previousData) {
@@ -603,7 +644,11 @@ export class Loop2 {
         // `makeItem()` registered the key a built item declared; the pass never took it over, so the
         // previous owners get their keys back (releasing the built items dropped theirs)
         this.keyMap = previousKeys
+        // and `next` is not an order to commit — put the previous visible items back instead
+        this.items = previous.slice(0, this.count)
+        this.allItems = previous
         this._fixItemList(true)
+        this._enforcePoolLimit()
       }
     }
     // only a completed pass has an order worth committing; the aborted one has just restored state
@@ -797,22 +842,28 @@ export class Loop2 {
     return released
   }
 
-  /** Take the parked item a position of this type should reuse, or `undefined`.
+  /** Take the item from the pass's pool that a position of this type should reuse, or `undefined`.
    *
    *  A typed position only ever takes an item of its own type: that is what keeps a row from
    *  inheriting the state, the DOM node and the shape of an unrelated row. An untyped position takes
    *  anything, which is the pre-`typeBy` behaviour (single slot, no grouping).
    *
-   *  `strictKeys` narrows this further: a datum whose key is new must not inherit the state of
-   *  another key, so only an item that owns no key at all qualifies.
+   *  `strictKeysOnly` narrows it further (`strictKeys`): an item parked under a key this pass dropped
+   *  (`legacyKeys`) is still spoken for by that key, so only an item whose old key is gone may be
+   *  recycled — otherwise the item that held `b` would be handed to a brand-new key `n` in the very
+   *  pass that dropped `b`.
    *
    *  @param {any} type the type the position needs (`undefined` = untyped)
-   *  @param {boolean} strictKeysOnly only accept an item that owns no key
+   *  @param {Set<any>} taken items this pass already put on screen
+   *  @param {Set<any>} used items pass 1 and pass 2 claimed by key or by index
+   *  @param {Set<any>} legacyKeys keys this pass dropped (still owned by the items parked under them)
+   *  @param {Map<any, any[]>} [pools] the pool to draw from
+   *  @param {boolean} [strictKeysOnly] reject an item whose old key is in `legacyKeys`
    *  @returns {any} the item, or undefined when no parked item qualifies
    */
-  _takeFree(type, strictKeysOnly, pools = this._pools) {
+  _takeFree(type, taken, used, legacyKeys, pools = this._pools, strictKeysOnly = false) {
     /** @type {any} */
-    let taken
+    let takenItem
     /** @type {any[]|undefined} */
     let owner
     if (type !== undefined) {
@@ -829,11 +880,16 @@ export class Loop2 {
       }
       if (!owner) return undefined
     }
-    // the pool is in parking order, and the *oldest* item goes first — the pre-`typeBy` pool order
-    const at = strictKeysOnly ? owner.findIndex(item => this._itemKeys.get(item) === undefined) : 0
+    /** the pool holds item objects; a primitive here means the pool itself is corrupt */
+    const free = item => isWeakKey(item) && !taken.has(item) && !used.has(item)
+    const at = strictKeysOnly
+      ? owner.findIndex(item => free(item) && !legacyKeys.has(this._slotKeys.get(item)))
+      : owner.findIndex(free)
     if (at === -1) return undefined
-    taken = owner.splice(at, 1)[0]
-    return taken
+    // the pool is in parking order, and the *oldest* item goes first — the pre-`typeBy` pool order
+    takenItem = owner.splice(at, 1)[0]
+    taken.add(takenItem)
+    return takenItem
   }
 
   /** Hand a pass over to the loop: the visible items in order, then the normal commit path
@@ -845,48 +901,16 @@ export class Loop2 {
    */
   _finishPass(next) {
     this.count = next.length
-    this._rebuildPools(next)
+    this.allItems = next.slice()
     this._fixItemList(true)
     this._enforcePoolLimit()
   }
 
   /** Keep `items` and the pools consistent with `allItems` after `count` or the order changed. */
   _commit() {
+    this.items = this.allItems.slice(0, this.count)
     this._fixItemList(true)
     this._enforcePoolLimit()
-  }
-
-  /** Make `visible` the loop's visible items and rebuild `allItems` (visible first, then every item
-   *  the loop owns but does not show, grouped by type in parking order) and the type pools.
-   *
-   *  This is the single place that decides what the loop owns, and the reason `_collectPools`-style
-   *  "derive the parked items from `allItems`" logic cannot lose one: the visible array is the one
-   *  the pass decided on, and everything else the loop holds is parked by definition.
-   *
-   *  @param {any[]} visible the item for each visible position
-   */
-  _rebuildPools(visible) {
-    this.items = visible.slice()
-    const pools = new Map()
-    const shown = new Set(visible)
-    for (const item of this._owned) {
-      if (shown.has(item)) continue
-      const type = this._itemTypes.get(item)
-      const pool = pools.get(type)
-      if (pool) pool.push(item)
-      else pools.set(type, [item])
-    }
-    this._pools = pools
-    const parked = []
-    for (const pool of pools.values()) parked.push(...pool)
-    this.allItems = visible.concat(parked)
-    // an item the pass dropped from both the visible set and the pools is still owned (it holds its
-    // node and its bindings) but has no position: detach its nodes, or they stay in the DOM forever
-    const placed = new Set(this.allItems)
-    for (const item of this._owned) {
-      if (placed.has(item)) continue
-      for (const node of nodesOf(item)) if (node.parentNode) node.parentNode.removeChild(node)
-    }
   }
 
   /** Split what the loop owns into the visible items (in the order the pass decided) and the parked
@@ -938,10 +962,11 @@ export class Loop2 {
    *
    *  @param {any} data
    *  @param {number} i absolute index
-   *  @param {any} [key] the datum's key, when it is already known
+   *  @param {any} [key] the datum's key; when it is not known, the key-derived type is skipped (an
+   *    already-resolved key is never looked up a second time)
    *  @returns {any}
    */
-  _typeOf(data, i, key = this._keyOf(data, i)) {
+  _typeOf(data, i, key) {
     const typeBy = this.typeBy
     if (typeBy) {
       const by = keyValue(typeBy(data, i))
@@ -949,14 +974,18 @@ export class Loop2 {
     }
     const declared = dataType(data)
     if (declared !== undefined) return declared
-    // the last resort is the type the key itself declares (`keyBy: r => ({ id: r.id, type: r.kind })`),
-    // and it costs nothing to rule out: a key that is not an object cannot carry one
+    if (key === undefined) return undefined
+    // the last resort is the type the key itself declares (`keyBy: r => ({ id: r.id, type: r.kind })`)
     const resolved = keyValue(key)
     return isWeakKey(resolved) && hasType(resolved.type) ? resolved.type : undefined
   }
 
   /** Make `item` the owner of a type, so it can only ever be reused for that type. */
   _setItemType(item, type) {
+    if (!isWeakKey(item)) {
+      console.error('Loop2: item is not an object', item, new Error().stack)
+      return
+    }
     this._itemTypes.set(item, type)
   }
 
@@ -992,8 +1021,12 @@ export class Loop2 {
     return key
   }
 
-  /** Make `item` the owner of `key`, or drop its key when `key` is nullish. */
+  /** Make `item` the owner of `key`, or drop its key when `key` is nullish. The key is also
+   *  remembered as the item's *slot* (`_slotKeys`), which survives parking: that is what lets
+   *  `strictKeys` recognise that a parked item's old key is still rendered by someone else. */
   _setItemKey(item, key) {
+    // the slot a *released* item had is irrelevant, so only a real key is remembered as its slot
+    if (key !== undefined && key !== null) this._slotKeys.set(item, key)
     const prev = this._itemKeys.get(item)
     if (prev !== undefined && prev !== key && this.keyMap.get(prev) === item) this.keyMap.delete(prev)
     if (key === undefined || key === null) {
@@ -1089,10 +1122,11 @@ export class Loop2 {
    */
   makeItem(data, i, type) {
     const { builder, setter } = this
-    // the caller (the reconciliation) resolves the type from the datum's key it already has; a direct
-    // `makeItem` call resolves it here. `_typeOf` returns `undefined` for an untyped row, which is
-    // also what "no type given" means, so there is nothing to tell apart.
-    if (type === undefined) type = this._typeOf(data, i)
+    // the caller (a reconciliation) resolves the type from the key it already has; a direct
+    // `makeItem` call resolves it here. Only a loop that can *have* types is asked: without `typeBy`
+    // a key that is not an object cannot carry one, so nothing is computed (and `keyBy` is not called
+    // a second time for a row an untyped loop does not care about).
+    if (type === undefined && (this.typeBy || isWeakKey(data))) type = this._typeOf(data, i)
     /** @type {Record<string, any>} */
     const attr = { ...this.itemAttr, i }
     const comp = builder({
@@ -1178,19 +1212,6 @@ export class Loop2 {
     }
   }
 
-  /** Is `item` parked anywhere? Only used by the pool helpers, which keep the pools and `allItems`
-   *  in step (the item still leaves `allItems` in the list it was in). */
-  _dropFromPools(item) {
-    for (const pool of this._pools.values()) {
-      const at = pool.indexOf(item)
-      if (at !== -1) {
-        pool.splice(at, 1)
-        return true
-      }
-    }
-    return false
-  }
-
   /** Insert a node/item relative to the loop anchor. A no-op while the loop is not attached yet —
    *  `refresh()` (or any later mutation) inserts everything that is missing. */
   insert(el, before) {
@@ -1206,7 +1227,6 @@ export class Loop2 {
    */
   _releaseItem(item, detach = true) {
     if (!item) return
-    this._dropFromPools(item)
     this._setItemKey(item, undefined)
     this._owned.delete(item)
     this._weights.delete(item)
@@ -1270,18 +1290,12 @@ export class Loop2 {
     if (this.typeBy) items.sort((a, b) => this._weightOf(a) - this._weightOf(b))
     else items.reverse()
     let released = 0
-    /** @type {any[]} */
-    const gone = []
     for (const item of items) {
       if (parked - released <= keep) break
       this._releaseItem(item)
-      gone.push(item)
       released++
     }
-    if (released) {
-      this.allItems = this.allItems.filter(item => !gone.includes(item))
-      this._fixItemList(true)
-    }
+    if (released) this._fixItemList(true)
     return released
   }
 
@@ -1366,6 +1380,24 @@ export class Loop2 {
   _fixItemList(reindex) {
     const count = this.count
     this.items = this.allItems.slice(0, count)
+    if (reindex) {
+      // one order, one set of pools: the visible items, then everything the loop owns but does not
+      // show (grouped by type, in parking order). Rebuilding from `_owned` is what keeps `allItems`,
+      // `items` and the pools from ever disagreeing about which items the loop owns — the visible
+      // array alone would lose the items this pass parked.
+      this._pools = this._partition(this.items)
+      const parked = []
+      for (const pool of this._pools.values()) parked.push(...pool)
+      const next = this.items.concat(parked)
+      // an item the pass dropped from both the visible set and the pools is still owned (it holds
+      // its node and its bindings) but has no position: detach its nodes, or they stay in the DOM
+      const placed = new Set(next)
+      for (const item of this._owned) {
+        if (placed.has(item)) continue
+        for (const node of nodesOf(item)) if (node.parentNode) node.parentNode.removeChild(node)
+      }
+      this.allItems = next
+    }
     if (!reindex) return
     const all = this.allItems
     const parent = this.el.parentNode

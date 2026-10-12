@@ -245,6 +245,36 @@ Acceptance met: a 100 000-row list scrolls with a bounded node count, no instanc
 item state surviving the window leaving and returning (the integration test walks the list, checks the
 ceiling and asserts instance identity after a full round trip).
 
+### P6 — the type axis (done, 2026-10-12)
+
+A row's identity has a second axis: **what kind of row it is**. `typeBy(data, i)` — the same shape as
+`keyBy`, and the same fallback chain (`data.loopType` / `data.$key.type` → the type of the key `keyBy`
+returned) — puts every row in a type, and **only rows of the same type share reuse slots**, index
+fallback included. A list that mixes headers and rows, group rows, or system messages can no longer
+render one kind into an item built for another.
+
+| change                                                                  | where                                                                       |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `typeBy`, `typeOf(item)`, `keepTypes(types)`; a falsy type (`undefined`, `null`, `''`, `0`) is untyped and shares the default slot | [libs/loop2/src/Loop2.js](../libs/loop2/src/Loop2.js) |
+| the type is carried by the *item* (`_itemTypes`) and its pool (`_pools` maps `type → items`); `maxPooled` is the total across pools, released least-recently-parked first | same |
+| the type reaches a custom `builder` as `opts.type`                      | same                                                                        |
+| keys stay **global** across types: the type decides reuse, not identity | same                                                                        |
+| 8 cases: cross-type index fallback, per-type pools, falsy types, `keepTypes`, `typeOf`, builder plumbing | [libs/loop2/src/Loop2.types.test.js](../libs/loop2/src/Loop2.types.test.js) |
+
+Findings worth keeping:
+
+1. **`strictKeys` needed a pre-pass notion of "still spoken for".** The strict rule ("a new key never
+   inherits another key's item") was being checked against the *live* key map, which the same pass had
+   already rewritten while renaming items. A pass now collects the keys it dropped (`legacyKeys`) right
+   after the keyed pass and rejects an item parked under one of them — what the rule always meant.
+2. **A pass draws from everything the loop owns, not only from what was already parked.** That is what
+   lets a scroll recycle the row it took off screen in the same pass; the "pool = already parked"
+   version rebuilt that row instead (caught by the P5 one-row-scroll test).
+3. **`virtual-scroll` still does not support types** (one fixed `itemHeight`, one row factory): the
+   loop keeps the grouping, and a mixed-kind window is the host's problem. `keepTypes` is the one call
+   a windowed host needs when a window stops containing a type, so those items do not occupy pool slots
+   forever.
+
 ---
 
 ## 6. Measurements taken for this plan

@@ -68,27 +68,28 @@ div = (
 
 ## Options
 
-| option           | type                            | default        | meaning                                                                      |
-| ---------------- | ------------------------------- | -------------- | ---------------------------------------------------------------------------- |
-| `item`           | function \| class               | —              | render function or `Jsx6`-style class used for one entry                     |
+| option           | type                            | default        | meaning                                                                            |
+| ---------------- | ------------------------------- | -------------- | ---------------------------------------------------------------------------------- |
+| `item`           | function \| class               | —              | render function or `Jsx6`-style class used for one entry                           |
 | `keyBy`          | `(data, i) => key`              | —              | explicit key extractor; a non-nullish result is the key, `undefined`/`null` falls back to `$key`/`loopKey`/template key |
-| `value`          | signal                          | —              | observable array; observed after the current task (a timer), like `Loop`     |
-| `primitive`      | boolean                         | `false`        | the values are primitives, not objects                                       |
-| `maxPooled`      | number                          | `Infinity`     | how many evicted items stay in the reuse pool; `0` disposes them immediately |
-| `strictKeys`     | boolean                         | `false`        | a datum with a *new* key never inherits an item that owns a different key    |
-| `startIndex`     | number                          | `0`            | absolute index of the first datum rendered — see [Windowing](#windowing)     |
-| `builder`        | function                        | `Loop2Item`    | how one item is constructed (advanced)                                       |
-| `setter`         | function                        | `setValue`     | how one item's value is written (advanced)                                   |
-| `tpl`            | any                             | —              | template passed through to the item builder                                  |
-| `p`              | string                          | —              | scope property the jsx runtime assigns the loop to                           |
-| `onBuild`        | `(item, data, i) => void`       | —              | called after an item was built — the rebuild counter for tests/metrics       |
-| `onRelease`      | `(item) => void`                | —              | called after an item's bindings were released                                |
-| `onPark`         | `(item, data) => void`          | —              | called when an item leaves the visible range but is kept for reuse           |
-| `onRestore`      | `(item, data) => void`          | —              | called when an item enters the visible range                                 |
-| `onDuplicateKey` | `(key, data, i, first) => void` | `console.warn` | called once per reconciliation when a key repeats in the rendered range      |
-| `onBeforeMove`   | `(item) => void`                | —              | called just before an item's nodes are moved (FLIP animations)               |
-| `onAfterMove`    | `(item) => void`                | —              | called after an item's nodes were moved                                      |
-| *anything else*  |                                 |                | copied onto every item as a template attribute                               |
+| `typeBy`         | `(data, i) => type`             | —              | the row's type; only rows of the same type share reuse slots — see [Types](#types) |
+| `value`          | signal                          | —              | observable array; observed after the current task (a timer), like `Loop`           |
+| `primitive`      | boolean                         | `false`        | the values are primitives, not objects                                             |
+| `maxPooled`      | number                          | `Infinity`     | how many evicted items stay in the reuse pool; `0` disposes them immediately       |
+| `strictKeys`     | boolean                         | `false`        | a datum with a *new* key never inherits an item that owns a different key          |
+| `startIndex`     | number                          | `0`            | absolute index of the first datum rendered — see [Windowing](#windowing)           |
+| `builder`        | function                        | `Loop2Item`    | how one item is constructed (advanced)                                             |
+| `setter`         | function                        | `setValue`     | how one item's value is written (advanced)                                         |
+| `tpl`            | any                             | —              | template passed through to the item builder                                        |
+| `p`              | string                          | —              | scope property the jsx runtime assigns the loop to                                 |
+| `onBuild`        | `(item, data, i) => void`       | —              | called after an item was built — the rebuild counter for tests/metrics             |
+| `onRelease`      | `(item) => void`                | —              | called after an item's bindings were released                                      |
+| `onPark`         | `(item, data) => void`          | —              | called when an item leaves the visible range but is kept for reuse                 |
+| `onRestore`      | `(item, data) => void`          | —              | called when an item enters the visible range                                       |
+| `onDuplicateKey` | `(key, data, i, first) => void` | `console.warn` | called once per reconciliation when a key repeats in the rendered range            |
+| `onBeforeMove`   | `(item) => void`                | —              | called just before an item's nodes are moved (FLIP animations)                     |
+| `onAfterMove`    | `(item) => void`                | —              | called after an item's nodes were moved                                            |
+| *anything else*  |                                 |                | copied onto every item as a template attribute                                     |
 
 ---
 
@@ -126,6 +127,47 @@ Notes and limits, inherited from `Loop` (see plan/keyed-loop-design.md §2–§4
 
 ---
 
+## Types
+
+A **type** is the second axis of a row's identity: it says what *kind* of row this is, so a list that
+mixes kinds — a header among rows, a table's group rows, a chat's system messages — never renders one
+kind into an item built for another. Without `typeBy` every row is untyped and behaves exactly as it
+did before the option existed (one shared pool, index fallback included).
+
+```js
+const loop = new Loop2({ item: Row, keyBy: r => r.id, typeBy: r => r.kind })
+// a 'header' row only ever reuses an item built for a 'header'; a row never takes a header's slot
+```
+
+- **Only rows of the same type share slots.** The index fallback respects it too, so swapping the
+  kinds at the same positions builds fresh items for the positions whose type changed instead of
+  handing a header's node to a row. The type is carried by the *item* (`typeOf(item)` reads it), which
+  is why a parked item is only ever handed to a row of its own type.
+- **A falsy type is untyped.** `undefined`, `null`, `''` and `0` all mean "no type", and every such row
+  shares the default slot. (A numeric `0` therefore cannot be a type of its own; use a truthy tag.)
+- **Where the type comes from**, in order: `typeBy(data, i)` → `data.loopType` / `data.$key.type` →
+  the `type` of the key `keyBy` returned (`keyBy: r => ({ id: r.id, type: r.kind })`). It reaches a
+  custom `builder` as `opts.type`.
+- **Keys stay global across types.** `typeBy` decides which items may be reused, not what identity is
+  — if you want per-type keys, make the key say so (`keyBy: (r, i) => \`${r.kind}:${r.id}\``).
+- **`keepTypes(types)`** releases the parked items of types you are not about to render. That is the
+  one call a windowed host needs when its rows are of mixed kinds: a window that no longer contains a
+  type should not keep its items occupying `maxPooled` slots. `maxPooled` itself is the total across
+  the type pools, and the least recently parked items are released first.
+
+```js
+// a windowed host that knows its window's kinds
+const window = rows.slice(start, end)
+loop.keepTypes(new Set(window.map(r => r.kind)))
+loop.setWindow(window, start)
+```
+
+`@jsx6/virtual-scroll` does not support types **by itself**: its fixed `itemHeight` and single row
+factory assume one row shape. If your rows differ, keep the type grouping here (the loop will not cross
+it) and let the scroller place them; per-type heights are outside the scroller's contract.
+
+---
+
 ## API
 
 | member                                     | meaning                                                                                      |
@@ -145,6 +187,8 @@ Notes and limits, inherited from `Loop` (see plan/keyed-loop-design.md §2–§4
 | `getItem(i)` / `getItems()` / `items`      | visible items                                                                                |
 | `getItemByKey(key)` / `getKey(item)`       | key → item, item → key (parked items included)                                               |
 | `getItemIndex(item)`                       | index in `allItems` (visible or parked) for an item, a node, an index or a resolver function |
+| `typeOf(item)`                             | the type the item was built for, or `undefined` for an untyped one                           |
+| `keepTypes(types)`                         | release the parked items of types not in `types` — see [Types](#types)                       |
 | `allItems` / `count` / `size()` / `length` | visible items followed by the parked pool, and the counts                                    |
 | `domMoves`                                 | how many node moves the DOM ordering performed so far (a metric, not state)                  |
 | `refresh()`                                | re-attach and re-order a loop that was populated while detached                              |
