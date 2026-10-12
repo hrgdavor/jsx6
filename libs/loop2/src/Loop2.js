@@ -486,9 +486,12 @@ export class Loop2 {
     // without `typeBy` never asks the app for a type it did not configure
     const typeAt = i => {
       let type = wantedTypes[i]
+      // no extractor and no promise of a type on the datum: an ungrouped loop pays one property read
       if (type === undefined && !typesResolved[i]) {
-        type = this._typeOf(v[i], start + i, wanted[i])
-        wantedTypes[i] = type
+        if (this.typeBy || isWeakKey(v[i])) {
+          type = this._typeOf(v[i], start + i, wanted[i])
+          wantedTypes[i] = type
+        }
         typesResolved[i] = true
       }
       return type
@@ -582,14 +585,15 @@ export class Loop2 {
       }
     } finally {
       // a builder, setter or hook that threw must not leave a half-built item in the DOM: an aborted
-      // pass never took over the items it built, so those are released here and the previous visible
-      // set is restored. (After a completed pass they are the visible items — releasing them would
-      // empty the list.)
+      // pass never took over the items it built, so those are released here and the previous state is
+      // restored — items, data, keys and index origin alike. (After a completed pass the items it
+      // built are the visible ones; releasing them would empty the list.)
       if (!reconciled) {
         for (const item of created) this._releaseItem(item)
         created.length = 0
-        this.allItems = previous
         this.count = previousVisible.size
+        this.allItems = previous
+        this.items = previous.slice(0, this.count)
         // the pass never took over the data it was asked to render either, so `getWindow()`,
         // `getData()` and the next report all describe what the loop still shows
         if (previousData) {
@@ -599,11 +603,7 @@ export class Loop2 {
         // `makeItem()` registered the key a built item declared; the pass never took it over, so the
         // previous owners get their keys back (releasing the built items dropped theirs)
         this.keyMap = previousKeys
-        // and `next` is not an order to commit — put the previous visible items back instead
-        this.items = previous.slice(0, this.count)
-        this.allItems = previous
         this._fixItemList(true)
-        this._enforcePoolLimit()
       }
     }
     // only a completed pass has an order worth committing; the aborted one has just restored state
@@ -829,9 +829,9 @@ export class Loop2 {
       }
       if (!owner) return undefined
     }
+    // the pool is in parking order, and the *oldest* item goes first — the pre-`typeBy` pool order
     const at = strictKeysOnly ? owner.findIndex(item => this._itemKeys.get(item) === undefined) : 0
     if (at === -1) return undefined
-    // the pool is in parking order, and the *oldest* item goes first — the pre-`typeBy` pool order
     taken = owner.splice(at, 1)[0]
     return taken
   }
@@ -845,16 +845,48 @@ export class Loop2 {
    */
   _finishPass(next) {
     this.count = next.length
-    this.allItems = next.slice()
+    this._rebuildPools(next)
     this._fixItemList(true)
     this._enforcePoolLimit()
   }
 
   /** Keep `items` and the pools consistent with `allItems` after `count` or the order changed. */
   _commit() {
-    this.items = this.allItems.slice(0, this.count)
     this._fixItemList(true)
     this._enforcePoolLimit()
+  }
+
+  /** Make `visible` the loop's visible items and rebuild `allItems` (visible first, then every item
+   *  the loop owns but does not show, grouped by type in parking order) and the type pools.
+   *
+   *  This is the single place that decides what the loop owns, and the reason `_collectPools`-style
+   *  "derive the parked items from `allItems`" logic cannot lose one: the visible array is the one
+   *  the pass decided on, and everything else the loop holds is parked by definition.
+   *
+   *  @param {any[]} visible the item for each visible position
+   */
+  _rebuildPools(visible) {
+    this.items = visible.slice()
+    const pools = new Map()
+    const shown = new Set(visible)
+    for (const item of this._owned) {
+      if (shown.has(item)) continue
+      const type = this._itemTypes.get(item)
+      const pool = pools.get(type)
+      if (pool) pool.push(item)
+      else pools.set(type, [item])
+    }
+    this._pools = pools
+    const parked = []
+    for (const pool of pools.values()) parked.push(...pool)
+    this.allItems = visible.concat(parked)
+    // an item the pass dropped from both the visible set and the pools is still owned (it holds its
+    // node and its bindings) but has no position: detach its nodes, or they stay in the DOM forever
+    const placed = new Set(this.allItems)
+    for (const item of this._owned) {
+      if (placed.has(item)) continue
+      for (const node of nodesOf(item)) if (node.parentNode) node.parentNode.removeChild(node)
+    }
   }
 
   /** Split what the loop owns into the visible items (in the order the pass decided) and the parked
@@ -917,7 +949,8 @@ export class Loop2 {
     }
     const declared = dataType(data)
     if (declared !== undefined) return declared
-    // the last resort is the type the key itself declares (`keyBy: r => ({ id: r.id, type: r.kind })`)
+    // the last resort is the type the key itself declares (`keyBy: r => ({ id: r.id, type: r.kind })`),
+    // and it costs nothing to rule out: a key that is not an object cannot carry one
     const resolved = keyValue(key)
     return isWeakKey(resolved) && hasType(resolved.type) ? resolved.type : undefined
   }
@@ -1145,6 +1178,19 @@ export class Loop2 {
     }
   }
 
+  /** Is `item` parked anywhere? Only used by the pool helpers, which keep the pools and `allItems`
+   *  in step (the item still leaves `allItems` in the list it was in). */
+  _dropFromPools(item) {
+    for (const pool of this._pools.values()) {
+      const at = pool.indexOf(item)
+      if (at !== -1) {
+        pool.splice(at, 1)
+        return true
+      }
+    }
+    return false
+  }
+
   /** Insert a node/item relative to the loop anchor. A no-op while the loop is not attached yet —
    *  `refresh()` (or any later mutation) inserts everything that is missing. */
   insert(el, before) {
@@ -1160,6 +1206,7 @@ export class Loop2 {
    */
   _releaseItem(item, detach = true) {
     if (!item) return
+    this._dropFromPools(item)
     this._setItemKey(item, undefined)
     this._owned.delete(item)
     this._weights.delete(item)
@@ -1223,12 +1270,18 @@ export class Loop2 {
     if (this.typeBy) items.sort((a, b) => this._weightOf(a) - this._weightOf(b))
     else items.reverse()
     let released = 0
+    /** @type {any[]} */
+    const gone = []
     for (const item of items) {
       if (parked - released <= keep) break
       this._releaseItem(item)
+      gone.push(item)
       released++
     }
-    if (released) this._fixItemList(true)
+    if (released) {
+      this.allItems = this.allItems.filter(item => !gone.includes(item))
+      this._fixItemList(true)
+    }
     return released
   }
 
@@ -1313,24 +1366,6 @@ export class Loop2 {
   _fixItemList(reindex) {
     const count = this.count
     this.items = this.allItems.slice(0, count)
-    if (reindex) {
-      // one order, one set of pools: the visible items, then everything the loop owns but does not
-      // show (grouped by type, in parking order). Rebuilding from `_owned` is what keeps `allItems`,
-      // `items` and the pools from ever disagreeing about which items the loop owns — the visible
-      // array alone would lose the items this pass parked.
-      this._pools = this._partition(this.items)
-      const parked = []
-      for (const pool of this._pools.values()) parked.push(...pool)
-      const next = this.items.concat(parked)
-      // an item the pass dropped from both the visible set and the pools is still owned (it holds
-      // its node and its bindings) but has no position: detach its nodes, or they stay in the DOM
-      const placed = new Set(next)
-      for (const item of this._owned) {
-        if (placed.has(item)) continue
-        for (const node of nodesOf(item)) if (node.parentNode) node.parentNode.removeChild(node)
-      }
-      this.allItems = next
-    }
     if (!reindex) return
     const all = this.allItems
     const parent = this.el.parentNode
