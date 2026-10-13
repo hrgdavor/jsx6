@@ -84,12 +84,16 @@ const cases = {
       for (let s = 1; s <= 10; s++) loop.setValue(rotate(rows, s))
     })
   },
-  /** scroll a 20-row window 400 times over a 10 000-row list */
-  window: mode => {
+  /**
+   * replace a 20-row slice of a 10 000-row list 400 times, the way an app that only renders what is on
+   * screen drives the loop (`setValue(slice)` — keyed matching parks the rows that left and reuses
+   * them for the rows that entered, with `maxPooled` at the slice size)
+   */
+  slice: mode => {
     const { loop } = mounted(mode, { maxPooled: WINDOW + 2 })
     const rows = makeRows(ROWS)
     return timeIt(10, () => {
-      for (let top = 0; top < 400; top++) loop.setWindow(rows.slice(top, top + WINDOW), top)
+      for (let top = 0; top < 400; top++) loop.setValue(rows.slice(top, top + WINDOW))
     })
   },
   /** unkeyed: values swap in place, 10 000 rows (the same kinds land on the same positions) */

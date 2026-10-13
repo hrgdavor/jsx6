@@ -113,7 +113,7 @@ test('without typeBy every row is untyped and the behaviour is unchanged', () =>
   expect(div.innerHTML).toEqual('<b>11</b>test')
 })
 
-test('typeBy receives the absolute index and the key can carry the type', () => {
+test('typeBy receives the index and the key can carry the type', () => {
   const seen = []
   const { loop } = mount({
     keyBy: r => r.id,
@@ -122,8 +122,8 @@ test('typeBy receives the absolute index and the key can carry the type', () => 
       return r.kind
     },
   })
-  loop.setWindow(kinds().slice(2), 2)
-  expect(seen).toEqual([2, 3])
+  loop.setValue(kinds())
+  expect(seen).toEqual([0, 1, 2, 3])
   expect(loop.typeOf(loop.getItem(0))).toEqual('h')
 
   // the key itself may declare the type (the object form of a JSX key), with no `typeBy` at all
@@ -133,7 +133,7 @@ test('typeBy receives the absolute index and the key can carry the type', () => 
   expect(other.loop.getKey(other.loop.getItem(1)).type).toEqual('r')
 })
 
-test('keepTypes releases the parked items of the types a window no longer renders', () => {
+test('keepTypes releases the parked items of the types it is not asked to keep', () => {
   const { loop } = mount({ keyBy: r => r.id, typeBy: r => r.kind, maxPooled: 8 })
   loop.setValue(kinds())
   loop.setValue([kinds()[0]]) // park the three others: one 'h' (item 3) and two 'r' (items 2 and 4)

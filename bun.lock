@@ -140,7 +140,6 @@
       },
       "devDependencies": {
         "@happy-dom/global-registrator": "catalog:",
-        "@jsx6/virtual-scroll": "workspace:*",
         "esbuild": "catalog:",
         "happy-dom": "catalog:",
         "typescript": "catalog:",

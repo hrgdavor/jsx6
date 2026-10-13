@@ -6,7 +6,7 @@
  */
 import { spawnSync } from 'node:child_process'
 
-const CASES = ['build', 'rotate1k', 'window', 'unkeyed', 'unkeyedRetyped', 'push', 'shrink']
+const CASES = ['build', 'rotate1k', 'slice', 'unkeyed', 'unkeyedRetyped', 'push', 'shrink']
 const [, , only] = process.argv
 const cases = only ? [only] : CASES
 

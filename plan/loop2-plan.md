@@ -5,8 +5,8 @@
 this change — the two existing Loops keep their behaviour, which is the whole point of a separate
 package.
 **Status:** P0 delivered (library, tests, README, this plan). P1–P4 are the phased adoption plan (§5);
-P5 (windowed rendering with `@jsx6/virtual-scroll`) is delivered too — see §5 P5 for what shipped and
-what it measured.
+P5 (windowed rendering with `@jsx6/virtual-scroll`) was delivered on 2026-10-12 and **removed on
+2026-10-13** — see §5 P5 for what it did and why it went.
 **Related:** [keyed-loop-design.md](./keyed-loop-design.md) (the `Loop` key contract),
 [disposal-design.md](./disposal-design.md) (teardown + the reuse-pool rule),
 [improvement-plan.md](./improvement-plan.md) (P0-3, P0-4, P2-1, P2-2, P3-2),
@@ -58,7 +58,8 @@ divergent Loops**, with `@jsx6/w`'s copy named the canonical one; `plan/keyed-lo
 3. **`@jsx6/virtual-scroll` already has a key extractor**: `getKey`, `(item) => string|number`,
    default `item.id` ([README L108](../libs/virtual-scroll/README.md#L108),
    [src/virtual-scroll.js L60](../libs/virtual-scroll/src/virtual-scroll.js#L60)). `Loop2`'s `keyBy`
-   is the same idea; the two should share a type and eventually a windowing story (§7.8, §7.4).
+   is the same idea. P5 made `getKey` accept an index argument for the pairing; `Loop2` no longer uses
+   it, and the argument is left in place because a caller may find it useful (§5 P5).
 
 ---
 
@@ -210,45 +211,46 @@ workflow and `connectedCallback` re-insert have no equivalent:
 - Acceptance: a regression threshold (for example "no worse than `Loop` by more than 10 % on the
   unkeyed path"), documented next to the numbers.
 
-### P5 — windowed rendering with `@jsx6/virtual-scroll` (done, 2026-10-12)
+### P5 — windowed rendering with `@jsx6/virtual-scroll` (delivered 2026-10-12, **removed 2026-10-13**)
 
-The real payoff of keyed identity plus a bounded pool is recycling a window. Delivered **without a
-dependency in either direction**: the two packages agree on a contract and are pinned against each
-other by a dev-only integration test.
+The phase tried to make `Loop2` the renderer of a scroll host's visible slice: `setWindow(slice,
+startIndex)` drove the loop with an **absolute** index origin (`getWindow`, `absIndex`,
+`getAbsoluteIndex`, `__loop2Index`, a mutation API that refused to run on a "window"), and the pass
+became transactional so a throw could roll items, keys, data and origin back. A dev-only integration
+test in `libs/loop2/test/` and a windowing suite pinned it, and P6/P7 were measured on top of it.
 
-| change                                                                                      | where                                                                                     |
-| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `setWindow(slice, startIndex)` / `getWindow()` / `absIndex(i)` / `getAbsoluteIndex(item)`, and every reported index absolute (`keyBy`, `onBuild`, `attr.i`, `$i`, `__loop2Index`) | [libs/loop2/src/Loop2.js](../libs/loop2/src/Loop2.js) |
-| mutation API refuses a windowed loop; `setValue` resets the origin to 0                     | same                                                                                      |
-| `virtual-scroll`'s `getKey` gains the index: `getKey(item, index)`, so one function serves both `keyBy` and `getKey` | [libs/virtual-scroll/src/virtual-scroll.js](../libs/virtual-scroll/src/virtual-scroll.js) |
-| robustness ported from `virtual-scroll`: a throwing builder/setter/hook cannot orphan a node, and an aborted pass rolls back items, keys, data and origin | `Loop2._reconcile`          |
-| per-frame hooks a recycling host needs: `onPark`/`onRestore` (the `onItemPooled` equivalent), `onDuplicateKey` (once per key per reconciliation), `onBeforeMove`/`onAfterMove` (FLIP), `domMoves` (the mutation metric) | `Loop2` options |
-| one key function handed to both, 100 000 rows, bounded node count, identity on the way home | [libs/loop2/test/virtual-scroll.integration.test.js](../libs/loop2/test/virtual-scroll.integration.test.js) |
+**It was the wrong shape for this loop, and it is gone.** `Loop2` renders the whole array it is given
+and nothing else: no window, no absolute index, no origin to roll back, no mutation-API guard, no
+transactional pass. A host that only wants to show a slice calls plain `setValue(slice)` — keyed
+matching parks the rows that left and reuses them for the rows that entered, and `maxPooled` bounds
+what is kept. That is the reuse cache `Loop` already had, and it never needed an index origin.
 
-Findings that shaped the implementation:
+| removed                                         | disposition                                                                                    |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `setWindow`/`getWindow`, `startIndex`, `absIndex`, `getAbsoluteIndex`, `__loop2Index`, `_refuseWindowed` | gone; every index `Loop2` reports is the datum's position in the data it was given |
+| `_reconcile`'s transactional rollback (previous items/keys/data/origin) and the per-item guard in `makeItem` | gone: the pass is not transactional and a throwing callback is left to the app |
+| the windowed suite (`src/Loop2.window.test.js`) and the pairing test (`test/virtual-scroll.integration.test.js`) | deleted; their hooks and builder-validation cases were salvaged into `src/Loop2.hooks.test.js` |
+| `@jsx6/virtual-scroll` as a loop2 devDependency | dropped: the package has no reason to depend on a scroller                                     |
 
-1. **A windowed "scroll" usually builds nothing.** The items that leave the window are reused for the
-   rows that enter it, so a one-row scroll of a 5-row window costs **0 builds and 1 DOM move**; the
-   loop holds `count + maxPooled` items for the whole journey (100 000 rows, `maxPooled: 2`, never more
-   than the window plus 2). Pinned by the windowed suite.
-2. **A recycled row is not "parked".** `onPark`/`onRestore` report items entering and leaving the
-   visible set, so a row that is handed straight to the next one is reported as neither — that is the
-   same rule `virtual-scroll` applies with `onItemPooled`. The row each hook saw is passed as the
-   hook's second argument, because the pass has already renamed the item by the time a hook runs.
-3. **The index fallback may reuse a freed slot only.** This was investigated and needs no extra guard:
-   pass 1 claims the item that owns every key the new list still renders, so by the time the index
-   fallback runs, an item that owns a wanted key is already spoken for. What is left at a position is a
-   genuinely free slot, and reusing it (state included) is `Loop`'s documented behaviour, with
-   `strictKeys` as the opt-out. A guard was written here first and then **removed**: an instrumented run
-   of every suite plus six adversarial keyed scenarios (insert-new-key-at-taken-index, drop-and-replace,
-   full key replacement, move-plus-new-key, shrink-regrow, keyed→unkeyed) recorded **zero** hits, so it
-   was dead code, not a fix. See §8 "claims checked and withdrawn".
-4. **Windowing requires keys.** With unkeyed data the index fallback renumbers a slice of a slice, so
-   `setWindow` documents the requirement and the mutation API refuses to run on a window.
+Left behind deliberately: `onPark`/`onRestore`/`onDuplicateKey`/`onBeforeMove`/`onAfterMove` and
+`domMoves` — per-change hooks and a metric that say what a change added, removed or moved, useful with
+or without a scroller. `@jsx6/virtual-scroll` itself is untouched (its `getKey(item, index)` argument
+stays: it is harmless and a caller may want it).
 
-Acceptance met: a 100 000-row list scrolls with a bounded node count, no instance built twice, and
-item state surviving the window leaving and returning (the integration test walks the list, checks the
-ceiling and asserts instance identity after a full round trip).
+Findings that outlived the removal:
+
+1. **Recycling a slice needs no special reconciliation.** The measured P5 result — a one-row step over
+   a 5-row slice costs 0 builds and 1 DOM move and holds `count + maxPooled` items — holds for plain
+   `setValue(slice)`: it is keyed matching plus the pool, not windowing. Re-measured by the bench's
+   `slice` case (§5 P7).
+2. **A row renamed in place is not "parked".** `onPark`/`onRestore` report items entering and leaving
+   the *visible set*, so an item handed straight from a departed row to an arriving one is reported as
+   neither. The row each hook saw is the hook's second argument, because the pass has already renamed
+   the item by the time a hook runs.
+3. **The index fallback may reuse a freed slot only.** Pass 1 claims the item that owns every key the
+   new list still renders, so by the time the index fallback runs, an item that owns a wanted key is
+   already spoken for; what is left at a position is a genuinely free slot. See §8 "claims checked and
+   withdrawn".
 
 ### P6 — the type axis (done, 2026-10-12)
 
@@ -275,12 +277,12 @@ Findings worth keeping:
    rejects an item parked under one of them. Pinned by the `strictKeys` case in
    [libs/loop2/src/Loop2.test.js](../libs/loop2/src/Loop2.test.js).
 2. **The pool must start from everything the loop owns.** An earlier version built it from "already
-   parked items" only, which made a scroll rebuild the row it had just taken off screen instead of
-   recycling it — caught by the P5 one-row-scroll test (`built.length` was 6 where 5 is correct).
-3. **`virtual-scroll` still does not support types** (one fixed `itemHeight`, one row factory): the
-   loop keeps the grouping, and a mixed-kind window is the host's problem. `keepTypes` is the one call
-   a windowed host needs when a window stops containing a type, so those items do not occupy pool slots
-   forever.
+   parked items" only, which made a sliced `setValue` rebuild the row it had just taken off screen
+   instead of recycling it — caught by what was then the P5 one-row-scroll test (removed with the
+   windowing; the `slice` bench case and `Loop2.hooks.test.js` cover the same ground now).
+3. **A type is about reuse, not about who owns the data.** `keepTypes(types)` releases the parked items
+   of the kinds a caller is not going to render again, so they do not sit in the `maxPooled` budget;
+   `typeOf(item)` reads the type an item was built for. Nothing there needs a window.
 
 ### P7 — one implementation or two? (decided, 2026-10-12)
 
@@ -292,23 +294,24 @@ that ships a second class for a strategy.
 
 **Measured**, `bun run bench` — [bench/run.mjs](../libs/loop2/bench/run.mjs), each case in its own
 process, median of 5-20 runs, real DOM in a detached container; 10 000 rows, 1 000-row rotation, a
-20-row window over 10 000 rows:
+20-row slice of a 10 000-row list. Re-measured 2026-10-13, after the P5 removal (the `window` case is
+now `slice`, and its `setWindow` was replaced by `setValue`):
 
 | case                                              | untyped  | typed    | delta   |
 | ------------------------------------------------- | -------- | -------- | ------- |
-| `build` (10 000 rows)                             | 217 ms   | 219 ms   | +0.6 %  |
-| `rotate1k` (keyed reorder)                        | 39.1 ms  | 39.9 ms  | +2.0 %  |
-| `window` (400 window shifts)                      | 19.9 ms  | 21.0 ms  | +5.4 %  |
-| `unkeyed` (same kinds land on the same positions) | 1 008 ms | 979 ms   | -2.8 %  |
-| `unkeyedRetyped` (each rotation moves the kinds)  | 984 ms   | 3 065 ms | +211 %  |
-| `push` (1 000 appends)                            | 4 885 ms | 4 771 ms | -2.3 %  |
-| `shrink` (10 000 → 100)                           | 0.23 ms  | 0.24 ms  | +4.4 %  |
+| `build` (10 000 rows)                             | 219 ms   | 218 ms   | -0.4 %  |
+| `rotate1k` (keyed reorder)                        | 40.1 ms  | 38.5 ms  | -3.9 %  |
+| `slice` (400 slice replacements)                  | 20.6 ms  | 20.3 ms  | -1.5 %  |
+| `unkeyed` (same kinds land on the same positions) | 1 000 ms | 1 000 ms | -0.0 %  |
+| `unkeyedRetyped` (each rotation moves the kinds)  | 1 015 ms | 3 130 ms | +208 %  |
+| `push` (1 000 appends)                            | 5 367 ms | 5 087 ms | -5.2 %  |
+| `shrink` (10 000 → 100)                           | 0.20 ms  | 0.21 ms  | +1.5 %  |
 
-So: with the type axis opted into but the types **not moving**, the overhead is **≤ 3 %** on every case
-(`window`'s +5 % is inside this machine's run-to-run noise) — the machinery is a few WeakMap reads and a
-`Map.get` per row off the derived key, not a scan. The one large number is the *feature*: when data
-changes type at a position, the item there was built for the old type and is correctly **rebuilt**, so
-retyping a whole list costs what building it costs. Two earlier measurements drove real fixes:
+So: with the type axis opted into but the types **not moving**, the typed run is within this machine's
+run-to-run noise of the untyped one on every case — the machinery is a few WeakMap reads and a `Map.get`
+per row off the derived key, not a scan. The one large number is the *feature*: when data changes type
+at a position, the item there was built for the old type and is correctly **rebuilt**, so retyping a
+whole list costs what building it costs. Two earlier measurements drove real fixes:
 
 - `_typeOf` used to run for every row even without `typeBy` (one avoidable WeakMap read per row); the
   type is now resolved only when the loop can *have* types.
@@ -319,12 +322,12 @@ retyping a whole list costs what building it costs. Two earlier measurements dro
 **Why not split**, in order of weight:
 
 1. **The type axis is not a separate algorithm.** Every mutation, the DOM ordering, the pool trimming,
-   the hooks, the disposal contract and windowing are shared. Only *which item a position may take*
-   differs — one guard in the index fallback and one lookup in the pool. Two classes mean duplicating
-   1 200 lines or introducing a shared base class, which is more surface than the guard it removes.
-2. **Integration must not depend on the class.** A host that switches between single-type and
-   multi-type data (the common case: a virtual-scroll list that later grows a header row) would have to
-   swap components and re-mount every row, and `loop2`+`virtual-scroll` would need two hosts.
+   the hooks and the disposal contract are shared. Only *which item a position may take* differs — one
+   guard in the index fallback and one lookup in the pool. Two classes mean duplicating 1 200 lines or
+   introducing a shared base class, which is more surface than the guard it removes.
+2. **Integration must not depend on the class.** A list that switches between single-type and multi-type
+   data (the common case: a list that later grows a header row) would have to swap components and
+   re-mount every row if the two modes were two classes.
 3. **The single-type path is measurably untouched** (table above), so the usual reason to split —
    "the fast path must not pay for the feature" — does not apply here.
 4. **It is the repository's convention** (20 manifests, one `.` entry each; strategy options read by one
@@ -336,10 +339,9 @@ a measurable regression on the untyped path; or the type machinery becoming a su
 bundle. The option boundary stays reversible — `Loop2` is unpublished, so a later split costs a wrapper,
 not a migration.
 
-**Single-type mode is what pairs with `@jsx6/virtual-scroll`**, exactly as P5 describes: `setWindow`,
-`keepTypes` unneeded, `maxPooled` at the window size, and one key function for both. The integration
-test drives that pairing over 100 000 rows; the type axis is transparent to it (`typeOf` is `undefined`
-for every item, no `typeBy` is called).
+The type axis is transparent to a caller that never sets `typeBy` (`typeOf` is `undefined` for every
+item), so a single-type list pays nothing for the option being there — including the `setValue(slice)`
+pattern P5 was replaced by.
 
 ---
 
@@ -415,10 +417,10 @@ costs and what it would prove.
    "rebuild count" is measurable without touching internals. Publish the recipe (count builds per
    `setValue`, assert it stays flat across a reorder) in the README and use it in an app test — the
    cheapest guard against an accidental rebuild loop (per-row signals re-subscribing on every update).
-8. **Share the key-extractor type with `@jsx6/virtual-scroll`.** `virtual-scroll` has
-   `getKey: (item) => string|number`; `Loop2` has `keyBy(data, i) => any`. A single exported
-   `KeyBy`/`KeyOf` type (and an index argument in `getKey`) would let an app pass the *same* function
-   to the windowing layer and the renderer — a prerequisite for P5.
+8. **Share the key-extractor shape with `@jsx6/virtual-scroll`.** `virtual-scroll` has
+   `getKey: (item, index) => string|number`; `Loop2` has `keyBy(data, i) => any`. A single documented
+   `KeyOf` shape lets an app keep one key story across a scroller and a list renderer. P5 turned that
+   into a hard pairing and was removed (§5 P5); this stays an optional convention, not an integration.
 9. **Animate moves where they happen.** `_orderDom` is the single place that knows a node moved; an
    optional `onBeforeMove(node)`/`onAfterMove(node)` hook is enough to implement FLIP animations
    without a second diff of the list. Keep it out of the default path (perf) and document it as the

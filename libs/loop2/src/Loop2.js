@@ -27,19 +27,13 @@
  *    `connectedCallback`);
  * 6. **O(1) item lookup** — an internal index map over items *and* their nodes, so `getItemIndex`
  *    is not dependent on a stale `loopIndex` stamp and fragments are indexed per node;
- * 7. **windowing-ready** — `startIndex` + `setWindow(slice, startIndex)` let a scroll host drive the
- *    loop with the visible slice of a list that is far too large to render, while every index the
- *    loop reports (`keyBy`, `onBuild`, the item's `attr.i`, the node stamps) stays **absolute** and
- *    the bounded pool (`maxPooled`) is what keeps the node count bounded;
- * 8. **robust against a throwing hook** — the reconciliation finishes its bookkeeping in a `finally`
- *    and every item it ever built is visible or parked (never orphaned), and the per-frame hooks a
- *    scroll host needs — `onPark`, `onRestore`, `onDuplicateKey`, `onBeforeMove`/`onAfterMove` —
- *    are fired once per item per change.
+ * 7. **per-frame hooks** — `onPark`, `onRestore`, `onDuplicateKey`, `onBeforeMove`/`onAfterMove` fire
+ *    once per item per change, so an app can release or animate the rows a change adds and removes.
  *
- * Features 7 and 8 are the **alignment with `@jsx6/virtual-scroll`**: the two packages are designed
- * to be driven by one scroll host and to agree on the key extractor's call signature
- * (`getKey(item, index)` there, `keyBy(data, index)` here) and on the meaning of an index (absolute,
- * not window-relative). They still share **no code and no dependency** — either one works alone.
+ * The loop renders **all** the data it is given. It has no windowing and no virtual scrolling: a
+ * shorter `setValue` parks the surplus items — detached, never disposed — in the reuse pool, and a
+ * later `setValue` picks those instances up again (bindings and DOM nodes intact) instead of building
+ * new ones. `maxPooled` / `releasePool()` are the only thing that bounds that pool.
  *
  * Everything else is deliberately kept as-is, including the reuse-pool semantics, the DOM ordering
  * that performs no mutation when the order is already right, and the disposal contract of
@@ -156,10 +150,9 @@ const dataType = data => {
  * @property {any} [value] observable holding the array of items; observed on a timer, like `Loop`
  * @property {boolean} [primitive] true when loop values are primitive values
  * @property {(data: any, index: number) => any} [keyBy] explicit key extractor, called for every
- *   datum on every reconciliation. `index` is absolute (`startIndex + position`, see the option
- *   below). When it returns a non-nullish value that value is the key and the `$key`/`loopKey`
- *   heuristics are not consulted for that datum; returning `undefined`/`null` falls back to them.
- *   The signature is the one `@jsx6/virtual-scroll` calls `getKey` with — see {@link KeyOf}.
+ *   datum on every reconciliation with the datum and its index in the rendered data. When it returns
+ *   a non-nullish value that value is the key and the `$key`/`loopKey` heuristics are not consulted
+ *   for that datum; returning `undefined`/`null` falls back to them.
  * @property {(data: any, index: number) => any} [typeBy] type extractor, the second axis of a row's
  *   identity. Only rows of the **same type** share reuse slots: a row of type `'header'` never takes
  *   over the item a `'row'` left behind, and vice versa (the index fallback respects it too). A
@@ -177,29 +170,21 @@ const dataType = data => {
  *   that *owns another key*: only an item that owns no key may be recycled from the pool, otherwise a
  *   fresh instance is built. Default `false`, which is `Loop`'s behaviour (the item that was freed at
  *   that index is recycled, state included).
- * @property {number} [startIndex] the absolute index of the first datum the loop renders (default
- *   `0`). Every index the loop hands out — the `i` of `keyBy`, `onBuild`, `onDuplicateKey`, the
- *   item's `attr.i` and the node stamps — is `startIndex + <position in this array>`, which is what
- *   lets a scroll host render a window of a list without renumbering it. See
- *   {@link Loop2#setWindow}.
  * @property {(item: any, data: any, index: number) => void} [onBuild] called after an item has been
- *   built and inserted (the "rebuild count" metric of plan/improvement-plan.md). `index` is absolute.
+ *   built and inserted (the "rebuild count" metric of plan/improvement-plan.md).
  * @property {(key: any, data: any, index: number, first: number) => void} [onDuplicateKey] called when
- *   a key repeats in the rendered range. The first occurrence owns the item (with the datum of the
+ *   a key repeats in the rendered data. The first occurrence owns the item (with the datum of the
  *   *first* occurrence); the later entry still gets its own item — keyed data never renders one datum
  *   twice — but that item owns no key, so it is matched by index from then on. Once per key per
- *   reconciliation; defaults to a `console.warn`. The signature matches `@jsx6/virtual-scroll`'s
- *   option of the same name with `first` appended (the index whose item already owns the key).
+ *   reconciliation; defaults to a `console.warn`. `first` is the index whose item already owns the key.
  * @property {(item: any, data: any) => void} [onPark] called once for every item that leaves the
- *   visible range but is **kept for reuse** (a `setValue`/`setWindow` shrink, a `pop`). It is the
- *   `onItemPooled` of `@jsx6/virtual-scroll` in `Loop2`'s terms: the hook for releasing per-row
- *   resources (subscriptions, timers, media) without destroying the instance — the item keeps its
- *   nodes and its bindings and comes back through `onRestore`. A window scroll that recycles an item
- *   for an entering row reports neither, because that item never left the screen. `data` is the row
- *   the item showed *before* the pass, because the pass has already renamed it by the time a hook
- *   runs.
+ *   visible set but is **kept for reuse** (a `setValue` shrink, a `pop`). The hook for releasing
+ *   per-row resources (subscriptions, timers, media) without destroying the instance — the item keeps
+ *   its nodes and its bindings and comes back through `onRestore`. An item a pass merely *renames in
+ *   place* is reported as neither, because it never left the visible set. `data` is the row the item
+ *   showed *before* the pass, because the pass has already renamed it by the time a hook runs.
  * @property {(item: any, data: any) => void} [onRestore] called once for every item that re-enters
- *   the visible range, whether it was parked or is being built for the first time (`onBuild` runs
+ *   the visible set, whether it was parked or is being built for the first time (`onBuild` runs
  *   first). `data` is the row it shows now.
  * @property {(item: any) => void} [onBeforeMove] called once per item whose nodes the DOM ordering is
  *   about to move, just before the `insertBefore` calls. This is the FLIP-animation hook: the item is
@@ -211,12 +196,8 @@ const dataType = data => {
  */
 
 /**
- * A key extractor: the **same function shape** `@jsx6/virtual-scroll` accepts as `getKey`, so a host
- * can pass one function to both halves of a windowed list instead of keeping two key stories (and two
- * chances to disagree) in sync. `index` is the absolute index in the host's list in both packages.
- *
- * The two packages are independent: this type is a contract they both honour, not an import from one
- * into the other. Nothing here is exported — see `plan/loop2-plan.md` §5 P5.
+ * A key or type extractor: `(data, index) => key`, the shape `keyBy` and `typeBy` share. `index` is
+ * the datum's position in the rendered data.
  *
  * @typedef {(data: any, index: number) => any} KeyOf
  */
@@ -235,8 +216,8 @@ const dataType = data => {
  * The loop renders through an anchor text node (`el`), so it can be used as a child in a jsx6 or
  * `@jsx6/w` template (`h(Loop2, { item, p: 'loop' })`) and be inserted anywhere a node can.
  *
- * For a list too large to render, drive it with `setWindow(visibleSlice, startIndex)` and a finite
- * `maxPooled` — see the windowing section of the package README and `plan/loop2-plan.md` §5 P5.
+ * The loop renders the whole array it is given; the items a shorter array no longer shows stay in the
+ * reuse pool (detached, never disposed) and come back on a later `setValue`.
  */
 export class Loop2 {
   /** visible items, `allItems.slice(0, count)` */
@@ -277,8 +258,8 @@ export class Loop2 {
   _dupes = new Map()
   /** reconciliation counter, so a duplicate key is reported once per reconciliation */
   _frame = 0
-  /** how many nodes `_orderDom()` has moved since construction — the DOM-mutation metric the
-   *  windowing tests assert on (`@jsx6/virtual-scroll` has no equivalent: it writes a transform) */
+  /** how many nodes `_orderDom()` has moved since construction — the DOM-mutation metric the tests
+   *  assert on */
   domMoves = 0
   /** unsubscribe function of the watched `value` signal, kept so `dispose()` can release it
    *  @type {Function|undefined} */
@@ -297,7 +278,6 @@ export class Loop2 {
     typeBy,
     maxPooled = Infinity,
     strictKeys = false,
-    startIndex = 0,
     onBuild,
     onDuplicateKey,
     onPark,
@@ -317,7 +297,6 @@ export class Loop2 {
     this.typeBy = typeBy
     this.maxPooled = maxPooled
     this.strictKeys = !!strictKeys
-    this.startIndex = startIndex || 0
     this.onBuild = onBuild
     this.onDuplicateKey = onDuplicateKey
     this.onPark = onPark
@@ -350,87 +329,8 @@ export class Loop2 {
    *  @param {any[]} v
    */
   setValue(v) {
-    // a full replacement is also a return to a full list: the index origin goes back to 0, so the
-    // entry points cannot leave the loop reporting positions from an older `setWindow`
-    this.startIndex = 0
     this.data = (v || []).slice()
     this._reconcile()
-  }
-
-  /** Render the visible **window** of a list the loop does not hold in full — the entry point a
-   *  scroll host (`@jsx6/virtual-scroll`, or any other) drives instead of `setValue`.
-   *
-   *  The contract is the same as `setValue` — keyed matching, the pool, the disposal contract — with
-   *  two differences that make windowing correct:
-   *
-   *  1. `startIndex` is the **absolute** index of `v[0]` in the host's list, and it becomes the loop's
-   *     index origin: `keyBy(data, i)`, `onBuild(item, data, i)`, the item's `attr.i`, the node
-   *     stamps and `onDuplicateKey` all report `startIndex + <position in v>` — the same index the
-   *     host uses for row `i`'s position. `loopIndex` stays the *relative* index, because that is the
-   *     `getItemIndex`/`removeItem` addressing the rest of the API uses.
-   *  2. `v` is treated as the whole visible set, so the loop renders exactly the slice it is given.
-   *     With `maxPooled` at the window size (plus its overscan) the loop's node count stays bounded
-   *     no matter how large the host's list is.
-   *
-   *  Windowing needs **keys** (`keyBy`, or `$key`/`loopKey` on the data): with data that has no key
-   *  the loop falls back to index-based reuse, and a slice of a slice renumbers those rows. The
-   *  mutation API (`push`/`pop`/`splice`/`setItem`/`moveItem`) refuses a windowed loop for the same
-   *  reason: the host owns the data.
-   *
-   *  Typical host loop — one line, no per-row state invented by the host:
-   *
-   *  ```js
-   *  const onScroll = () => {
-   *    const [start, end] = windowOf(scrollTop) // the host's own range math
-   *    loop.setWindow(rows.slice(start, end), start)
-   *  }
-   *  ```
-   *
-   *  @param {any[]} v the visible slice, in list order
-   *  @param {number} [startIndex] the absolute index of `v[0]`; must be a non-negative integer
-   *  @returns {this}
-   */
-  setWindow(v, startIndex = 0) {
-    if (!Array.isArray(v)) throw new TypeError('Loop2.setWindow: expected an array of data')
-    if (!Number.isInteger(startIndex) || startIndex < 0) {
-      throw new RangeError(`Loop2.setWindow: startIndex must be a non-negative integer, got ${startIndex}`)
-    }
-    // snapshot before the swap, so a pass that throws can put the loop back where it was
-    const previousData = this.data
-    const previousStart = this.startIndex
-    this.startIndex = startIndex
-    this.data = v.slice()
-    try {
-      this._reconcile(previousData, previousStart)
-    } catch (err) {
-      this.data = previousData
-      this.startIndex = previousStart
-      throw err
-    }
-    return this
-  }
-
-  /** The window the loop currently renders: `[startIndex, startIndex + count)` in the host's
-   *  absolute indexing. An empty loop reports an empty range at the current origin.
-   *
-   *  @returns {[number, number]}
-   */
-  getWindow() {
-    return [this.startIndex, this.startIndex + this.count]
-  }
-
-  /** Guard the mutation API against a windowed loop: `push`/`pop`/`splice`/`setItem`/`moveItem`
-   *  would edit the window's slice while the host owns the real list, and report absolute positions
-   *  that mean nothing outside it. Failing loudly beats a silently wrong index.
-   *
-   *  @param {string} method
-   */
-  _refuseWindowed(method) {
-    if (this.startIndex === 0) return
-    throw new Error(
-      `Loop2.${method}() cannot be used while the loop renders a window (origin ${this.startIndex}); ` +
-        `the host owns the data — edit your list and call setWindow(slice, startIndex) again`,
-    )
   }
 
   /** The reconciliation algorithm, shared by every mutation.
@@ -440,25 +340,13 @@ export class Loop2 {
    *  left. Then values are written once per item, keys are re-bound first-occurrence-wins, the DOM is
    *  attached/ordered and the pool is trimmed.
    *
-   *  The body runs inside a `try/finally`: whatever a user callback throws (a builder, a setter, a
-   *  hook), the loop still ends up with every item it built accounted for — visible or parked, nodes
-   *  attached or detached — instead of leaving orphaned nodes in the DOM (the invariant
-   *  `@jsx6/virtual-scroll` enforces with the same technique). A throw also rolls the pass back as a
-   *  whole: the data and the index origin return to the state before it, exactly like the DOM.
-   *
-   *  @param {any[]} [previousData] the data to fall back to when the pass throws (`setWindow` hands
-   *    in what it replaced; the mutations that keep `data` in place need no argument)
-   *  @param {number} [previousStart] the index origin to fall back to
+   *  The pass is not transactional: a user callback that throws (a builder, a setter, a hook) stops it
+   *  where it stands. The loop renders correctly again on the next `setValue` — nothing is restored.
    */
-  _reconcile(previousData, previousStart = 0) {
+  _reconcile() {
     const v = this.data || []
     const n = v.length
     const all = this.allItems
-    /** the state a throw has to fall back to: the pass must not change what is rendered */
-    const previous = all.slice()
-    const previousVisible = new Set(this.items)
-    const previousKeys = new Map(this.keyMap)
-    const start = this.startIndex
     /** the visible items of the state this pass replaces — the pass renames the items it recycles,
      *  so the snapshot has to be the *array*, not a set read after the pass */
     const visibleBefore = this.items.slice()
@@ -474,15 +362,12 @@ export class Loop2 {
     /** which `wantedTypes[i]` entries have been resolved (an untyped row is resolved once, too) */
     const typesResolved = Array.from({ length: n }, () => false)
     const used = new Set()
-    /** items built by this pass, in build order — the loop owns them only once it has committed */
-    const created = []
+    /** the items this pass built — already bound by `makeItem`, so the commit loop must not re-bind */
     const createdSet = new Set()
-    /** did the pass reach the point where it took over `next`? (the `finally` cleans up when not) */
-    let reconciled = false
     this._dupes = new Map()
     this._frame++
 
-    for (let i = 0; i < n; i++) wanted[i] = this._keyOf(v[i], start + i)
+    for (let i = 0; i < n; i++) wanted[i] = this._keyOf(v[i], i)
 
     // the key is always resolved (matching needs it); the type only when the loop can *have* types:
     // without `typeBy` a datum that is not an object cannot declare one, so a single-type list pays one
@@ -491,7 +376,7 @@ export class Loop2 {
       let type = wantedTypes[i]
       if (type === undefined && !typesResolved[i]) {
         // the key here is the one this pass already resolved: `keyBy` is never asked twice per row
-        if (this.typeBy || isWeakKey(v[i])) type = this._typeOf(v[i], start + i, wanted[i])
+        if (this.typeBy || isWeakKey(v[i])) type = this._typeOf(v[i], i, wanted[i])
         wantedTypes[i] = type
         typesResolved[i] = true
       }
@@ -521,127 +406,97 @@ export class Loop2 {
       else pools.set(itemType, [item])
     }
 
-    try {
-      // pass 1 — keyed match: a datum that declares a key claims the item that owns that key
-      for (let i = 0; i < n; i++) {
-        const key = wanted[i]
-        if (key === undefined) continue
-        const item = this.keyMap.get(key)
-        if (item && !used.has(item)) {
-          next[i] = item
-          used.add(item)
-        }
-      }
-
-      // the keys that were owned before this pass: the commit loop below renames items, so the live
-      // key map can no longer tell which keys the items in the pool used to hold
-      for (const item of all) {
-        const key = this._slotKeys.get(item)
-        if (key !== undefined && !wanted.includes(key)) legacyKeys.add(key)
-      }
-
-      // pass 2 — index fallback: data at a position keeps the item that sits at that position
-      for (let i = 0; i < n; i++) {
-        if (next[i]) continue
-        // strictKeys: the item at this index belongs to another key, so a new key must not inherit it
-        if (this.strictKeys && wanted[i] !== undefined) continue
-        const item = all[i]
-        if (!item || used.has(item)) continue
-        // No key check is needed here, and none is made: pass 1 claims the item that owns each key the
-        // list still renders, so an item that owns a wanted key is already in `used` by now. Whatever
-        // is left at this index is a genuinely free slot — which is exactly the reuse `Loop` documents
-        // ("the freed slot is recycled, state included"), with `strictKeys` above as the opt-out.
-        // and it never crosses a type boundary: a typed row keeps asking for its own kind of item
-        const type = typeAt(i)
-        if (type !== undefined && this._itemTypes.get(item) !== type) continue
+    // pass 1 — keyed match: a datum that declares a key claims the item that owns that key
+    for (let i = 0; i < n; i++) {
+      const key = wanted[i]
+      if (key === undefined) continue
+      const item = this.keyMap.get(key)
+      if (item && !used.has(item)) {
         next[i] = item
         used.add(item)
       }
+    }
 
-      // pass 3 — reuse a parked item *of this row's type* (or build one), for the remaining positions
-      for (let i = 0; i < n; i++) {
-        if (next[i]) continue
-        // `strictKeys`: a datum whose key is new must not inherit the state of another key, so only an
-        // item whose old key is not one this pass still renders may be recycled
-        const freeOnly = this.strictKeys && wanted[i] !== undefined
-        const parked = this._takeFree(typeAt(i), used, legacyKeys, pools, freeOnly)
-        if (parked) {
-          next[i] = parked
-          continue
-        }
-        // the type is resolved first, so it is handed to the builder instead of `makeItem` asking for
-        // the key again (`keyBy` is called once per row per pass)
-        const type = typeAt(i)
-        const built = this.makeItem(v[i], start + i, type)
-        next[i] = built
-        created.push(built)
-        createdSet.add(built)
-        this._owned.add(built)
-        // `makeItem()` recorded the key the item's own template declared for this datum
-        if (wanted[i] === undefined) wanted[i] = this._itemKeys.get(built)
-        if (type === undefined) {
-          // the key may carry the type even when the datum does not
-          const resolved = keyValue(this._itemKeys.get(built))
-          if (isWeakKey(resolved) && hasType(resolved.type)) wantedTypes[i] = resolved.type
-          typesResolved[i] = true
-        }
+    // the keys that were owned before this pass: the commit loop below renames items, so the live
+    // key map can no longer tell which keys the items in the pool used to hold
+    for (const item of all) {
+      const key = this._slotKeys.get(item)
+      if (key !== undefined && !wanted.includes(key)) legacyKeys.add(key)
+    }
+
+    // pass 2 — index fallback: data at a position keeps the item that sits at that position
+    for (let i = 0; i < n; i++) {
+      if (next[i]) continue
+      // strictKeys: the item at this index belongs to another key, so a new key must not inherit it
+      if (this.strictKeys && wanted[i] !== undefined) continue
+      const item = all[i]
+      if (!item || used.has(item)) continue
+      // No key check is needed here, and none is made: pass 1 claims the item that owns each key the
+      // list still renders, so an item that owns a wanted key is already in `used` by now. Whatever
+      // is left at this index is a genuinely free slot — which is exactly the reuse `Loop` documents
+      // ("the freed slot is recycled, state included"), with `strictKeys` above as the opt-out.
+      // and it never crosses a type boundary: a typed row keeps asking for its own kind of item
+      const type = typeAt(i)
+      if (type !== undefined && this._itemTypes.get(item) !== type) continue
+      next[i] = item
+      used.add(item)
+    }
+
+    // pass 3 — reuse a parked item *of this row's type* (or build one), for the remaining positions
+    for (let i = 0; i < n; i++) {
+      if (next[i]) continue
+      // `strictKeys`: a datum whose key is new must not inherit the state of another key, so only an
+      // item whose old key is not one this pass still renders may be recycled
+      const freeOnly = this.strictKeys && wanted[i] !== undefined
+      const parked = this._takeFree(typeAt(i), used, legacyKeys, pools, freeOnly)
+      if (parked) {
+        next[i] = parked
+        continue
       }
-
-      // `next` is the new visible order; where the leftovers live is the pools' business (see
-      // `_finishPass`), so the commit only has to record the visible half of the state
-      this.count = n
-      reconciled = true
-
-      const claimedKeys = new Map()
-      for (let i = 0; i < n; i++) {
-        const item = next[i]
-        // an item reused by index keeps the key it was built/claimed with (its element key is frozen
-        // anyway); a datum with a key always wins
-        const wantedKey = wanted[i]
-        let key = wantedKey === undefined ? this._itemKeys.get(item) : wantedKey
-        if (key !== undefined) {
-          const first = claimedKeys.get(key)
-          if (first !== undefined) {
-            // duplicate key: the first occurrence owns it, this item is matched by index from now on
-            this._duplicate(key, v[i], start + i, first)
-            key = undefined
-          } else {
-            claimedKeys.set(key, start + i)
-          }
-        }
-        if (!createdSet.has(item)) this._bindItem(item, v[i], start + i)
-        if (key !== undefined) this._setItemKey(item, key)
-        // the type decides which pool this item may be reused from later; a built item already has it
-        this._setItemType(item, typeAt(i))
-      }
-    } finally {
-      // a builder, setter or hook that threw must not leave a half-built item in the DOM: an aborted
-      // pass never took over the items it built, so those are released here and the previous visible
-      // set is restored. (After a completed pass they are the visible items — releasing them would
-      // empty the list.)
-      if (!reconciled) {
-        for (const item of created) this._releaseItem(item)
-        created.length = 0
-        this.allItems = previous
-        this.count = previousVisible.size
-        // the pass never took over the data it was asked to render either, so `getWindow()`,
-        // `getData()` and the next report all describe what the loop still shows
-        if (previousData) {
-          this.data = previousData
-          this.startIndex = previousStart
-        }
-        // `makeItem()` registered the key a built item declared; the pass never took it over, so the
-        // previous owners get their keys back (releasing the built items dropped theirs)
-        this.keyMap = previousKeys
-        // and `next` is not an order to commit — put the previous visible items back instead
-        this.items = previous.slice(0, this.count)
-        this.allItems = previous
-        this._fixItemList(true)
-        this._enforcePoolLimit()
+      // the type is resolved first, so it is handed to the builder instead of `makeItem` asking for
+      // the key again (`keyBy` is called once per row per pass)
+      const type = typeAt(i)
+      const built = this.makeItem(v[i], i, type)
+      next[i] = built
+      createdSet.add(built)
+      this._owned.add(built)
+      // `makeItem()` recorded the key the item's own template declared for this datum
+      if (wanted[i] === undefined) wanted[i] = this._itemKeys.get(built)
+      if (type === undefined) {
+        // the key may carry the type even when the datum does not
+        const resolved = keyValue(this._itemKeys.get(built))
+        if (isWeakKey(resolved) && hasType(resolved.type)) wantedTypes[i] = resolved.type
+        typesResolved[i] = true
       }
     }
-    // only a completed pass has an order worth committing; the aborted one has just restored state
-    if (reconciled) this._finishPass(next)
+
+    // `next` is the new visible order; where the leftovers live is the pools' business (see
+    // `_finishPass`), so the commit only has to record the visible half of the state
+    this.count = n
+
+    const claimedKeys = new Map()
+    for (let i = 0; i < n; i++) {
+      const item = next[i]
+      // an item reused by index keeps the key it was built/claimed with (its element key is frozen
+      // anyway); a datum with a key always wins
+      const wantedKey = wanted[i]
+      let key = wantedKey === undefined ? this._itemKeys.get(item) : wantedKey
+      if (key !== undefined) {
+        const first = claimedKeys.get(key)
+        if (first !== undefined) {
+          // duplicate key: the first occurrence owns it, this item is matched by index from now on
+          this._duplicate(key, v[i], i, first)
+          key = undefined
+        } else {
+          claimedKeys.set(key, i)
+        }
+      }
+      if (!createdSet.has(item)) this._bindItem(item, v[i], i)
+      if (key !== undefined) this._setItemKey(item, key)
+      // the type decides which pool this item may be reused from later; a built item already has it
+      this._setItemType(item, typeAt(i))
+    }
+    this._finishPass(next)
     this._reportVisibility(visibleBefore, rowIdsBefore)
   }
 
@@ -661,28 +516,23 @@ export class Loop2 {
    *  @returns {any} the item now at position `i`
    */
   setItem(newData, i) {
-    this._refuseWindowed('setItem')
     if (typeof i !== 'number' || i < 0 || i > this.count) {
       throw new RangeError(`Loop2.setItem: index ${i} is outside 0..${this.count}`)
     }
     const visibleBefore = this.items.slice()
     const rowIdsBefore = new WeakMap()
     for (const item of visibleBefore) rowIdsBefore.set(item, this._rowId(item))
-    const abs = this.startIndex + i
     let item = this.allItems[i]
-    try {
-      if (!item) item = this.allItems[i] = this.items[i] = this.makeItem(newData, abs)
-      else this._bindItem(item, newData, abs)
-      if (i === this.count) this.data.push(newData)
-      else this.data[i] = newData
-      this.count = Math.max(this.count, i + 1)
-      // bind the datum's key even for a freshly built item: `_learnKey` only knows the key sources
-      // the item template and the datum carry, not `keyBy`
-      this._claimKey(item, this._keyOf(newData, abs))
-      this._setItemType(item, this._typeOf(newData, abs))
-    } finally {
-      this._commit()
-    }
+    if (!item) item = this.allItems[i] = this.items[i] = this.makeItem(newData, i)
+    else this._bindItem(item, newData, i)
+    if (i === this.count) this.data.push(newData)
+    else this.data[i] = newData
+    this.count = Math.max(this.count, i + 1)
+    // bind the datum's key even for a freshly built item: `_learnKey` only knows the key sources
+    // the item template and the datum carry, not `keyBy`
+    this._claimKey(item, this._keyOf(newData, i))
+    this._setItemType(item, this._typeOf(newData, i))
+    this._commit()
     this._reportVisibility(visibleBefore, rowIdsBefore)
     return item
   }
@@ -694,10 +544,8 @@ export class Loop2 {
    *  @returns {any} the item at the new last position
    */
   push(data) {
-    this._refuseWindowed('push')
     const i = this.count
-    const abs = this.startIndex + i
-    const key = this._keyOf(data, abs)
+    const key = this._keyOf(data, i)
     const owner = key === undefined ? undefined : this.keyMap.get(key)
     // fast path: the append slot already holds the item this datum would be matched with
     if (key !== undefined && owner !== this.allItems[i]) {
@@ -709,17 +557,13 @@ export class Loop2 {
     const rowIdsBefore = new WeakMap()
     for (const item of visibleBefore) rowIdsBefore.set(item, this._rowId(item))
     let item = this.allItems[i]
-    const created = !item
-    try {
-      if (created) item = this.allItems[i] = this.items[i] = this.makeItem(data, abs)
-      else this._bindItem(item, data, abs)
-      this.data.push(data)
-      this.count = i + 1
-      if (key !== undefined) this._claimKey(item, key)
-      this._setItemType(item, this._typeOf(data, abs))
-    } finally {
-      this._commit()
-    }
+    if (!item) item = this.allItems[i] = this.items[i] = this.makeItem(data, i)
+    else this._bindItem(item, data, i)
+    this.data.push(data)
+    this.count = i + 1
+    if (key !== undefined) this._claimKey(item, key)
+    this._setItemType(item, this._typeOf(data, i))
+    this._commit()
     this._reportVisibility(visibleBefore, rowIdsBefore)
     return item
   }
@@ -731,7 +575,6 @@ export class Loop2 {
    *  @returns {any} the removed item, or undefined when the loop was empty
    */
   pop() {
-    this._refuseWindowed('pop')
     if (this.count === 0) return undefined
     const visibleBefore = this.items.slice()
     const rowIdsBefore = new WeakMap()
@@ -753,7 +596,6 @@ export class Loop2 {
    *    that showed them are parked for reuse, not returned; find them with `getItemByKey()`.
    */
   splice(index, deleteCount = 0, ...toAdd) {
-    this._refuseWindowed('splice')
     const removed = this.data.splice(index, deleteCount, ...toAdd)
     this._reconcile()
     return removed
@@ -768,7 +610,6 @@ export class Loop2 {
    *  @returns {any} the moved datum
    */
   moveItem(fromIndex, insertBefore) {
-    this._refuseWindowed('moveItem')
     const moved = this.data.splice(fromIndex, 1)[0]
     let to = fromIndex < insertBefore ? insertBefore - 1 : insertBefore
     if (!(to >= 0) || to > this.data.length) to = this.data.length
@@ -807,11 +648,10 @@ export class Loop2 {
   /** Ignore every parked item whose type is *not* in `types`, releasing them for good. `0` counts as
    *  untyped, exactly like everywhere else.
    *
-   *  This is the one call a windowed host needs for a list that mixes row types: a window renders the
-   *  types it contains, and everything the loop parked under a type the new window does not have
-   *  keeps `maxPooled` slots busy for nothing. Ungrouped loops skip all of it.
+   *  Ungrouped loops skip all of it; a typed loop uses it to drop the parked items of a kind it is not
+   *  going to render again, so they do not keep `maxPooled` slots busy for nothing.
    *
-   *  @param {Iterable<any>} types the types the host is about to render
+   *  @param {Iterable<any>} types the types to keep
    *  @returns {number} how many items were released
    */
   keepTypes(types) {
@@ -928,11 +768,11 @@ export class Loop2 {
   /** Key that drives matching for one datum, in priority order: `keyBy`, the datum's own
    *  `$key`/`loopKey`, the key its item declared when it was built. `undefined` = unkeyed.
    *
-   *  `i` is the **absolute** index (`startIndex + position`), the same index the item template and
-   *  `onBuild` see, so one `keyBy` can serve a normal loop and a windowed one unchanged.
+   *  `i` is the datum's index in the rendered data — the same index the item template and `onBuild`
+   *  see.
    *
    *  @param {any} data
-   *  @param {number} i absolute index
+   *  @param {number} i index in the rendered data
    *  @returns {any}
    */
   _keyOf(data, i) {
@@ -950,11 +790,11 @@ export class Loop2 {
    *  `loopType`/`$key.type`, the type of the key `keyBy` returned. `undefined` = untyped, which is
    *  also what every datum is without `typeBy`.
    *
-   *  Like the key, `i` is the absolute index. `key` is the already-resolved key of the same datum,
-   *  so this never asks the app's `keyBy` twice for one row.
+   *  Like the key, `i` is the datum's index in the rendered data. `key` is the already-resolved key of
+   *  the same datum, so this never asks the app's `keyBy` twice for one row.
    *
    *  @param {any} data
-   *  @param {number} i absolute index
+   *  @param {number} i index in the rendered data
    *  @param {any} [key] the datum's key; when it is not known, the key-derived type is skipped (an
    *    already-resolved key is never looked up a second time)
    *  @returns {any}
@@ -982,15 +822,15 @@ export class Loop2 {
     this._itemTypes.set(item, type)
   }
 
-  /** Report a key that repeats in the rendered range, once per key per reconciliation — a
-   *  scroll-driven window (or a `setValue` in a rAF) must not repeat the report every frame.
+  /** Report a key that repeats in the rendered data, once per key per reconciliation — a `setValue`
+   *  in a rAF loop must not repeat the report every frame.
    *  The stamp is written *before* the reporter runs, so a throwing reporter cannot turn into a
    *  per-frame log either; `_dupes` is reset at the start of every reconciliation.
    *
    *  @param {any} key
    *  @param {any} data the later datum
-   *  @param {number} index its absolute index
-   *  @param {number} first the absolute index whose item already owns the key
+   *  @param {number} index its index
+   *  @param {number} first the index whose item already owns the key
    */
   _duplicate(key, data, index, first) {
     if (this._dupes.has(key)) return
@@ -1069,12 +909,11 @@ export class Loop2 {
   // item lifecycle
   // -------------------------------------------------------------------------------------------
 
-  /** Write the absolute index onto every node an item renders — `$i`, the value
-   *  `@jsx6/virtual-scroll` keeps as `__vsIndex` for the same purpose. Kept current on every bind,
-   *  which the builder options' `i` (frozen at build time) cannot be.
+  /** Write the index onto every node an item renders — `$i`, kept current on every bind, which the
+   *  builder options' `i` (frozen at build time) cannot be.
    *
    *  @param {any} item
-   *  @param {number} i absolute index
+   *  @param {number} i index in the rendered data
    */
   _stampIndex(item, i) {
     const el = toDomNode(item)
@@ -1088,7 +927,7 @@ export class Loop2 {
    *
    *  @param {any} item
    *  @param {any} data
-   *  @param {number} i absolute index
+   *  @param {number} i index in the rendered data
    */
   _bindItem(item, data, i) {
     this._stampIndex(item, i)
@@ -1099,17 +938,14 @@ export class Loop2 {
    * Build, set up and insert one item. The item's own template may declare its key
    * (`key={value.id}`), which is read here — the only moment it is still meaningful.
    *
-   * `i` is the **absolute** index. It reaches the item as the builder options' `i` (and `attr.i`,
-   * written before the builder runs), it is written onto the item's nodes by `_bindItem()` as `$i`
-   * on every later bind, and `_fixItemList()` stamps `loopIndex` (relative) and `__loop2Index`
-   * (absolute) on them. `type` is the type the item is built for, and it is what keeps the item in
-   * its own reuse pool from then on.
-   *
-   * A builder that returns nothing (and a setter that then throws) cannot leave a stray node behind:
-   * whatever was inserted is removed and the item is released before the error propagates.
+   * `i` is the item's index in the rendered data. It reaches the item as the builder options' `i`
+   * (and `attr.i`, written before the builder runs), it is written onto the item's nodes by
+   * `_bindItem()` as `$i` on every later bind, and `_fixItemList()` stamps `loopIndex` on them.
+   * `type` is the type the item is built for, and it is what keeps the item in its own reuse pool
+   * from then on.
    *
    * @param {any} data
-   * @param {number} i absolute index
+   * @param {number} i index in the rendered data
    * @param {any} [type] the type this item is built for (`undefined` = untyped)
    * @returns {any} the built item
    */
@@ -1138,16 +974,10 @@ export class Loop2 {
           '(the default builder is Loop2Item; a custom one has to return what it was handed or build its own)',
       )
     }
-    try {
-      setter(comp, data, i)
-      // the *resolved* nodes, not the component: an item template may render a fragment (an array of
-      // nodes), and `insert()`/`forInsert()` unwraps `.el` only when that is a single node
-      this.insert(toDomNode(comp))
-    } catch (err) {
-      for (const node of nodesOf(comp)) if (node.parentNode) node.parentNode.removeChild(node)
-      this._releaseItem(comp)
-      throw err
-    }
+    setter(comp, data, i)
+    // the *resolved* nodes, not the component: an item template may render a fragment (an array of
+    // nodes), and `insert()`/`forInsert()` unwraps `.el` only when that is a single node
+    this.insert(toDomNode(comp))
     this._learnKey(comp, data)
     this._setItemType(comp, type)
     this._stampIndex(comp, i)
@@ -1156,16 +986,16 @@ export class Loop2 {
   }
 
   /**
-   * Report which items entered and left the visible range, through `onRestore` and `onPark`.
+   * Report which items entered and left the visible set, through `onRestore` and `onPark`.
    *
-   * `onRestore` runs before `onPark`. An item a pass merely *renamed* — a recycled window row — is in
-   * both sets and is reported as neither: it never left the screen. Each hook receives the item and
-   * the datum **value** it shows; for `onPark` that is the row the item displayed *before* the pass,
-   * because the pass has already renamed it by the time the hook runs.
+   * `onRestore` runs before `onPark`. An item a pass merely *renamed* — an item that stays visible
+   * while showing another datum — is in both sets and is reported as neither: it never left the
+   * screen. Each hook receives the item and the datum **value** it shows; for `onPark` that is the row
+   * the item displayed *before* the pass, because the pass has already renamed it by the time the hook
+   * runs.
    *
    * Every hook error is collected so the reporting finishes (a throwing app hook cannot make the
-   * other transitions invisible), and the first one is rethrown afterwards, exactly like
-   * `@jsx6/virtual-scroll`'s `recycleElements()`.
+   * other transitions invisible), and the first one is rethrown afterwards.
    *
    * @param {any[]} before the visible items of the previous state
    * @param {WeakMap<any, any>} rowIds for each of those items, the row it showed before the pass
@@ -1265,8 +1095,7 @@ export class Loop2 {
    *
    *  `keep` is the **total** across the type pools: the least recently parked items go first, so no
    *  one type can hold the whole budget while another starves. A `keep` of `0` is the "reclaim now"
-   *  call — with `typeBy` it is what a windowed host uses to drop the items of the types its window
-   *  no longer renders (see `keepTypes`, which is the same idea expressed by type).
+   *  call; `keepTypes()` is the same idea expressed by type.
    *
    *  @param {number} [keep] parked items to keep, defaults to `maxPooled`
    *  @returns {number}
@@ -1363,13 +1192,11 @@ export class Loop2 {
    *  structural change.
    *
    *  Items at `i >= count` are only detached — never disposed — because they stay in `allItems` for
-   *  reuse (see the "Loop reuse caveat" in plan/disposal-design.md). That invariant (every item is
-   *  visible or parked) is what makes windowing safe: a scroll can park and restore without ever
-   *  losing track of a node.
+   *  reuse (see the "Loop reuse caveat" in plan/disposal-design.md): that is what lets a shorter
+   *  `setValue` hide the surplus rows and a later `setValue` bring the same instances back.
    *
-   *  Every node gets two stamps: `loopIndex`, the **relative** index in `allItems` — the addressing
-   *  `getItemIndex()`/`removeItem()`/`setItem()` use — and `__loop2Index`, the **absolute** index
-   *  (`startIndex + i`), the one that identifies the row in the host's list. */
+   *  Every node gets `loopIndex`, its index in `allItems` — the addressing
+   *  `getItemIndex()`/`removeItem()`/`setItem()` use. */
   _fixItemList(reindex) {
     const count = this.count
     this.items = this.allItems.slice(0, count)
@@ -1394,24 +1221,20 @@ export class Loop2 {
     if (!reindex) return
     const all = this.allItems
     const parent = this.el.parentNode
-    const start = this.startIndex
     this._idx = new Map()
     for (let i = 0; i < all.length; i++) {
       const item = all[i]
       if (!item) continue
       const el = toDomNode(item)
       const nodes = nodesOf(item)
-      const abs = start + i
       this._idx.set(item, i)
       if (el && el !== item) this._idx.set(el, i)
       if (el) el.loopIndex = i
       else item.loopIndex = i
-      item.__loop2Index = abs
       // stamping every node (not just the first) is what makes `getItemIndex(node)` work for an
       // item template that rendered a fragment
       for (const node of nodes) {
         node.loopIndex = i
-        node.__loop2Index = abs
         this._idx.set(node, i)
       }
       if (i < count) {
@@ -1474,39 +1297,6 @@ export class Loop2 {
   /** A copy of the data currently rendered. */
   getData() {
     return this.data.slice()
-  }
-
-  /** The absolute index of the visible position `i` (`startIndex + i`) — the index the host's list
-   *  uses for the row the loop renders there, and the one `keyBy`/`onBuild`/`attr.i` report.
-   *
-   *  @param {number} i visible position
-   *  @returns {number}
-   */
-  absIndex(i) {
-    return this.startIndex + i
-  }
-
-  /** The **absolute** index of any item the loop knows — visible or parked — or `-1`.
-   *
-   *  `getItemIndex()` answers the relative question the mutation API asks ("which position in
-   *  `allItems` is this?"), which is what `removeItem`/`setItem` need; this answers the host's
-   *  question ("which row of my list is this node showing?"). For the visible items they differ by
-   *  `startIndex`, a difference windowing makes load-bearing.
-   *
-   *  @param {any} item item instance, its node, or a function resolving to one of those
-   *  @returns {number}
-   */
-  getAbsoluteIndex(item) {
-    if (!item) return -1
-    if (typeof item === 'function') item = item()
-    const index = this.getItemIndex(item)
-    if (index < 0 || index >= this.count) return -1
-    const el = toDomNode(item)
-    const node = el instanceof Array ? el[0] : el
-    // `__loop2Index` is stamped on every node, so a fragment resolves through its first node too
-    if (node && typeof node.__loop2Index === 'number') return node.__loop2Index
-    if (typeof item.__loop2Index === 'number') return item.__loop2Index
-    return this.startIndex + index
   }
 
   get length() {

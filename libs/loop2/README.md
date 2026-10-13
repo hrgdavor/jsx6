@@ -77,7 +77,6 @@ div = (
 | `primitive`      | boolean                         | `false`        | the values are primitives, not objects                                             |
 | `maxPooled`      | number                          | `Infinity`     | how many evicted items stay in the reuse pool; `0` disposes them immediately       |
 | `strictKeys`     | boolean                         | `false`        | a datum with a *new* key never inherits an item that owns a different key          |
-| `startIndex`     | number                          | `0`            | absolute index of the first datum rendered — see [Windowing](#windowing)           |
 | `builder`        | function                        | `Loop2Item`    | how one item is constructed (advanced)                                             |
 | `setter`         | function                        | `setValue`     | how one item's value is written (advanced)                                         |
 | `tpl`            | any                             | —              | template passed through to the item builder                                        |
@@ -150,21 +149,15 @@ const loop = new Loop2({ item: Row, keyBy: r => r.id, typeBy: r => r.kind })
   custom `builder` as `opts.type`.
 - **Keys stay global across types.** `typeBy` decides which items may be reused, not what identity is
   — if you want per-type keys, make the key say so (`keyBy: (r, i) => \`${r.kind}:${r.id}\``).
-- **`keepTypes(types)`** releases the parked items of types you are not about to render. That is the
-  one call a windowed host needs when its rows are of mixed kinds: a window that no longer contains a
-  type should not keep its items occupying `maxPooled` slots. `maxPooled` itself is the total across
-  the type pools, and the least recently parked items are released first.
+- **`keepTypes(types)`** releases the parked items of types you are not going to render again, so they
+  do not keep `maxPooled` slots busy for nothing. `maxPooled` itself is the total across the type
+  pools, and the least recently parked items are released first.
 
 ```js
-// a windowed host that knows its window's kinds
-const window = rows.slice(start, end)
-loop.keepTypes(new Set(window.map(r => r.kind)))
-loop.setWindow(window, start)
+// a typed loop that knows the kinds its next data will have
+loop.keepTypes(new Set(rows.map(r => r.kind)))
+loop.setValue(rows)
 ```
-
-`@jsx6/virtual-scroll` does not support types **by itself**: its fixed `itemHeight` and single row
-factory assume one row shape. If your rows differ, keep the type grouping here (the loop will not cross
-it) and let the scroller place them; per-type heights are outside the scroller's contract.
 
 ---
 
@@ -173,10 +166,6 @@ it) and let the scroller place them; per-type heights are outside the scroller's
 | member                                     | meaning                                                                                      |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | `setValue(array)`                          | replace the rendered data; matches by key, then by index                                     |
-| `setWindow(array, startIndex)`             | render a visible window of a larger list — see [Windowing](#windowing)                       |
-| `getWindow()`                              | `[startIndex, startIndex + count)` — the absolute range currently rendered                   |
-| `absIndex(i)`                              | the absolute index of visible position `i` (`startIndex + i`)                                |
-| `getAbsoluteIndex(item)`                   | the absolute index of a visible item or node, or `-1`                                        |
 | `getValue()`                               | the values the items report (`item.getValue()`), visible order                               |
 | `getData()`                                | a copy of the data array currently rendered                                                  |
 | `setItem(data, i)`                         | update/create one position (`i === count` grows the list; anything else outside `0..count` throws `RangeError`) |
@@ -200,60 +189,12 @@ it) and let the scroller place them; per-type heights are outside the scroller's
 Every mutation runs the same reconciliation: keyed matching first, index fallback second, pool reuse
 or a build third, then DOM attach/order and pool trimming. That is why `push`, `splice` and `setValue`
 cannot disagree about which instance an entry gets. A throwing callback (a builder, a setter, a hook)
-cannot leave a half-rendered list behind either: the pass restores the previous items, data, keys and
-index origin before the error propagates.
+stops the pass where it stands; the next `setValue` renders the list correctly again.
 
----
-
-## Windowing
-
-A list with 100 000 rows must not build 100 000 items. `setWindow` renders the **visible slice** of a
-list the loop does not hold in full, and every index it reports stays absolute, so a scroll host can
-hand it a window without renumbering anything:
-
-```js
-const loop = new Loop2({ item: Row, keyBy: r => r.id, maxPooled: 12 })
-rowsEl.appendChild(loop.el)
-
-const onScroll = () => {
-  const first = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 1)
-  const last = first + Math.ceil(viewportHeight / ROW_HEIGHT) + 2
-  loop.setWindow(rows.slice(first, last), first) // `first` is absolute; the loop keeps it
-}
-```
-
-- `startIndex` (the second argument, or the constructor option) is the absolute index of `v[0]`.
-  `keyBy(data, i)`, `onBuild(item, data, i)`, the item template's `attr.i`, the node stamps and
-  `onDuplicateKey` all report `startIndex + <position in v>`.
-- `getWindow()`, `absIndex(i)` and `getAbsoluteIndex(item)` answer the host's questions;
-  `getItemIndex(item)` keeps answering the relative one the mutation API asks.
-- **Set `maxPooled` to the window size plus its overscan.** The pool is what makes a scroll reuse the
-  rows that left the window instead of building new ones; with it the loop never holds more than
-  `count + maxPooled` items, however far the list scrolls. Measure it with `onBuild` (items built)
-  and `allItems.length` (items alive).
-- **Windowing needs keys** — `keyBy`, or `$key`/`loopKey` on the data. Without a key the loop falls
-  back to index-based reuse, which renumbers a slice of a slice.
-- The mutation API (`push`/`pop`/`splice`/`setItem`/`moveItem`) **throws** while the loop renders a
-  window: the host owns the list, so a window change is another `setWindow` call, and `setValue`
-  resets the origin to `0` for the full-list case.
-
-### Pairing with `@jsx6/virtual-scroll`
-
-`@jsx6/virtual-scroll` computes the window and positions it; `Loop2` renders it. They are independent
-packages — neither imports the other — and agree only on the key extractor's call shape and on the
-meaning of an index:
-
-|                     | `@jsx6/virtual-scroll`                | `@jsx6/loop2`                         |
-| ------------------- | ------------------------------------- | ------------------------------------- |
-| key extractor       | `getKey(item, index)`                 | `keyBy(data, index)`                  |
-| index               | absolute position in `items`          | absolute (`startIndex + position`)    |
-| row position        | writes `transform: translate3d(…)`    | DOM order (`insertBefore`)            |
-| recycling hook      | `onItemPooled(el)`                    | `onPark(item, data)` / `onRestore(…)` |
-
-One function can therefore be handed to both (`getKey: keyOf, keyBy: keyOf`); the pairing is pinned by
-`test/virtual-scroll.integration.test.js`, which drives a 100 000-row list through both libraries and
-asserts that the node count stays at the window plus its pool. See
-[plan/loop2-plan.md](../../plan/loop2-plan.md) §5 P5 for the design and the measurements.
+`Loop2` renders **all** the data it is given. It has no windowing and no virtual scrolling: a shorter
+`setValue` parks the surplus items in the reuse pool — detached, never disposed — and a later `setValue`
+brings those instances back (bindings and DOM nodes intact). `maxPooled` / `releasePool()` are the only
+thing that bounds that pool.
 
 ---
 
@@ -264,7 +205,8 @@ an entry reuses the same instance — with its state — instead of building a n
 contract of [plan/disposal-design.md](../../plan/disposal-design.md) §4, unchanged.
 
 - **Hiding never disposes.** `setValue`, `pop`, `splice` and a shrink only detach; bindings stay alive
-  so a re-inserted item renders correct content.
+  so a re-inserted item renders correct content. Items past the end of a shorter array are hidden that
+  way — detached from the DOM, still held in the pool — and are reused by the same key later.
 - **`disposeItem(item)`** and **`dispose()`** are the permanent paths; `ondestroy()` of a `Jsx6` item
   component runs when its node is disposed.
 - **`remove(el)` / `replace(...)`** of any ancestor of the loop disposes it automatically through the
@@ -333,9 +275,7 @@ The short version:
 - fix the fragment-attach bug in `@jsx6/jsx6`'s `Loop` (one-line change plus a test — the probe is in
   the plan);
 - export `errorCodes.js` from `@jsx6/jsx6` so sibling packages stop duplicating codes;
-- decide on the deprecation path for the two existing Loops rather than shipping a third copy forever;
-- pair `Loop2` with `@jsx6/virtual-scroll` for windowed lists, where keyed identity and a bounded pool
-  are what make recycling correct.
+- decide on the deprecation path for the two existing Loops rather than shipping a third copy forever.
 
 ## License
 
