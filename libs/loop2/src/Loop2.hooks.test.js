@@ -1,6 +1,6 @@
 /**
  * Tests for the **lifecycle hooks** of `Loop2`: `onPark`/`onRestore` (the reuse pool), `onDuplicateKey`
- * (once per key per reconciliation) and `onBeforeMove`/`onAfterMove` (the DOM ordering, i.e. the FLIP
+ * (once per key per pass) and `onBeforeMove`/`onAfterMove` (the DOM ordering, i.e. the FLIP
  * hook), plus the builder validation.
  *
  * These are the behaviours an app uses to release per-row resources and to animate rows, and they are
@@ -157,7 +157,7 @@ test('a throwing onPark does not stop the other parks, and the first error surfa
 // onDuplicateKey, onBeforeMove / onAfterMove
 // ---------------------------------------------------------------------------------------------
 
-test('a duplicate key is reported once per reconciliation, first occurrence wins', () => {
+test('a duplicate key is reported once per pass, first occurrence wins', () => {
   const reports = []
   const { loop } = mount({
     keyBy: row => row.id,
@@ -177,7 +177,7 @@ test('a duplicate key is reported once per reconciliation, first occurrence wins
   expect(loop.getKey(loop.getItem(2))).toBeUndefined()
   expect(valueOf(loop.getItem(2)).x).toEqual(3)
 
-  // one report per reconciliation, never per row: a repeated list reports the key once more
+  // one report per pass, never per row: a repeated list reports the key once more
   loop.setValue(rows())
   expect(reports).toEqual([
     ['a', 3, 2, 0],

@@ -77,7 +77,7 @@ The eight limitations `plan/keyed-loop-design.md` §7 records, plus the structur
 | 6   | primitives can never be keyed (`§7.6`)                                              | **keyed primitive loops** via `keyBy`                                                       |
 | 7   | no `keyBy`/`getKey` extractor (`§7.7`, kept as an open question)                    | **implemented** here, opt-in, with the `$key`/`loopKey` path still the default              |
 | 8   | `setItem(data, i)` beyond the end creates holes, unchecked (`§7.8`)                 | `i === count` grows the list; anything else throws `RangeError`                             |
-| 9   | **four mutation paths** (`setValue`/`setItem`/`splice`/`push`,`pop`) with subtly different key handling — the source of P0-3/P0-4 and of "keyed data behaves differently in `push` than in `setValue`" | **one reconciliation** for every mutation; each mutation is an array edit followed by that reconciliation |
+| 9   | **four mutation paths** (`setValue`/`setItem`/`splice`/`push`,`pop`) with subtly different key handling — the source of P0-3/P0-4 and of "keyed data behaves differently in `push` than in `setValue`" | **one pass** for every mutation; each mutation is an array edit followed by that pass |
 | 10  | the reuse pool is unbounded — a list that once showed 10 000 rows keeps 10 000 detached items for the loop's lifetime (`disposal-design.md` §4) | **`maxPooled`** + `releasePool(keep)` |
 | 11  | `setValue` throws `JSX6E8` when the loop is not attached yet (measured, §6) — this is exactly why `@jsx6/w`'s Loop needs `connectedCallback` | detached-safe `insert` + `refresh()` |
 | 12  | a fragment item leaves a stray `[object Object]` text node on first attach (measured in `@jsx6/jsx6`, §6) | the resolved nodes are inserted; every node of a fragment is indexed  |
@@ -97,9 +97,9 @@ The eight limitations `plan/keyed-loop-design.md` §7 records, plus the structur
    in `@jsx6/w` templates (`h(Loop2, …)` is inserted through `forInsert`, which unwraps `.el`), it
    needs no `define()`/`connectedCallback` dance, and the w-specific lifecycle is what §5 P2 adds as a
    thin custom-element wrapper for the `outside` use case.
-3. **One reconciliation.** `setValue` stores a copy of the data in `this.data`; `push`, `pop`, `splice`
-   and `moveItem` edit that copy and call the same `_reconcile()`. `push` keeps a fast path for the
-   common append (O(1)-ish) and falls back to the reconciliation when a keyed item has to be moved.
+3. **One pass.** `setValue` stores a copy of the data in `this.data`; `push`, `pop`, `splice`
+   and `moveItem` edit that copy and call the same `_render()`. `push` keeps a fast path for the
+   common append (O(1)-ish) and falls back to the full pass when a keyed item has to be moved.
 4. **`keyBy` is opt-in and additive.** The `$key`/`loopKey`/template-key sources stay, in the order
    `keyBy` → datum → learned template key. `undefined`/`null` from `keyBy` falls through, so a partial
    extractor is possible (`keyBy: (row, i) => row.id ?? \`row-${i}\``).
@@ -228,7 +228,7 @@ what is kept. That is the reuse cache `Loop` already had, and it never needed an
 | removed                                         | disposition                                                                                    |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `setWindow`/`getWindow`, `startIndex`, `absIndex`, `getAbsoluteIndex`, `__loop2Index`, `_refuseWindowed` | gone; every index `Loop2` reports is the datum's position in the data it was given |
-| `_reconcile`'s transactional rollback (previous items/keys/data/origin) and the per-item guard in `makeItem` | gone: the pass is not transactional and a throwing callback is left to the app |
+| `_render`'s transactional rollback (previous items/keys/data/origin) and the per-item guard in `makeItem` | gone: the pass is not transactional and a throwing callback is left to the app |
 | the windowed suite (`src/Loop2.window.test.js`) and the pairing test (`test/virtual-scroll.integration.test.js`) | deleted; their hooks and builder-validation cases were salvaged into `src/Loop2.hooks.test.js` |
 | `@jsx6/virtual-scroll` as a loop2 devDependency | dropped: the package has no reason to depend on a scroller                                     |
 
@@ -239,7 +239,7 @@ stays: it is harmless and a caller may want it).
 
 Findings that outlived the removal:
 
-1. **Recycling a slice needs no special reconciliation.** The measured P5 result — a one-row step over
+1. **Recycling a slice needs no special pass.** The measured P5 result — a one-row step over
    a 5-row slice costs 0 builds and 1 DOM move and holds `count + maxPooled` items — holds for plain
    `setValue(slice)`: it is keyed matching plus the pool, not windowing. Re-measured by the bench's
    `slice` case (§5 P7).
@@ -402,7 +402,7 @@ costs and what it would prove.
 4. **Decide the direction of `Loop` vs `Loop2` explicitly.** Two published Loops plus a third would be
    P3-2 all over again. Recommended sequence: `Loop2` → dogfood (P1) → `@deprecated` on both old Loops
    (P3) → delete them in the next major (P4). If the maintainer prefers to keep `@jsx6/w`'s Loop
-   canonical instead, then `Loop2`'s keyed reconciliation should be ported *there* and this package
+   canonical instead, then `Loop2`'s keyed matching should be ported *there* and this package
    should be folded into `libs/w` — that is a decision to take before P2, not after.
 5. **Make `Loop#getValue()` honest for primitive loops.** It returns whatever the item's accessor
    returns; for `primitive: true` that is the signal function, not the value. `Loop2` keeps parity and
@@ -475,7 +475,7 @@ findings, is not trusted:
 | class-component items are rebuilt by `setValue`                   | 3 constructions for 3 rows, still 3 after a reorder *and* after remove/re-add; a state field set on a live instance survived both |
 | the index fallback lets a new key steal a visible key's item      | pass 1 claims every still-present key first, so only genuinely free slots are reused — the documented `Loop` behaviour, with `strictKeys` as the opt-in that forbids it |
 
-A pass-2 key guard in `Loop2._reconcile` was written on the strength of that last claim and has since
+A pass-2 key guard in `Loop2._render` was written on the strength of that last claim and has since
 been **removed**: an instrumented run of every suite plus six adversarial keyed scenarios
 (insert-new-key-at-a-taken-index, drop-and-replace, full key replacement, move-plus-new-key,
 shrink-regrow, keyed→unkeyed) recorded **zero** firings. The remaining `used` check is the real

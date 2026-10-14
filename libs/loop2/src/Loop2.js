@@ -10,7 +10,7 @@
  * What Loop2 does differently from `@jsx6/jsx6`'s `Loop`:
  *
  * 1. **one algorithm for every mutation** — `setValue`, `push`, `pop`, `splice`, `moveItem` and
- *    `removeItem` all edit one data array and run the same keyed reconciliation, instead of the
+ *    `removeItem` all edit one data array and run the same keyed matching pass, instead of the
  *    four divergent hand-written paths (`setValue` / `setItem` / `splice` / `push`,`pop`) that
  *    produced the P0-3 / P0-4 defects and the keyed-vs-index inconsistencies between them;
  * 2. **`keyBy(data, index)`** — an explicit key extractor. This closes the documented limitation
@@ -150,7 +150,7 @@ const dataType = data => {
  * @property {any} [value] observable holding the array of items; observed on a timer, like `Loop`
  * @property {boolean} [primitive] true when loop values are primitive values
  * @property {(data: any, index: number) => any} [keyBy] explicit key extractor, called for every
- *   datum on every reconciliation with the datum and its index in the rendered data. When it returns
+ *   datum on every pass with the datum and its index in the rendered data. When it returns
  *   a non-nullish value that value is the key and the `$key`/`loopKey` heuristics are not consulted
  *   for that datum; returning `undefined`/`null` falls back to them.
  * @property {(data: any, index: number) => any} [typeBy] type extractor, the second axis of a row's
@@ -175,8 +175,8 @@ const dataType = data => {
  * @property {(key: any, data: any, index: number, first: number) => void} [onDuplicateKey] called when
  *   a key repeats in the rendered data. The first occurrence owns the item (with the datum of the
  *   *first* occurrence); the later entry still gets its own item — keyed data never renders one datum
- *   twice — but that item owns no key, so it is matched by index from then on. Once per key per
- *   reconciliation; defaults to a `console.warn`. `first` is the index whose item already owns the key.
+ *   twice — but that item owns no key, so it is matched by index from then on. Once per key per pass;
+ *   defaults to a `console.warn`. `first` is the index whose item already owns the key.
  * @property {(item: any, data: any) => void} [onPark] called once for every item that leaves the
  *   visible set but is **kept for reuse** (a `setValue` shrink, a `pop`). The hook for releasing
  *   per-row resources (subscriptions, timers, media) without destroying the instance — the item keeps
@@ -254,10 +254,8 @@ export class Loop2 {
   /** item/node → its index in `allItems`; rebuilt by `_fixItemList(true)` @type {Map<any, number>} */
   _idx = new Map()
   _disposed = false
-  /** keys already reported in the current reconciliation (`onDuplicateKey`) @type {Map<any, number>} */
+  /** keys already reported in the current pass (`onDuplicateKey`) @type {Map<any, number>} */
   _dupes = new Map()
-  /** reconciliation counter, so a duplicate key is reported once per reconciliation */
-  _frame = 0
   /** how many nodes `_orderDom()` has moved since construction — the DOM-mutation metric the tests
    *  assert on */
   domMoves = 0
@@ -330,10 +328,10 @@ export class Loop2 {
    */
   setValue(v) {
     this.data = (v || []).slice()
-    this._reconcile()
+    this._render()
   }
 
-  /** The reconciliation algorithm, shared by every mutation.
+  /** Render the current `data`, shared by every mutation.
    *
    *  Passes: (1) a datum that declares a key claims the item that owns that key; (2) unkeyed data
    *  keeps the item at its previous index; (3) a parked item, or a freshly built one, fills what is
@@ -343,7 +341,7 @@ export class Loop2 {
    *  The pass is not transactional: a user callback that throws (a builder, a setter, a hook) stops it
    *  where it stands. The loop renders correctly again on the next `setValue` — nothing is restored.
    */
-  _reconcile() {
+  _render() {
     const v = this.data || []
     const n = v.length
     const all = this.allItems
@@ -365,7 +363,6 @@ export class Loop2 {
     /** the items this pass built — already bound by `makeItem`, so the commit loop must not re-bind */
     const createdSet = new Set()
     this._dupes = new Map()
-    this._frame++
 
     for (let i = 0; i < n; i++) wanted[i] = this._keyOf(v[i], i)
 
@@ -537,7 +534,7 @@ export class Loop2 {
     return item
   }
 
-  /** Append one entry: O(1) for unkeyed data (the common case), a full reconciliation when the
+  /** Append one entry: O(1) for unkeyed data (the common case), a full pass when the
    *  datum's key belongs to an item parked somewhere else in the pool.
    *
    *  @param {any} data
@@ -550,7 +547,7 @@ export class Loop2 {
     // fast path: the append slot already holds the item this datum would be matched with
     if (key !== undefined && owner !== this.allItems[i]) {
       this.data.push(data)
-      this._reconcile()
+      this._render()
       return this.items[i]
     }
     const visibleBefore = this.items.slice()
@@ -587,7 +584,7 @@ export class Loop2 {
     return item
   }
 
-  /** Array-style edit of the rendered data, followed by one reconciliation.
+  /** Array-style edit of the rendered data, followed by one full pass.
    *
    *  @param {number} index
    *  @param {number} [deleteCount]
@@ -597,7 +594,7 @@ export class Loop2 {
    */
   splice(index, deleteCount = 0, ...toAdd) {
     const removed = this.data.splice(index, deleteCount, ...toAdd)
-    this._reconcile()
+    this._render()
     return removed
   }
 
@@ -614,7 +611,7 @@ export class Loop2 {
     let to = fromIndex < insertBefore ? insertBefore - 1 : insertBefore
     if (!(to >= 0) || to > this.data.length) to = this.data.length
     this.data.splice(to, 0, moved)
-    this._reconcile()
+    this._render()
     return moved
   }
 
@@ -822,10 +819,10 @@ export class Loop2 {
     this._itemTypes.set(item, type)
   }
 
-  /** Report a key that repeats in the rendered data, once per key per reconciliation — a `setValue`
+  /** Report a key that repeats in the rendered data, once per key per pass — a `setValue`
    *  in a rAF loop must not repeat the report every frame.
    *  The stamp is written *before* the reporter runs, so a throwing reporter cannot turn into a
-   *  per-frame log either; `_dupes` is reset at the start of every reconciliation.
+   *  per-frame log either; `_dupes` is reset at the start of every pass.
    *
    *  @param {any} key
    *  @param {any} data the later datum
@@ -874,7 +871,7 @@ export class Loop2 {
 
   /** Bind `item` to `key`, unless a *visible* item already owns that key: a duplicate key never
    *  steals the entry of an earlier one. Used by the one-entry mutations, which must not silently
-   *  rearrange the list; `_reconcile` does its own first-occurrence-wins bookkeeping. */
+   *  rearrange the list; `_render()` does its own first-occurrence-wins bookkeeping. */
   _claimKey(item, key) {
     if (!item || key === undefined || key === null) return
     const owner = this.keyMap.get(key)
@@ -951,7 +948,7 @@ export class Loop2 {
    */
   makeItem(data, i, type) {
     const { builder, setter } = this
-    // the caller (a reconciliation) resolves the type from the key it already has; a direct
+    // the caller (a render pass) resolves the type from the key it already has; a direct
     // `makeItem` call resolves it here. Only a loop that can *have* types is asked: without `typeBy`
     // a key that is not an object cannot carry one, so nothing is computed (and `keyBy` is not called
     // a second time for a row an untyped loop does not care about).

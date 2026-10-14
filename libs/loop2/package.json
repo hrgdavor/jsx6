@@ -41,7 +41,6 @@
     "list",
     "loop",
     "keyed",
-    "reconciliation",
     "virtual-dom"
   ],
   "author": "Davor hrg",

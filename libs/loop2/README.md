@@ -51,11 +51,11 @@ div = (
 |                                                      | `@jsx6/jsx6` `Loop`                           | `@jsx6/w` `jsx6-loop`        | **`@jsx6/loop2` `Loop2`**                    |
 | ---------------------------------------------------- | --------------------------------------------- | ---------------------------- | -------------------------------------------- |
 | host                                                 | plain object with an anchor text node (`el`)  | `HTMLElement` custom element | plain object with an anchor text node (`el`) |
-| keyed reconciliation                                 | yes (`$key` / template `key`)                 | no (index only)              | yes, plus `keyBy`                            |
+| keyed matching                                       | yes (`$key` / template `key`)                 | no (index only)              | yes, plus `keyBy`                            |
 | explicit key extractor                               | —                                             | —                            | **`keyBy(data, i)`**                         |
 | keyed primitives                                     | —                                             | —                            | **yes, with `keyBy`**                        |
 | fresh datum objects matchable by key                 | only with `$key` on the data                  | —                            | **yes (`keyBy`)**                            |
-| mutation paths                                       | four hand-written paths                       | three                        | **one reconciliation for all**               |
+| mutation paths                                       | four hand-written paths                       | three                        | **one matching pass for all**                |
 | bounded reuse pool                                   | — (keeps every item ever built)               | —                            | **`maxPooled` / `releasePool()`**            |
 | teardown (`disposeItem` / `dispose` / `disposeNode`) | yes                                           | —                            | **yes**                                      |
 | works while detached                                 | throws `JSX6E8`                               | needs `connectedCallback`    | **tolerates it, `refresh()` attaches**       |
@@ -83,9 +83,9 @@ div = (
 | `p`              | string                          | —              | scope property the jsx runtime assigns the loop to                                 |
 | `onBuild`        | `(item, data, i) => void`       | —              | called after an item was built — the rebuild counter for tests/metrics             |
 | `onRelease`      | `(item) => void`                | —              | called after an item's bindings were released                                      |
-| `onPark`         | `(item, data) => void`          | —              | called when an item leaves the visible range but is kept for reuse                 |
-| `onRestore`      | `(item, data) => void`          | —              | called when an item enters the visible range                                       |
-| `onDuplicateKey` | `(key, data, i, first) => void` | `console.warn` | called once per reconciliation when a key repeats in the rendered range            |
+| `onPark`         | `(item, data) => void`          | —              | called when an item leaves the visible set but is kept for reuse                   |
+| `onRestore`      | `(item, data) => void`          | —              | called when an item enters the visible set                                         |
+| `onDuplicateKey` | `(key, data, i, first) => void` | `console.warn` | called once per pass when a key repeats in the rendered data                       |
 | `onBeforeMove`   | `(item) => void`                | —              | called just before an item's nodes are moved (FLIP animations)                     |
 | `onAfterMove`    | `(item) => void`                | —              | called after an item's nodes were moved                                            |
 | *anything else*  |                                 |                | copied onto every item as a template attribute                                     |
@@ -117,7 +117,7 @@ Notes and limits, inherited from `Loop` (see plan/keyed-loop-design.md §2–§4
 
 - a JSX `key` is evaluated **once**, when the item is built, so a *template-only* key is frozen; that
   is why `keyBy` (or `$key` on the data) is what makes fresh objects matchable;
-- a duplicate key keeps the first occurrence in list order; the later one gets an index-reconciled
+- a duplicate key keeps the first occurrence in list order; the later one gets an index-matched
   entry, no crash and no duplicated item;
 - `$key` on an *element* is overloaded with the `p` attribute group, so only `loopKey` is read there;
 - with the default `strictKeys: false`, a datum whose key is new may take over the item that was freed
@@ -170,7 +170,7 @@ loop.setValue(rows)
 | `getData()`                                | a copy of the data array currently rendered                                                  |
 | `setItem(data, i)`                         | update/create one position (`i === count` grows the list; anything else outside `0..count` throws `RangeError`) |
 | `push(data)` / `pop()`                     | append / remove the last entry; `pop()` parks the item for reuse and returns it              |
-| `splice(index, deleteCount, ...toAdd)`     | Array-style edit followed by one reconciliation; returns the removed **data**                |
+| `splice(index, deleteCount, ...toAdd)`     | Array-style edit followed by one full pass; returns the removed **data**                     |
 | `moveItem(fromIndex, insertBefore)`        | move an entry, with `Loop`'s "index in the original order" semantics                         |
 | `removeItem(item)`                         | remove a **visible** entry (item, index, node or function); throws `JSX6E12` when unknown    |
 | `getItem(i)` / `getItems()` / `items`      | visible items                                                                                |
@@ -186,7 +186,7 @@ loop.setValue(rows)
 | `dispose()`                                | release the value subscription and every item, visible or parked; idempotent                 |
 | `el`                                       | the anchor text node a template inserts                                                      |
 
-Every mutation runs the same reconciliation: keyed matching first, index fallback second, pool reuse
+Every mutation runs the same matching pass: keyed matching first, index fallback second, pool reuse
 or a build third, then DOM attach/order and pool trimming. That is why `push`, `splice` and `setValue`
 cannot disagree about which instance an entry gets. A throwing callback (a builder, a setter, a hook)
 stops the pass where it stands; the next `setValue` renders the list correctly again.
