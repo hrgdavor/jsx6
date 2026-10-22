@@ -81,7 +81,15 @@ function jsxDEV(tag, { children, ...attr } = {}, key, isStatic, source) {
     if (tag === Fragment) return children
 
     let out = toDom(tag, attr, children)
-    if (isNode(out)) out._source = source
+    const target = isNode(out) ? out : out && isNode(out.el) ? out.el : null
+    if (target) {
+      // A class component's result is the instance, not a node; its rendered root carries the
+      // component identity instead of a usage-site `_source`. Tooling (jsxed's inspect mode) uses
+      // `_component` to tell a component instance from an intrinsic tag even when the root tag is
+      // lowercase — `Panel` renders a `section`, `Vote` renders a button.
+      if (typeof tag === 'function' && componentName(tag)) target._component = componentName(tag)
+      if (isNode(out)) out._source = source
+    }
     return out
   } catch (e) {
     // TypeScript 7 types `catch` bindings as `unknown`; narrow before reading `.message`.
@@ -106,6 +114,18 @@ function jsxDEV(tag, { children, ...attr } = {}, key, isStatic, source) {
 
 // will not be called, we intercept the reference and return children in jsxDEV
 var Fragment = (attr, children) => children
+
+/**
+ * The identity a component root is marked with. A function's name is kept as-is (`Panel`, `Vote`);
+ * an anonymous component has no useful identity, so it is not marked rather than marked as
+ * `anonymous` and mislabelled in tooling.
+ *
+ * @param {Function} tag
+ * @returns {string}
+ */
+function componentName(tag) {
+  return typeof tag.name === 'string' ? tag.name : ''
+}
 
 // explicit opt-in: install immediately, before the first element is created
 if (readInspectorFlag() === true) installInspector()

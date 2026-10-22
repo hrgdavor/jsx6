@@ -76,3 +76,34 @@ test('JSX6_DEV_INSPECTOR=false opts out of the automatic installation', async ()
     delete (/** @type {any} */ (globalThis).JSX6_DEV_INSPECTOR)
   }
 })
+
+// Tooling (jsxed's inspect mode) has to tell a component instance from an intrinsic tag even when
+// the component's root tag is lowercase (`Panel` renders a `section`). `_source` alone cannot: the
+// class root keeps its template source, and a functional component's usage source is only one range.
+// The dev runtime therefore marks the rendered root with the component's identity.
+test('component roots carry the component identity, intrinsic tags do not', async () => {
+  const mod = await import('./index.js')
+  const source = { fileName: 'demo.jsx', lineNumber: 7, columnNumber: 3 }
+
+  // functional component: the returned node is the root
+  const Greeting = () =>
+    mod.jsxDEV('P', { children: 'hi' }, undefined, false, { fileName: 'demo.jsx', lineNumber: 2 })
+  const greeting = mod.jsxDEV(Greeting, {}, undefined, false, source)
+  expect(greeting._component).toBe('Greeting')
+  expect(greeting._source).toBe(source)
+
+  // class component: the instance exposes its rendered root as `.el`
+  class Panel {
+    constructor() {
+      this.el = document.createElement('section')
+    }
+  }
+  const panel = mod.jsxDEV(Panel, {}, undefined, false, source)
+  expect(panel).toBeInstanceOf(Panel)
+  expect(panel.el._component).toBe('Panel')
+
+  // intrinsic tag: no identity to mark
+  const div = mod.jsxDEV('DIV', {}, undefined, false, source)
+  expect(div._component).toBeUndefined()
+  expect(div._source).toBe(source)
+})
